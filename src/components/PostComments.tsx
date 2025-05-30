@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { Send, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Textarea } from '@/components/ui/textarea';
+import CommentInput from './CommentInput';
 
 interface Comment {
   id: string;
   content: string;
   created_at: string;
   user_id: string;
+  image_url?: string;
   profiles: {
     id: string;
     username: string;
@@ -32,7 +33,6 @@ const PostComments: React.FC<PostCommentsProps> = ({
 }) => {
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -86,23 +86,43 @@ const PostComments: React.FC<PostCommentsProps> = ({
     }
   };
 
-  const handleSubmitComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !newComment.trim() || isSubmitting) return;
+  const handleSubmitComment = async (content: string, imageFile?: File) => {
+    if (!user || !content.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
+      let imageUrl = null;
+
+      // Upload image if provided
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `comment-images/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('hashtag-images')
+          .upload(filePath, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('hashtag-images')
+          .getPublicUrl(filePath);
+
+        imageUrl = publicUrl;
+      }
+
       const { error } = await supabase
         .from('hashtag_comments')
         .insert({
           post_id: postId,
           user_id: user.id,
-          content: newComment.trim()
+          content: content.trim(),
+          image_url: imageUrl
         });
 
       if (error) throw error;
 
-      setNewComment('');
       await fetchComments();
       onCommentAdded();
     } catch (error) {
@@ -126,10 +146,10 @@ const PostComments: React.FC<PostCommentsProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-zinc-900 w-full sm:w-96 sm:max-w-md h-[70vh] sm:h-auto sm:max-h-[70vh] rounded-t-lg sm:rounded-lg flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-zinc-900 w-full max-w-md h-[80vh] rounded-lg flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-zinc-700">
+        <div className="flex items-center justify-between p-4 border-b border-zinc-700 flex-shrink-0">
           <h3 className="text-lg font-semibold text-white">التعليقات</h3>
           <button
             onClick={onClose}
@@ -137,6 +157,15 @@ const PostComments: React.FC<PostCommentsProps> = ({
           >
             <X size={20} />
           </button>
+        </div>
+
+        {/* Comment Input - Moved to top */}
+        <div className="p-4 border-b border-zinc-700 flex-shrink-0">
+          <CommentInput
+            onSubmit={handleSubmitComment}
+            isSubmitting={isSubmitting}
+            placeholder="اكتب تعليقاً..."
+          />
         </div>
 
         {/* Comments List */}
@@ -167,32 +196,19 @@ const PostComments: React.FC<PostCommentsProps> = ({
                         {formatTimestamp(comment.created_at)}
                       </span>
                     </div>
-                    <p className="text-sm text-zinc-300">{comment.content}</p>
+                    <p className="text-sm text-zinc-300 whitespace-pre-wrap">{comment.content}</p>
+                    {comment.image_url && (
+                      <img 
+                        src={comment.image_url} 
+                        alt="Comment attachment" 
+                        className="mt-2 max-w-full h-auto rounded-lg"
+                      />
+                    )}
                   </div>
                 </div>
               </div>
             ))
           )}
-        </div>
-
-        {/* Comment Input */}
-        <div className="p-4 border-t border-zinc-700">
-          <form onSubmit={handleSubmitComment} className="flex space-x-2 space-x-reverse">
-            <Textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="اكتب تعليقاً..."
-              className="flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-400 resize-none min-h-[40px] max-h-[120px]"
-              disabled={isSubmitting}
-            />
-            <button
-              type="submit"
-              disabled={!newComment.trim() || isSubmitting}
-              className="p-2 bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Send size={16} className="text-white" />
-            </button>
-          </form>
         </div>
       </div>
     </div>
