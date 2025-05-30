@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,15 +25,16 @@ const Matches = () => {
   const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'finished'>('live');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [apiStatus, setApiStatus] = useState<'working' | 'error' | 'no-key'>('working');
 
   const fetchMatches = async (status: string) => {
     console.log('Fetching matches for status:', status);
     try {
       setIsLoading(true);
+      setApiStatus('working');
       
       const today = new Date().toISOString().split('T')[0];
       
-      // تجربة عدة طرق لإرسال البيانات
       console.log('Calling edge function with params:', { status, date: today });
       
       const { data, error } = await supabase.functions.invoke('get-football-matches', {
@@ -47,27 +49,8 @@ const Matches = () => {
 
       if (error) {
         console.error('Error calling function:', error);
-        
-        // تجربة مع URL parameters كخطة بديلة
-        console.log('Trying with URL parameters...');
-        const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke(
-          `get-football-matches?status=${status}&date=${today}`,
-          { 
-            method: 'GET'
-          }
-        );
-        
-        if (fallbackError) {
-          console.error('Fallback also failed:', fallbackError);
-          throw fallbackError;
-        }
-        
-        if (fallbackData && fallbackData.matches) {
-          setMatches(fallbackData.matches);
-          console.log(`Set ${fallbackData.matches.length} matches for status ${status}`);
-        } else {
-          setMatches([]);
-        }
+        setApiStatus('error');
+        setMatches([]);
         return;
       }
 
@@ -76,11 +59,13 @@ const Matches = () => {
       if (data && data.matches) {
         setMatches(data.matches);
         console.log(`Set ${data.matches.length} matches for status ${status}`);
+        console.log(`Total available: ${data.totalAvailable}, From target leagues: ${data.fromTargetLeagues}`);
       } else {
         setMatches([]);
       }
     } catch (error) {
       console.error('Error fetching matches:', error);
+      setApiStatus('error');
       setMatches([]);
     } finally {
       setIsLoading(false);
@@ -136,6 +121,25 @@ const Matches = () => {
           </button>
         </div>
 
+        {/* API Status Indicator */}
+        {apiStatus === 'error' && (
+          <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 mb-4">
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+              <p className="text-red-400">مشكلة في الاتصال بـ API. تحقق من إعدادات المفتاح.</p>
+            </div>
+          </div>
+        )}
+
+        {apiStatus === 'working' && !isLoading && (
+          <div className="bg-green-900/20 border border-green-500 rounded-lg p-4 mb-4">
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+              <p className="text-green-400">API يعمل بشكل طبيعي</p>
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex bg-zinc-800 rounded-lg p-1 mb-6">
           {tabs.map((tab) => (
@@ -166,15 +170,21 @@ const Matches = () => {
           <div className="space-y-4">
             {matches.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-zinc-400">
-                  {activeTab === 'live' && (isRTL ? 'لا توجد مباريات مباشرة حالياً' : 'No live matches currently')}
-                  {activeTab === 'upcoming' && (isRTL ? 'لا توجد مباريات قادمة اليوم' : 'No upcoming matches today')}
-                  {activeTab === 'finished' && (isRTL ? 'لا توجد مباريات منتهية اليوم' : 'No finished matches today')}
-                </p>
+                <div className="bg-zinc-800 rounded-lg p-6">
+                  <div className="text-4xl mb-4">⚽</div>
+                  <p className="text-zinc-400 text-lg mb-2">
+                    {activeTab === 'live' && 'لا توجد مباريات مباشرة حالياً'}
+                    {activeTab === 'upcoming' && 'لا توجد مباريات قادمة اليوم'}
+                    {activeTab === 'finished' && 'لا توجد مباريات منتهية اليوم'}
+                  </p>
+                  <p className="text-zinc-500 text-sm">
+                    جرب تحديث الصفحة أو العودة لاحقاً
+                  </p>
+                </div>
               </div>
             ) : (
               matches.map((match) => (
-                <div key={match.id} className="bg-zinc-800 rounded-lg p-4 relative overflow-hidden">
+                <div key={match.id} className="bg-zinc-800 rounded-lg p-4 relative overflow-hidden hover:bg-zinc-750 transition-colors">
                   {/* League Flag Background */}
                   {match.leagueFlag && (
                     <div className="absolute top-2 right-2 opacity-10">

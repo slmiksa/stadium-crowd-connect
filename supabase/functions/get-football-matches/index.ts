@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -32,15 +33,35 @@ const leagueTranslations: { [key: string]: string } = {
   'Iraqi Premier League': 'الدوري العراقي الممتاز',
   'Jordan League': 'دوري المحترفين الأردني',
   'Lebanese Premier League': 'الدوري اللبناني الممتاز',
-  'Syrian Premier League': 'الدوري السوري الممتاز'
+  'Syrian Premier League': 'الدوري السوري الممتاز',
+  'FA Cup': 'كأس الاتحاد الإنجليزي',
+  'Copa del Rey': 'كأس ملك إسبانيا',
+  'DFB Pokal': 'كأس ألمانيا',
+  'Coppa Italia': 'كأس إيطاليا',
+  'Coupe de France': 'كأس فرنسا'
 }
 
-// معرفات الدوريات المهمة (السعودية والعربية والعالمية)
+// معرفات الدوريات المهمة (إضافة المزيد من الدوريات العالمية)
 const targetLeagues = [
+  // السعودية
   307, // Saudi Pro League
   556, // King Cup Saudi Arabia
   308, // Saudi Super Cup
+  
+  // آسيا والعرب
   480, // AFC Champions League
+  233, // Egyptian Premier League
+  301, // UAE Pro League
+  274, // Qatar Stars League
+  200, // Moroccan Botola Pro
+  202, // Tunisian Ligue 1
+  204, // Algerian Ligue 1
+  269, // Iraqi Premier League
+  664, // Jordan League
+  289, // Lebanese Premier League
+  288, // Syrian Premier League
+  
+  // عالمية
   1,   // World Cup
   2,   // Champions League
   39,  // Premier League
@@ -51,16 +72,13 @@ const targetLeagues = [
   9,   // Copa America
   4,   // UEFA Euro
   12,  // CAF Champions League
-  233, // Egyptian Premier League
-  301, // UAE Pro League
-  274, // Qatar Stars League
-  200, // Moroccan Botola Pro
-  202, // Tunisian Ligue 1
-  204, // Algerian Ligue 1
-  269, // Iraqi Premier League
-  664, // Jordan League
-  289, // Lebanese Premier League
-  288  // Syrian Premier League
+  
+  // كؤوس محلية
+  48,  // FA Cup
+  143, // Copa del Rey
+  81,  // DFB Pokal
+  137, // Coppa Italia
+  66   // Coupe de France
 ]
 
 serve(async (req) => {
@@ -164,7 +182,11 @@ serve(async (req) => {
       const errorText = await response.text()
       console.error('API error response:', errorText)
       return new Response(
-        JSON.stringify({ error: 'فشل في جلب البيانات من API' }),
+        JSON.stringify({ 
+          error: 'فشل في جلب البيانات من API',
+          details: `Status: ${response.status}`,
+          apiStatus: response.status
+        }),
         { 
           status: response.status, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -173,14 +195,21 @@ serve(async (req) => {
     }
 
     const data = await response.json()
-    console.log(`API returned ${data.response?.length || 0} fixtures`)
+    console.log(`API returned ${data.response?.length || 0} total fixtures`)
 
-    // فلترة المباريات للدوريات المطلوبة فقط
-    const filteredMatches = data.response?.filter((fixture: any) => 
+    // إذا لم توجد مباريات في الدوريات المستهدفة، جلب جميع المباريات
+    let filteredMatches = data.response?.filter((fixture: any) => 
       targetLeagues.includes(fixture.league.id)
     ) || []
 
     console.log(`Filtered to ${filteredMatches.length} matches from target leagues`)
+
+    // إذا لم توجد مباريات في الدوريات المستهدفة، جلب أهم المباريات
+    if (filteredMatches.length === 0 && data.response && data.response.length > 0) {
+      console.log('No matches in target leagues, showing popular matches')
+      // أخذ أول 20 مباراة من أي دوري
+      filteredMatches = data.response.slice(0, 20)
+    }
 
     // تحويل البيانات إلى التنسيق المطلوب
     const matches = filteredMatches.map((fixture: any) => {
@@ -215,7 +244,11 @@ serve(async (req) => {
     console.log(`Returning ${matches.length} processed matches`)
 
     return new Response(
-      JSON.stringify({ matches }),
+      JSON.stringify({ 
+        matches,
+        totalAvailable: data.response?.length || 0,
+        fromTargetLeagues: filteredMatches.length > 0
+      }),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
