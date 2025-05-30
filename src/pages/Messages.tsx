@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,14 +6,14 @@ import { Search, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 
-type PrivateMessage = Tables<'private_messages'> & {
-  sender_profile: Tables<'profiles'>;
-  receiver_profile: Tables<'profiles'>;
+type PrivateMessageWithProfiles = Tables<'private_messages'> & {
+  sender_profile: Pick<Tables<'profiles'>, 'id' | 'username' | 'avatar_url'>;
+  receiver_profile: Pick<Tables<'profiles'>, 'id' | 'username' | 'avatar_url'>;
 };
 
 interface Conversation {
   id: string;
-  other_user: Tables<'profiles'>;
+  other_user: Pick<Tables<'profiles'>, 'id' | 'username' | 'avatar_url'>;
   last_message: string;
   timestamp: string;
   unread: boolean;
@@ -62,8 +61,8 @@ const Messages = () => {
         .from('private_messages')
         .select(`
           *,
-          sender_profile:sender_id(id, username, avatar_url),
-          receiver_profile:receiver_id(id, username, avatar_url)
+          sender_profile:profiles!private_messages_sender_id_fkey(id, username, avatar_url),
+          receiver_profile:profiles!private_messages_receiver_id_fkey(id, username, avatar_url)
         `)
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
@@ -81,7 +80,7 @@ const Messages = () => {
           ? message.receiver_profile 
           : message.sender_profile;
         
-        if (!otherUser) return;
+        if (!otherUser?.id) return;
         
         const conversationId = otherUser.id;
         
@@ -111,7 +110,7 @@ const Messages = () => {
   };
 
   const filteredConversations = conversations.filter(conversation =>
-    conversation.other_user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conversation.other_user.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     conversation.last_message.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -197,7 +196,7 @@ const Messages = () => {
                     {/* Avatar */}
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-sm font-bold text-white">
-                        {conversation.other_user.username.charAt(0).toUpperCase()}
+                        {conversation.other_user.username?.charAt(0).toUpperCase() || 'U'}
                       </span>
                     </div>
                     
@@ -205,7 +204,7 @@ const Messages = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className={`font-medium truncate ${conversation.unread ? 'text-white' : 'text-zinc-300'}`}>
-                          {conversation.other_user.username}
+                          {conversation.other_user.username || 'Unknown'}
                         </h3>
                         <span className="text-xs text-zinc-500 flex-shrink-0 ml-2">
                           {formatTimestamp(conversation.timestamp)}

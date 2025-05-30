@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,8 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 
-type ChatRoom = Tables<'chat_rooms'> & {
-  profiles: Tables<'profiles'>;
+type ChatRoomWithDetails = Tables<'chat_rooms'> & {
+  profiles: Pick<Tables<'profiles'>, 'id' | 'username' | 'avatar_url'>;
   room_members: { user_id: string }[];
 };
 
@@ -17,7 +16,7 @@ const ChatRooms = () => {
   const { t, isRTL } = useLanguage();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [rooms, setRooms] = useState<ChatRoom[]>([]);
+  const [rooms, setRooms] = useState<ChatRoomWithDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');

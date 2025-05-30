@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,8 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 
-type HashtagPost = Tables<'hashtag_posts'> & {
-  profiles: Tables<'profiles'>;
+type HashtagPostWithDetails = Tables<'hashtag_posts'> & {
+  profiles: Pick<Tables<'profiles'>, 'id' | 'username' | 'avatar_url'>;
   hashtag_likes: { user_id: string }[];
 };
 
@@ -17,7 +16,7 @@ const Hashtags = () => {
   const { t, isRTL } = useLanguage();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [posts, setPosts] = useState<HashtagPost[]>([]);
+  const [posts, setPosts] = useState<HashtagPostWithDetails[]>([]);
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const [newPost, setNewPost] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
