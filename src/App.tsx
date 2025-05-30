@@ -16,6 +16,21 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Separate component to handle authenticated routes
+const AuthenticatedApp = () => (
+  <AuthGuard>
+    <Routes>
+      <Route path="/" element={<Navigate to="/matches" replace />} />
+      <Route path="/matches" element={<Matches />} />
+      <Route path="/hashtags" element={<Hashtags />} />
+      <Route path="/chat-rooms" element={<ChatRooms />} />
+      <Route path="/messages" element={<Messages />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </AuthGuard>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -24,17 +39,7 @@ const App = () => (
       <LanguageProvider>
         <AuthProvider>
           <BrowserRouter>
-            <AuthGuard>
-              <Routes>
-                <Route path="/" element={<Navigate to="/matches" replace />} />
-                <Route path="/matches" element={<Matches />} />
-                <Route path="/hashtags" element={<Hashtags />} />
-                <Route path="/chat-rooms" element={<ChatRooms />} />
-                <Route path="/messages" element={<Messages />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </AuthGuard>
+            <AuthenticatedApp />
           </BrowserRouter>
         </AuthProvider>
       </LanguageProvider>
