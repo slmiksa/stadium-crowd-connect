@@ -42,10 +42,12 @@ const CommentInput: React.FC<CommentInputProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!comment.trim() || isSubmitting) return;
+    
+    const trimmedComment = comment.trim();
+    if (!trimmedComment || isSubmitting) return;
 
     try {
-      await onSubmit(comment.trim(), selectedImage || undefined);
+      await onSubmit(trimmedComment, selectedImage || undefined);
       setComment('');
       removeImage();
     } catch (error) {
@@ -53,7 +55,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
@@ -71,6 +73,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
             className="w-20 h-20 object-cover rounded-lg"
           />
           <button
+            type="button"
             onClick={removeImage}
             className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"
           >
@@ -85,7 +88,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
           <Textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
             className="flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-400 resize-none min-h-[60px] max-h-[120px]"
             disabled={isSubmitting}
@@ -106,7 +109,11 @@ const CommentInput: React.FC<CommentInputProps> = ({
               className="p-2 bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               size="sm"
             >
-              <Send size={16} className="text-white" />
+              {isSubmitting ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Send size={16} className="text-white" />
+              )}
             </Button>
           </div>
         </div>

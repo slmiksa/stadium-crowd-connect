@@ -44,6 +44,8 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
   const fetchComments = async () => {
     try {
+      setIsLoading(true);
+      
       // First get the comments
       const { data: commentsData, error: commentsError } = await supabase
         .from('hashtag_comments')
@@ -51,7 +53,11 @@ const PostComments: React.FC<PostCommentsProps> = ({
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
-      if (commentsError) throw commentsError;
+      if (commentsError) {
+        console.error('Error fetching comments:', commentsError);
+        setComments([]);
+        return;
+      }
 
       // Then get the profiles for all users
       if (commentsData && commentsData.length > 0) {
@@ -62,7 +68,11 @@ const PostComments: React.FC<PostCommentsProps> = ({
           .select('id, username, avatar_url')
           .in('id', userIds);
 
-        if (profilesError) throw profilesError;
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          setComments([]);
+          return;
+        }
 
         // Combine comments with profiles
         const commentsWithProfiles = commentsData.map(comment => ({
@@ -79,7 +89,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         setComments([]);
       }
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      console.error('Error in fetchComments:', error);
       setComments([]);
     } finally {
       setIsLoading(false);
@@ -87,9 +97,13 @@ const PostComments: React.FC<PostCommentsProps> = ({
   };
 
   const handleSubmitComment = async (content: string, imageFile?: File) => {
-    if (!user || !content.trim() || isSubmitting) return;
+    if (!user || !content.trim() || isSubmitting) {
+      console.log('Cannot submit comment:', { user: !!user, content: content.trim(), isSubmitting });
+      return;
+    }
 
     setIsSubmitting(true);
+    
     try {
       let imageUrl = null;
 
@@ -103,7 +117,10 @@ const PostComments: React.FC<PostCommentsProps> = ({
           .from('hashtag-images')
           .upload(filePath, imageFile);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          throw uploadError;
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('hashtag-images')
@@ -112,7 +129,8 @@ const PostComments: React.FC<PostCommentsProps> = ({
         imageUrl = publicUrl;
       }
 
-      const { error } = await supabase
+      // Insert the comment
+      const { error: insertError } = await supabase
         .from('hashtag_comments')
         .insert({
           post_id: postId,
@@ -121,12 +139,18 @@ const PostComments: React.FC<PostCommentsProps> = ({
           image_url: imageUrl
         });
 
-      if (error) throw error;
+      if (insertError) {
+        console.error('Error inserting comment:', insertError);
+        throw insertError;
+      }
 
+      // Refresh comments and notify parent
       await fetchComments();
       onCommentAdded();
+      
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error('Error in handleSubmitComment:', error);
+      // You might want to show a toast notification here
     } finally {
       setIsSubmitting(false);
     }
