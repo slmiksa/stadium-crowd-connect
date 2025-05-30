@@ -26,6 +26,7 @@ const AuthenticatedApp = () => (
       <Route path="/chat-rooms" element={<ChatRooms />} />
       <Route path="/messages" element={<Messages />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/api-settings" element={<ApiSettings />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </AuthGuard>

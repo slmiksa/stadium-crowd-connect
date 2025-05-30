@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -73,8 +72,21 @@ serve(async (req) => {
   }
 
   try {
-    const apiKey = '4118b22421f6bbb075de5f099af8612a'
-    console.log('Using API Key:', apiKey.substring(0, 8) + '...')
+    // استخدام مفتاح API من Supabase Secrets
+    const apiKey = Deno.env.get('FOOTBALL_API_KEY')
+    
+    if (!apiKey) {
+      console.error('FOOTBALL_API_KEY not found in environment variables')
+      return new Response(
+        JSON.stringify({ error: 'مفتاح API غير موجود، يرجى إعداده في Supabase Secrets' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+    
+    console.log('Using API Key from Supabase Secrets:', apiKey.substring(0, 8) + '...')
 
     // قراءة المعاملات - تجربة طرق مختلفة
     let status = 'live'

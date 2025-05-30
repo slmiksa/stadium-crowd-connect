@@ -3,3 +3,6 @@ project_id = "zuvpksebzsthinjsxebt"
 
 [functions.get-football-matches]
 verify_jwt = false
+
+[functions.save-api-key]
+verify_jwt = false
