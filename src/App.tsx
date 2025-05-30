@@ -12,6 +12,7 @@ import Hashtags from "./pages/Hashtags";
 import ChatRooms from "./pages/ChatRooms";
 import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
+import ApiSettings from "./pages/ApiSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
