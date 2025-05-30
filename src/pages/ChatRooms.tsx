@@ -1,72 +1,70 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import { Search, Plus, Users, Lock, Globe } from 'lucide-react';
+import { Users, Search, Plus, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
-import { useToast } from '@/hooks/use-toast';
 
-type ChatRoomWithDetails = Tables<'chat_rooms'> & {
-  profiles: Pick<Tables<'profiles'>, 'id' | 'username' | 'avatar_url'>;
-  room_members: { user_id: string }[];
-};
+interface ChatRoomWithDetails {
+  id: string;
+  name: string;
+  description?: string;
+  is_private: boolean;
+  members_count: number;
+  created_at: string;
+  avatar_url?: string;
+  owner_id: string;
+  profiles: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+  };
+  room_members: Array<{
+    user_id: string;
+  }>;
+}
 
 const ChatRooms = () => {
   const { t, isRTL } = useLanguage();
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const { user, isInitialized } = useAuth();
   const [rooms, setRooms] = useState<ChatRoomWithDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newRoomName, setNewRoomName] = useState('');
-  const [newRoomDescription, setNewRoomDescription] = useState('');
-  const [newRoomPrivate, setNewRoomPrivate] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchRooms();
-    
-    // Subscribe to real-time updates
-    const channel = supabase
-      .channel('chat_rooms_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chat_rooms'
-        },
-        () => {
-          fetchRooms();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+    if (isInitialized && user) {
+      fetchRooms();
+    } else if (isInitialized) {
+      setIsLoading(false);
+    }
+  }, [user, isInitialized]);
 
   const fetchRooms = async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('chat_rooms')
         .select(`
           *,
-          profiles:owner_id(id, username, avatar_url),
-          room_members(user_id)
+          profiles:owner_id (
+            id,
+            username,
+            avatar_url
+          ),
+          room_members (
+            user_id
+          )
         `)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching rooms:', error);
-        toast({
-          title: isRTL ? 'خطأ' : 'Error',
-          description: isRTL ? 'فشل في تحميل الغرف' : 'Failed to load rooms',
-          variant: 'destructive',
-        });
         return;
       }
 
@@ -84,95 +82,6 @@ const ChatRooms = () => {
     setIsRefreshing(false);
   };
 
-  const handleCreateRoom = async () => {
-    if (!newRoomName.trim() || !user) {
-      toast({
-        title: isRTL ? 'خطأ' : 'Error',
-        description: isRTL ? 'يرجى إدخال اسم الغرفة' : 'Please enter room name',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      const { data: room, error: roomError } = await supabase
-        .from('chat_rooms')
-        .insert({
-          owner_id: user.id,
-          name: newRoomName,
-          description: newRoomDescription,
-          is_private: newRoomPrivate,
-        })
-        .select()
-        .single();
-
-      if (roomError) {
-        console.error('Error creating room:', roomError);
-        toast({
-          title: isRTL ? 'خطأ' : 'Error',
-          description: isRTL ? 'فشل في إنشاء الغرفة' : 'Failed to create room',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // Add owner as member
-      const { error: memberError } = await supabase
-        .from('room_members')
-        .insert({
-          room_id: room.id,
-          user_id: user.id,
-          role: 'owner',
-        });
-
-      if (memberError) {
-        console.error('Error adding owner as member:', memberError);
-      }
-
-      setNewRoomName('');
-      setNewRoomDescription('');
-      setNewRoomPrivate(false);
-      setShowCreateModal(false);
-      
-      toast({
-        title: isRTL ? 'تم' : 'Success',
-        description: isRTL ? 'تم إنشاء الغرفة بنجاح' : 'Room created successfully',
-      });
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
-  const handleJoinRoom = async (roomId: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('room_members')
-        .insert({
-          room_id: roomId,
-          user_id: user.id,
-        });
-
-      if (error) {
-        console.error('Error joining room:', error);
-        toast({
-          title: isRTL ? 'خطأ' : 'Error',
-          description: isRTL ? 'فشل في الانضمام للغرفة' : 'Failed to join room',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      toast({
-        title: isRTL ? 'تم' : 'Success',
-        description: isRTL ? 'تم الانضمام للغرفة بنجاح' : 'Joined room successfully',
-      });
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
   const filteredRooms = rooms.filter(room =>
     room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     room.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -180,10 +89,16 @@ const ChatRooms = () => {
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleDateString();
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h`;
+    return `${Math.floor(diffMins / 1440)}d`;
   };
 
-  if (isLoading) {
+  if (!isInitialized || isLoading) {
     return (
       <Layout>
         <div className="p-4 flex items-center justify-center min-h-64">
@@ -199,23 +114,13 @@ const ChatRooms = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-white">{t('chatRooms')}</h1>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="p-2 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors disabled:opacity-50"
-            >
-              <div className={`w-5 h-5 border-2 border-zinc-400 border-t-transparent rounded-full ${isRefreshing ? 'animate-spin' : ''}`}></div>
-            </button>
-            {user && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="p-2 bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                <Plus size={20} className="text-white" />
-              </button>
-            )}
-          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="p-2 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors disabled:opacity-50"
+          >
+            <div className={`w-5 h-5 border-2 border-zinc-400 border-t-transparent rounded-full ${isRefreshing ? 'animate-spin' : ''}`}></div>
+          </button>
         </div>
 
         {/* Search */}
@@ -232,135 +137,67 @@ const ChatRooms = () => {
 
         {/* Rooms List */}
         <div className="space-y-4">
-          {filteredRooms.map((room) => {
-            const isMember = user ? room.room_members.some(member => member.user_id === user.id) : false;
-            
-            return (
-              <div key={room.id} className="bg-zinc-800 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      {room.is_private ? (
-                        <Lock size={16} className="text-yellow-400" />
-                      ) : (
-                        <Globe size={16} className="text-green-400" />
+          {filteredRooms.length === 0 ? (
+            <div className="text-center py-8">
+              <Users size={48} className="mx-auto text-zinc-600 mb-4" />
+              <p className="text-zinc-400">
+                {searchQuery 
+                  ? (isRTL ? 'لم يتم العثور على غرف' : 'No rooms found')
+                  : (isRTL ? 'لا توجد غرف حالياً' : 'No rooms yet')
+                }
+              </p>
+            </div>
+          ) : (
+            filteredRooms.map((room) => (
+              <div key={room.id} className="bg-zinc-800 rounded-lg p-4 hover:bg-zinc-750 transition-colors cursor-pointer">
+                <div className="flex items-center space-x-3">
+                  {/* Room Avatar */}
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg font-bold text-white">
+                      {room.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  
+                  {/* Room Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <h3 className="font-medium text-white truncate">{room.name}</h3>
+                      {room.is_private && (
+                        <Lock size={16} className="text-zinc-400 flex-shrink-0" />
                       )}
-                      <h3 className="font-semibold text-white">{room.name}</h3>
                     </div>
                     
                     {room.description && (
-                      <p className="text-zinc-300 text-sm mb-2">{room.description}</p>
+                      <p className="text-sm text-zinc-400 truncate mb-1">
+                        {room.description}
+                      </p>
                     )}
                     
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4 text-sm text-zinc-400">
-                        <div className="flex items-center space-x-1">
-                          <Users size={14} />
-                          <span>{room.members_count || 0}</span>
-                        </div>
-                        <span>{isRTL ? 'أنشئت في' : 'Created'} {formatTimestamp(room.created_at!)}</span>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs text-zinc-500">
-                          {isRTL ? 'بواسطة' : 'by'} {room.profiles?.username}
+                      <div className="flex items-center space-x-4 text-xs text-zinc-500">
+                        <span className="flex items-center space-x-1">
+                          <Users size={12} />
+                          <span>{room.members_count}</span>
                         </span>
-                        {user && !isMember && (
-                          <button
-                            onClick={() => handleJoinRoom(room.id)}
-                            className="px-3 py-1 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
-                          >
-                            {isRTL ? 'انضم' : 'Join'}
-                          </button>
-                        )}
+                        <span>
+                          {isRTL ? 'بواسطة' : 'by'} {room.profiles?.username || 'مستخدم مجهول'}
+                        </span>
                       </div>
+                      <span className="text-xs text-zinc-500">
+                        {formatTimestamp(room.created_at)}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
-            );
-          })}
+            ))
+          )}
         </div>
 
-        {filteredRooms.length === 0 && (
-          <div className="text-center py-8">
-            <Users size={48} className="mx-auto text-zinc-600 mb-4" />
-            <p className="text-zinc-400">
-              {searchQuery 
-                ? (isRTL ? 'لم يتم العثور على غرف' : 'No rooms found')
-                : (isRTL ? 'لا توجد غرف حالياً' : 'No rooms yet')
-              }
-            </p>
-          </div>
-        )}
-
-        {/* Create Room Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-zinc-800 rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold text-white mb-6">
-                {isRTL ? 'إنشاء غرفة جديدة' : 'Create New Room'}
-              </h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-zinc-300 text-sm mb-2">
-                    {isRTL ? 'اسم الغرفة' : 'Room Name'}
-                  </label>
-                  <input
-                    type="text"
-                    value={newRoomName}
-                    onChange={(e) => setNewRoomName(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-700 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                    placeholder={isRTL ? 'أدخل اسم الغرفة' : 'Enter room name'}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-zinc-300 text-sm mb-2">
-                    {isRTL ? 'الوصف (اختياري)' : 'Description (optional)'}
-                  </label>
-                  <textarea
-                    value={newRoomDescription}
-                    onChange={(e) => setNewRoomDescription(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-700 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-blue-500 resize-none"
-                    rows={3}
-                    placeholder={isRTL ? 'أدخل وصف الغرفة' : 'Enter room description'}
-                  />
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="private"
-                    checked={newRoomPrivate}
-                    onChange={(e) => setNewRoomPrivate(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 bg-zinc-700 border-zinc-600 rounded focus:ring-blue-500"
-                  />
-                  <label htmlFor="private" className="text-zinc-300 text-sm">
-                    {isRTL ? 'غرفة خاصة' : 'Private room'}
-                  </label>
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors"
-                >
-                  {t('cancel')}
-                </button>
-                <button
-                  onClick={handleCreateRoom}
-                  disabled={!newRoomName.trim()}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
-                >
-                  {isRTL ? 'إنشاء' : 'Create'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Floating Action Button */}
+        <button className="fixed bottom-24 right-4 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors">
+          <Plus size={24} className="text-white" />
+        </button>
       </div>
     </Layout>
   );

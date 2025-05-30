@@ -1,19 +1,20 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import { Search, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
 
-type PrivateMessageWithProfiles = Tables<'private_messages'> & {
-  sender_profile: Pick<Tables<'profiles'>, 'id' | 'username' | 'avatar_url'>;
-  receiver_profile: Pick<Tables<'profiles'>, 'id' | 'username' | 'avatar_url'>;
-};
+interface ConversationProfile {
+  id: string;
+  username: string;
+  avatar_url?: string;
+}
 
 interface Conversation {
   id: string;
-  other_user: Pick<Tables<'profiles'>, 'id' | 'username' | 'avatar_url'>;
+  other_user: ConversationProfile;
   last_message: string;
   timestamp: string;
   unread: boolean;
@@ -21,14 +22,14 @@ interface Conversation {
 
 const Messages = () => {
   const { t, isRTL } = useLanguage();
-  const { user } = useAuth();
+  const { user, isInitialized } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
+    if (isInitialized && user) {
       fetchConversations();
       
       // Subscribe to real-time updates
@@ -50,11 +51,16 @@ const Messages = () => {
       return () => {
         supabase.removeChannel(channel);
       };
+    } else if (isInitialized) {
+      setIsLoading(false);
     }
-  }, [user]);
+  }, [user, isInitialized]);
 
   const fetchConversations = async () => {
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const { data: messages, error } = await supabase
@@ -87,7 +93,11 @@ const Messages = () => {
         if (!conversationMap.has(conversationId)) {
           conversationMap.set(conversationId, {
             id: conversationId,
-            other_user: otherUser,
+            other_user: {
+              id: otherUser.id,
+              username: otherUser.username || 'مستخدم مجهول',
+              avatar_url: otherUser.avatar_url || undefined,
+            },
             last_message: message.content,
             timestamp: message.created_at!,
             unread: !message.is_read && message.receiver_id === user.id,
@@ -127,7 +137,7 @@ const Messages = () => {
 
   const unreadCount = conversations.filter(c => c.unread).length;
 
-  if (isLoading) {
+  if (!isInitialized || isLoading) {
     return (
       <Layout>
         <div className="p-4 flex items-center justify-center min-h-64">
@@ -204,7 +214,7 @@ const Messages = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className={`font-medium truncate ${conversation.unread ? 'text-white' : 'text-zinc-300'}`}>
-                          {conversation.other_user.username || 'Unknown'}
+                          {conversation.other_user.username || 'مستخدم مجهول'}
                         </h3>
                         <span className="text-xs text-zinc-500 flex-shrink-0 ml-2">
                           {formatTimestamp(conversation.timestamp)}
