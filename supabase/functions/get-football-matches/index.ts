@@ -85,6 +85,8 @@ serve(async (req) => {
       )
     }
 
+    console.log('API Key found, making request...')
+
     const url = new URL(req.url)
     const status = url.searchParams.get('status') || 'live'
     const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0]
@@ -96,6 +98,8 @@ serve(async (req) => {
       ? 'https://v3.football.api-sports.io/fixtures?live=all'
       : `https://v3.football.api-sports.io/fixtures?date=${date}&status=${status}`
 
+    console.log('Making API call to:', apiUrl)
+
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
@@ -104,8 +108,12 @@ serve(async (req) => {
       }
     })
 
+    console.log('API Response status:', response.status)
+
     if (!response.ok) {
       console.error('API response not ok:', response.status, response.statusText)
+      const errorText = await response.text()
+      console.error('API error response:', errorText)
       return new Response(
         JSON.stringify({ error: 'فشل في جلب البيانات من API' }),
         { 

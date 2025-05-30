@@ -32,17 +32,9 @@ const Matches = () => {
       setIsLoading(true);
       
       const today = new Date().toISOString().split('T')[0];
-      let queryParams = `status=${status}`;
-      
-      if (status !== 'live') {
-        queryParams += `&date=${today}`;
-      }
       
       const { data, error } = await supabase.functions.invoke('get-football-matches', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        method: 'GET'
       });
 
       if (error) {
