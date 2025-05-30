@@ -73,39 +73,23 @@ serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get('FOOTBALL_API_KEY')
-    if (!apiKey) {
-      console.error('FOOTBALL_API_KEY not found')
-      return new Response(
-        JSON.stringify({ error: 'مفتاح API غير موجود' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
+    const apiKey = '4118b22421f6bbb075de5f099af8612a'
+    console.log('Using API Key:', apiKey.substring(0, 8) + '...')
 
-    console.log('API Key found, making request...')
-
-    // قراءة المعاملات من body أو URL
+    // قراءة المعاملات من body
     let status = 'live'
     let date = new Date().toISOString().split('T')[0]
     
-    if (req.method === 'POST') {
-      try {
-        const body = await req.json()
-        if (body.params) {
-          const params = new URLSearchParams(body.params)
-          status = params.get('status') || 'live'
-          date = params.get('date') || date
-        }
-      } catch (e) {
-        console.log('No body params, using defaults')
+    try {
+      const body = await req.json()
+      if (body.status) {
+        status = body.status
       }
-    } else {
-      const url = new URL(req.url)
-      status = url.searchParams.get('status') || 'live'
-      date = url.searchParams.get('date') || date
+      if (body.date) {
+        date = body.date
+      }
+    } catch (e) {
+      console.log('No body params, using defaults')
     }
     
     console.log(`Fetching matches with status: ${status}, date: ${date}`)

@@ -33,15 +33,12 @@ const Matches = () => {
       
       const today = new Date().toISOString().split('T')[0];
       
-      // إرسال المعاملات كـ query parameters عبر URL
-      const params = new URLSearchParams({
-        status: status,
-        date: today
-      });
-      
+      // إرسال المعاملات عبر POST body
       const { data, error } = await supabase.functions.invoke('get-football-matches', {
-        method: 'GET',
-        body: { params: params.toString() }
+        body: { 
+          status: status,
+          date: today
+        }
       });
 
       if (error) {
@@ -52,10 +49,8 @@ const Matches = () => {
       console.log('Function response:', data);
       
       if (data && data.matches) {
-        // فلترة المباريات حسب الحالة المطلوبة
-        const filteredMatches = data.matches.filter((match: Match) => match.status === status);
-        setMatches(filteredMatches);
-        console.log(`Set ${filteredMatches.length} matches for status ${status}`);
+        setMatches(data.matches);
+        console.log(`Set ${data.matches.length} matches for status ${status}`);
       } else {
         setMatches([]);
       }
