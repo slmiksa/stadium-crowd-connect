@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +12,7 @@ interface HashtagPostWithProfile {
   content: string;
   hashtags: string[];
   likes_count: number;
+  comments_count: number;
   created_at: string;
   image_url?: string;
   user_id: string;

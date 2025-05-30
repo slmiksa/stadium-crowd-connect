@@ -89,6 +89,41 @@ export type Database = {
           },
         ]
       }
+      hashtag_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hashtag_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "hashtag_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hashtag_likes: {
         Row: {
           created_at: string | null
@@ -127,6 +162,7 @@ export type Database = {
       }
       hashtag_posts: {
         Row: {
+          comments_count: number | null
           content: string
           created_at: string | null
           hashtags: string[]
@@ -137,6 +173,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          comments_count?: number | null
           content: string
           created_at?: string | null
           hashtags?: string[]
@@ -147,6 +184,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          comments_count?: number | null
           content?: string
           created_at?: string | null
           hashtags?: string[]
