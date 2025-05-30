@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import CommentInput from './CommentInput';
+import CommentItem from './CommentItem';
 
 interface Comment {
   id: string;
@@ -11,6 +12,7 @@ interface Comment {
   created_at: string;
   user_id: string;
   image_url?: string;
+  parent_id?: string;
   profiles: {
     id: string;
     username: string;
@@ -35,6 +37,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ id: string; username: string } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -46,7 +49,9 @@ const PostComments: React.FC<PostCommentsProps> = ({
     try {
       setIsLoading(true);
       
-      // First get the comments
+      console.log('Fetching comments for post:', postId);
+      
+      // Get comments
       const { data: commentsData, error: commentsError } = await supabase
         .from('hashtag_comments')
         .select('*')
@@ -59,9 +64,12 @@ const PostComments: React.FC<PostCommentsProps> = ({
         return;
       }
 
-      // Then get the profiles for all users
+      console.log('Comments data:', commentsData);
+
       if (commentsData && commentsData.length > 0) {
         const userIds = [...new Set(commentsData.map(comment => comment.user_id))];
+        
+        console.log('Fetching profiles for user IDs:', userIds);
         
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
@@ -74,7 +82,8 @@ const PostComments: React.FC<PostCommentsProps> = ({
           return;
         }
 
-        // Combine comments with profiles
+        console.log('Profiles data:', profilesData);
+
         const commentsWithProfiles = commentsData.map(comment => ({
           ...comment,
           profiles: profilesData?.find(profile => profile.id === comment.user_id) || {
@@ -84,6 +93,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
           }
         }));
 
+        console.log('Comments with profiles:', commentsWithProfiles);
         setComments(commentsWithProfiles);
       } else {
         setComments([]);
@@ -96,12 +106,23 @@ const PostComments: React.FC<PostCommentsProps> = ({
     }
   };
 
-  const handleSubmitComment = async (content: string, imageFile?: File) => {
-    if (!user || !content.trim() || isSubmitting) {
-      console.log('Cannot submit comment:', { user: !!user, content: content.trim(), isSubmitting });
+  const handleSubmitComment = async (content: string, imageFile?: File, parentId?: string) => {
+    if (!user) {
+      console.log('No user found');
       return;
     }
 
+    if (!content.trim() && !imageFile) {
+      console.log('No content or image');
+      return;
+    }
+
+    if (isSubmitting) {
+      console.log('Already submitting');
+      return;
+    }
+
+    console.log('Submitting comment:', { content, hasImage: !!imageFile, parentId });
     setIsSubmitting(true);
     
     try {
@@ -109,6 +130,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
       // Upload image if provided
       if (imageFile) {
+        console.log('Uploading image...');
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `comment-images/${fileName}`;
@@ -127,22 +149,28 @@ const PostComments: React.FC<PostCommentsProps> = ({
           .getPublicUrl(filePath);
 
         imageUrl = publicUrl;
+        console.log('Image uploaded successfully:', imageUrl);
       }
 
       // Insert the comment
-      const { error: insertError } = await supabase
+      console.log('Inserting comment into database...');
+      const { data: insertData, error: insertError } = await supabase
         .from('hashtag_comments')
         .insert({
           post_id: postId,
           user_id: user.id,
-          content: content.trim(),
-          image_url: imageUrl
-        });
+          content: content.trim() || null,
+          image_url: imageUrl,
+          parent_id: parentId || null
+        })
+        .select();
 
       if (insertError) {
         console.error('Error inserting comment:', insertError);
         throw insertError;
       }
+
+      console.log('Comment inserted successfully:', insertData);
 
       // Refresh comments and notify parent
       await fetchComments();
@@ -150,22 +178,31 @@ const PostComments: React.FC<PostCommentsProps> = ({
       
     } catch (error) {
       console.error('Error in handleSubmitComment:', error);
-      // You might want to show a toast notification here
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 60) return `${diffMins}م`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}س`;
-    return `${Math.floor(diffMins / 1440)}ي`;
+  const handleReply = (commentId: string, username: string) => {
+    setReplyTo({ id: commentId, username });
   };
+
+  const handleCancelReply = () => {
+    setReplyTo(null);
+  };
+
+  // Organize comments into thread structure
+  const organizeComments = (comments: Comment[]) => {
+    const topLevel = comments.filter(c => !c.parent_id);
+    const replies = comments.filter(c => c.parent_id);
+    
+    return topLevel.map(comment => ({
+      ...comment,
+      replies: replies.filter(r => r.parent_id === comment.id)
+    }));
+  };
+
+  const organizedComments = organizeComments(comments);
 
   if (!isOpen) return null;
 
@@ -183,12 +220,14 @@ const PostComments: React.FC<PostCommentsProps> = ({
           </button>
         </div>
 
-        {/* Comment Input - Moved to top */}
+        {/* Comment Input */}
         <div className="p-4 border-b border-zinc-700 flex-shrink-0">
           <CommentInput
             onSubmit={handleSubmitComment}
             isSubmitting={isSubmitting}
             placeholder="اكتب تعليقاً..."
+            replyTo={replyTo}
+            onCancelReply={handleCancelReply}
           />
         </div>
 
@@ -198,39 +237,18 @@ const PostComments: React.FC<PostCommentsProps> = ({
             <div className="flex justify-center py-8">
               <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
             </div>
-          ) : comments.length === 0 ? (
+          ) : organizedComments.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-zinc-400">لا توجد تعليقات بعد</p>
             </div>
           ) : (
-            comments.map((comment) => (
-              <div key={comment.id} className="flex space-x-3 space-x-reverse">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-white">
-                    {comment.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <div className="bg-zinc-800 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-white">
-                        {comment.profiles?.username || 'مستخدم مجهول'}
-                      </span>
-                      <span className="text-xs text-zinc-500">
-                        {formatTimestamp(comment.created_at)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-zinc-300 whitespace-pre-wrap">{comment.content}</p>
-                    {comment.image_url && (
-                      <img 
-                        src={comment.image_url} 
-                        alt="Comment attachment" 
-                        className="mt-2 max-w-full h-auto rounded-lg"
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
+            organizedComments.map((comment) => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                replies={comment.replies}
+                onReply={handleReply}
+              />
             ))
           )}
         </div>

@@ -1,19 +1,26 @@
 
 import React, { useState, useRef } from 'react';
-import { Send, Image, X } from 'lucide-react';
+import { Send, Image, X, Reply } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 
 interface CommentInputProps {
-  onSubmit: (content: string, imageFile?: File) => Promise<void>;
+  onSubmit: (content: string, imageFile?: File, parentId?: string) => Promise<void>;
   isSubmitting: boolean;
   placeholder?: string;
+  replyTo?: {
+    id: string;
+    username: string;
+  } | null;
+  onCancelReply?: () => void;
 }
 
 const CommentInput: React.FC<CommentInputProps> = ({ 
   onSubmit, 
   isSubmitting, 
-  placeholder = "اكتب تعليقاً..." 
+  placeholder = "اكتب تعليقاً...",
+  replyTo,
+  onCancelReply
 }) => {
   const [comment, setComment] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -44,12 +51,16 @@ const CommentInput: React.FC<CommentInputProps> = ({
     e.preventDefault();
     
     const trimmedComment = comment.trim();
-    if (!trimmedComment || isSubmitting) return;
+    if (!trimmedComment && !selectedImage) return;
+    if (isSubmitting) return;
 
     try {
-      await onSubmit(trimmedComment, selectedImage || undefined);
+      await onSubmit(trimmedComment, selectedImage || undefined, replyTo?.id);
       setComment('');
       removeImage();
+      if (onCancelReply) {
+        onCancelReply();
+      }
     } catch (error) {
       console.error('Error submitting comment:', error);
     }
@@ -64,6 +75,23 @@ const CommentInput: React.FC<CommentInputProps> = ({
 
   return (
     <div className="space-y-3">
+      {/* Reply indicator */}
+      {replyTo && (
+        <div className="flex items-center gap-2 text-sm text-zinc-400 bg-zinc-800 p-2 rounded">
+          <Reply size={14} />
+          <span>رد على {replyTo.username}</span>
+          {onCancelReply && (
+            <button
+              type="button"
+              onClick={onCancelReply}
+              className="ml-auto text-zinc-500 hover:text-white"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Image Preview */}
       {imagePreview && (
         <div className="relative">
@@ -89,7 +117,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
+            placeholder={replyTo ? `رد على ${replyTo.username}...` : placeholder}
             className="flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-400 resize-none min-h-[60px] max-h-[120px]"
             disabled={isSubmitting}
             rows={2}
@@ -105,7 +133,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
             </button>
             <Button
               type="submit"
-              disabled={!comment.trim() || isSubmitting}
+              disabled={(!comment.trim() && !selectedImage) || isSubmitting}
               className="p-2 bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               size="sm"
             >

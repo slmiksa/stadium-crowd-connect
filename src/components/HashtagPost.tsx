@@ -31,9 +31,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
   const { user } = useAuth();
   const [isLiking, setIsLiking] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [localLikesCount, setLocalLikesCount] = useState(post.likes_count);
+  const [localIsLiked, setLocalIsLiked] = useState(
+    post.hashtag_likes.some(like => like.user_id === user?.id)
+  );
   
-  const isLiked = post.hashtag_likes.some(like => like.user_id === user?.id);
-
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -50,8 +52,15 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
     
     setIsLiking(true);
     
+    // Optimistic update
+    const newIsLiked = !localIsLiked;
+    const newLikesCount = newIsLiked ? localLikesCount + 1 : localLikesCount - 1;
+    
+    setLocalIsLiked(newIsLiked);
+    setLocalLikesCount(newLikesCount);
+    
     try {
-      if (isLiked) {
+      if (localIsLiked) {
         // Unlike
         const { error } = await supabase
           .from('hashtag_likes')
@@ -59,7 +68,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
           .eq('post_id', post.id)
           .eq('user_id', user.id);
           
-        if (error) throw error;
+        if (error) {
+          // Revert optimistic update on error
+          setLocalIsLiked(!newIsLiked);
+          setLocalLikesCount(localLikesCount);
+          throw error;
+        }
       } else {
         // Like
         const { error } = await supabase
@@ -69,9 +83,15 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
             user_id: user.id
           });
           
-        if (error) throw error;
+        if (error) {
+          // Revert optimistic update on error
+          setLocalIsLiked(!newIsLiked);
+          setLocalLikesCount(localLikesCount);
+          throw error;
+        }
       }
       
+      // Only call onLikeChange after successful operation
       onLikeChange();
     } catch (error) {
       console.error('Error handling like:', error);
@@ -136,11 +156,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
               onClick={handleLike}
               disabled={isLiking}
               className={`flex items-center space-x-1 transition-colors ${
-                isLiked ? 'text-red-400' : 'text-zinc-400 hover:text-red-400'
+                localIsLiked ? 'text-red-400' : 'text-zinc-400 hover:text-red-400'
               } ${isLiking ? 'opacity-50' : ''}`}
             >
-              <Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />
-              <span className="text-sm">{post.likes_count}</span>
+              <Heart size={18} fill={localIsLiked ? 'currentColor' : 'none'} />
+              <span className="text-sm">{localLikesCount}</span>
             </button>
             <button 
               onClick={() => setShowComments(true)}
