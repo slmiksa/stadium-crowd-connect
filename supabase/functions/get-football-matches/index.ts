@@ -76,23 +76,52 @@ serve(async (req) => {
     const apiKey = '4118b22421f6bbb075de5f099af8612a'
     console.log('Using API Key:', apiKey.substring(0, 8) + '...')
 
-    // قراءة المعاملات من body
+    // قراءة المعاملات - تجربة طرق مختلفة
     let status = 'live'
     let date = new Date().toISOString().split('T')[0]
     
+    // محاولة قراءة من body أولاً
     try {
-      const body = await req.json()
-      if (body.status) {
-        status = body.status
-      }
-      if (body.date) {
-        date = body.date
+      if (req.method === 'POST') {
+        const requestText = await req.text()
+        console.log('Raw request body:', requestText)
+        
+        if (requestText) {
+          const body = JSON.parse(requestText)
+          console.log('Parsed body:', body)
+          
+          if (body.status) {
+            status = body.status
+            console.log('Status from body:', status)
+          }
+          if (body.date) {
+            date = body.date
+            console.log('Date from body:', date)
+          }
+        }
       }
     } catch (e) {
-      console.log('No body params, using defaults')
+      console.log('Error reading body:', e)
+      // محاولة قراءة من URL parameters
+      try {
+        const url = new URL(req.url)
+        const urlStatus = url.searchParams.get('status')
+        const urlDate = url.searchParams.get('date')
+        
+        if (urlStatus) {
+          status = urlStatus
+          console.log('Status from URL:', status)
+        }
+        if (urlDate) {
+          date = urlDate
+          console.log('Date from URL:', date)
+        }
+      } catch (urlError) {
+        console.log('Error reading URL params:', urlError)
+      }
     }
     
-    console.log(`Fetching matches with status: ${status}, date: ${date}`)
+    console.log(`Final parameters - Status: ${status}, Date: ${date}`)
 
     // جلب المباريات من API Football
     let apiUrl: string

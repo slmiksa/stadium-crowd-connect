@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,17 +32,43 @@ const Matches = () => {
       
       const today = new Date().toISOString().split('T')[0];
       
-      // إرسال المعاملات عبر POST body
+      // تجربة عدة طرق لإرسال البيانات
+      console.log('Calling edge function with params:', { status, date: today });
+      
       const { data, error } = await supabase.functions.invoke('get-football-matches', {
-        body: { 
+        body: JSON.stringify({ 
           status: status,
           date: today
+        }),
+        headers: {
+          'Content-Type': 'application/json'
         }
       });
 
       if (error) {
         console.error('Error calling function:', error);
-        throw error;
+        
+        // تجربة مع URL parameters كخطة بديلة
+        console.log('Trying with URL parameters...');
+        const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke(
+          `get-football-matches?status=${status}&date=${today}`,
+          { 
+            method: 'GET'
+          }
+        );
+        
+        if (fallbackError) {
+          console.error('Fallback also failed:', fallbackError);
+          throw fallbackError;
+        }
+        
+        if (fallbackData && fallbackData.matches) {
+          setMatches(fallbackData.matches);
+          console.log(`Set ${fallbackData.matches.length} matches for status ${status}`);
+        } else {
+          setMatches([]);
+        }
+        return;
       }
 
       console.log('Function response:', data);
