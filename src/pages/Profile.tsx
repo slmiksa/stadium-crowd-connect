@@ -11,17 +11,17 @@ const Profile = () => {
   const [showSettings, setShowSettings] = useState(false);
 
   const stats = [
-    { label: t('followers'), value: user?.followers || 0, icon: Users },
-    { label: t('following'), value: user?.following || 0, icon: Users },
-    { label: t('posts'), value: 23, icon: Hash }
+    { label: t('followers'), value: user?.followers_count || 0, icon: Users },
+    { label: t('following'), value: user?.following_count || 0, icon: Users },
+    { label: t('posts'), value: 0, icon: Hash }
   ];
 
   const handleLanguageToggle = () => {
     setLanguage(language === 'ar' ? 'en' : 'ar');
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (
@@ -52,9 +52,9 @@ const Profile = () => {
             <div className="flex-1">
               <h2 className="text-xl font-bold text-white">{user?.username}</h2>
               <p className="text-zinc-400">{user?.email}</p>
-              {user?.favoriteTeam && (
+              {user?.favorite_team && (
                 <p className="text-blue-400 text-sm mt-1">
-                  ⚽ {user.favoriteTeam}
+                  ⚽ {user.favorite_team}
                 </p>
               )}
             </div>
@@ -122,7 +122,9 @@ const Profile = () => {
                 <div className="py-3 border-b border-zinc-700">
                   <p className="text-zinc-400 text-sm">{isRTL ? 'معلومات الحساب' : 'Account Information'}</p>
                   <p className="text-white">{user?.email}</p>
-                  <p className="text-zinc-300 text-sm">{isRTL ? 'منذ:' : 'Member since:'} {isRTL ? 'مايو 2024' : 'May 2024'}</p>
+                  <p className="text-zinc-300 text-sm">
+                    {isRTL ? 'منذ:' : 'Member since:'} {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
+                  </p>
                 </div>
 
                 {/* Logout Button */}

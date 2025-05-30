@@ -4,12 +4,18 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import { Search, MessageSquare } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 
-interface Message {
+type PrivateMessage = Tables<'private_messages'> & {
+  sender_profile: Tables<'profiles'>;
+  receiver_profile: Tables<'profiles'>;
+};
+
+interface Conversation {
   id: string;
-  sender: string;
-  avatar?: string;
-  lastMessage: string;
+  other_user: Tables<'profiles'>;
+  last_message: string;
   timestamp: string;
   unread: boolean;
 }
@@ -17,57 +23,96 @@ interface Message {
 const Messages = () => {
   const { t, isRTL } = useLanguage();
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Mock data
-  const mockMessages: Message[] = [
-    {
-      id: '1',
-      sender: 'أحمد_الريال',
-      lastMessage: 'شفت المباراة امبارح؟ كانت رائعة!',
-      timestamp: '2024-05-30T20:15:00Z',
-      unread: true
-    },
-    {
-      id: '2',
-      sender: 'ليفربول_فان',
-      lastMessage: 'Great match prediction! How did you know?',
-      timestamp: '2024-05-30T18:30:00Z',
-      unread: false
-    },
-    {
-      id: '3',
-      sender: 'مشجع_الأهلي',
-      lastMessage: 'هل ستحضر المباراة القادمة؟',
-      timestamp: '2024-05-30T16:45:00Z',
-      unread: false
-    },
-    {
-      id: '4',
-      sender: 'Chelsea_Blue',
-      lastMessage: 'Thanks for the invite to the chat room!',
-      timestamp: '2024-05-30T14:20:00Z',
-      unread: false
-    }
-  ];
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setMessages(mockMessages);
-  }, []);
+    if (user) {
+      fetchConversations();
+      
+      // Subscribe to real-time updates
+      const channel = supabase
+        .channel('private_messages_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'private_messages'
+          },
+          () => {
+            fetchConversations();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user]);
+
+  const fetchConversations = async () => {
+    if (!user) return;
+
+    try {
+      const { data: messages, error } = await supabase
+        .from('private_messages')
+        .select(`
+          *,
+          sender_profile:sender_id(id, username, avatar_url),
+          receiver_profile:receiver_id(id, username, avatar_url)
+        `)
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching messages:', error);
+        return;
+      }
+
+      // Group messages by conversation
+      const conversationMap = new Map<string, Conversation>();
+      
+      messages?.forEach((message) => {
+        const otherUser = message.sender_id === user.id 
+          ? message.receiver_profile 
+          : message.sender_profile;
+        
+        if (!otherUser) return;
+        
+        const conversationId = otherUser.id;
+        
+        if (!conversationMap.has(conversationId)) {
+          conversationMap.set(conversationId, {
+            id: conversationId,
+            other_user: otherUser,
+            last_message: message.content,
+            timestamp: message.created_at!,
+            unread: !message.is_read && message.receiver_id === user.id,
+          });
+        }
+      });
+
+      setConversations(Array.from(conversationMap.values()));
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      setMessages([...mockMessages]);
-      setIsRefreshing(false);
-    }, 1000);
+    await fetchConversations();
+    setIsRefreshing(false);
   };
 
-  const filteredMessages = messages.filter(message =>
-    message.sender.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    message.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredConversations = conversations.filter(conversation =>
+    conversation.other_user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conversation.last_message.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatTimestamp = (timestamp: string) => {
@@ -81,7 +126,17 @@ const Messages = () => {
     return `${Math.floor(diffMins / 1440)}d`;
   };
 
-  const unreadCount = messages.filter(m => m.unread).length;
+  const unreadCount = conversations.filter(c => c.unread).length;
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="p-4 flex items-center justify-center min-h-64">
+          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -119,7 +174,7 @@ const Messages = () => {
 
         {/* Messages List */}
         <div className="space-y-2">
-          {filteredMessages.length === 0 ? (
+          {filteredConversations.length === 0 ? (
             <div className="text-center py-8">
               <MessageSquare size={48} className="mx-auto text-zinc-600 mb-4" />
               <p className="text-zinc-400">
@@ -130,11 +185,11 @@ const Messages = () => {
               </p>
             </div>
           ) : (
-            filteredMessages.map((message) => (
+            filteredConversations.map((conversation) => (
               <div
-                key={message.id}
+                key={conversation.id}
                 className={`p-4 rounded-lg cursor-pointer transition-colors hover:bg-zinc-750 ${
-                  message.unread ? 'bg-zinc-800 border-l-4 border-blue-500' : 'bg-zinc-800/50'
+                  conversation.unread ? 'bg-zinc-800 border-l-4 border-blue-500' : 'bg-zinc-800/50'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -142,28 +197,28 @@ const Messages = () => {
                     {/* Avatar */}
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-sm font-bold text-white">
-                        {message.sender.charAt(0).toUpperCase()}
+                        {conversation.other_user.username.charAt(0).toUpperCase()}
                       </span>
                     </div>
                     
                     {/* Message Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className={`font-medium truncate ${message.unread ? 'text-white' : 'text-zinc-300'}`}>
-                          {message.sender}
+                        <h3 className={`font-medium truncate ${conversation.unread ? 'text-white' : 'text-zinc-300'}`}>
+                          {conversation.other_user.username}
                         </h3>
                         <span className="text-xs text-zinc-500 flex-shrink-0 ml-2">
-                          {formatTimestamp(message.timestamp)}
+                          {formatTimestamp(conversation.timestamp)}
                         </span>
                       </div>
-                      <p className={`text-sm truncate ${message.unread ? 'text-zinc-300' : 'text-zinc-400'}`}>
-                        {message.lastMessage}
+                      <p className={`text-sm truncate ${conversation.unread ? 'text-zinc-300' : 'text-zinc-400'}`}>
+                        {conversation.last_message}
                       </p>
                     </div>
                   </div>
                   
                   {/* Unread Indicator */}
-                  {message.unread && (
+                  {conversation.unread && (
                     <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0 ml-2"></div>
                   )}
                 </div>
