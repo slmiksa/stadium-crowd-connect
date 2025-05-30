@@ -44,23 +44,43 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
   const fetchComments = async () => {
     try {
-      const { data, error } = await supabase
+      // First get the comments
+      const { data: commentsData, error: commentsError } = await supabase
         .from('hashtag_comments')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      setComments(data || []);
+      if (commentsError) throw commentsError;
+
+      // Then get the profiles for all users
+      if (commentsData && commentsData.length > 0) {
+        const userIds = [...new Set(commentsData.map(comment => comment.user_id))];
+        
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url')
+          .in('id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        // Combine comments with profiles
+        const commentsWithProfiles = commentsData.map(comment => ({
+          ...comment,
+          profiles: profilesData?.find(profile => profile.id === comment.user_id) || {
+            id: comment.user_id,
+            username: 'مستخدم مجهول',
+            avatar_url: null
+          }
+        }));
+
+        setComments(commentsWithProfiles);
+      } else {
+        setComments([]);
+      }
     } catch (error) {
       console.error('Error fetching comments:', error);
+      setComments([]);
     } finally {
       setIsLoading(false);
     }
