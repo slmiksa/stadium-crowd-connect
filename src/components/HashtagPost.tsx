@@ -32,6 +32,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
   const [isLiking, setIsLiking] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [localLikesCount, setLocalLikesCount] = useState(post.likes_count);
+  const [localCommentsCount, setLocalCommentsCount] = useState(post.comments_count);
   const [localIsLiked, setLocalIsLiked] = useState(
     post.hashtag_likes.some(like => like.user_id === user?.id)
   );
@@ -91,7 +92,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
         }
       }
       
-      // Only call onLikeChange after successful operation
+      // Call onLikeChange to update the parent component
       onLikeChange();
     } catch (error) {
       console.error('Error handling like:', error);
@@ -101,7 +102,10 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
   };
 
   const handleCommentAdded = () => {
-    onLikeChange(); // This will refresh the posts and update comments count
+    // Update local comments count
+    setLocalCommentsCount(prev => prev + 1);
+    // Also call onLikeChange to refresh the posts
+    onLikeChange();
   };
 
   return (
@@ -167,7 +171,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
               className="flex items-center space-x-1 text-zinc-400 hover:text-blue-400 transition-colors"
             >
               <MessageCircle size={18} />
-              <span className="text-sm">{post.comments_count || 0}</span>
+              <span className="text-sm">{localCommentsCount || 0}</span>
             </button>
           </div>
           <button className="text-zinc-400 hover:text-blue-400 transition-colors">

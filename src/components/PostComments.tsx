@@ -117,11 +117,6 @@ const PostComments: React.FC<PostCommentsProps> = ({
       return;
     }
 
-    if (isSubmitting) {
-      console.log('Already submitting');
-      return;
-    }
-
     console.log('Submitting comment:', { content, hasImage: !!imageFile, parentId });
     setIsSubmitting(true);
     
@@ -159,7 +154,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         .insert({
           post_id: postId,
           user_id: user.id,
-          content: content.trim() || null,
+          content: content.trim() || '',
           image_url: imageUrl,
           parent_id: parentId || null
         })

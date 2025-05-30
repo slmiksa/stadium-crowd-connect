@@ -94,6 +94,8 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          image_url: string | null
+          parent_id: string | null
           post_id: string
           updated_at: string
           user_id: string
@@ -102,6 +104,8 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          image_url?: string | null
+          parent_id?: string | null
           post_id: string
           updated_at?: string
           user_id: string
@@ -110,11 +114,20 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          image_url?: string | null
+          parent_id?: string | null
           post_id?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "hashtag_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "hashtag_comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hashtag_comments_post_id_fkey"
             columns: ["post_id"]
