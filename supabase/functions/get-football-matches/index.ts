@@ -87,16 +87,40 @@ serve(async (req) => {
 
     console.log('API Key found, making request...')
 
-    const url = new URL(req.url)
-    const status = url.searchParams.get('status') || 'live'
-    const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0]
+    // قراءة المعاملات من body أو URL
+    let status = 'live'
+    let date = new Date().toISOString().split('T')[0]
+    
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json()
+        if (body.params) {
+          const params = new URLSearchParams(body.params)
+          status = params.get('status') || 'live'
+          date = params.get('date') || date
+        }
+      } catch (e) {
+        console.log('No body params, using defaults')
+      }
+    } else {
+      const url = new URL(req.url)
+      status = url.searchParams.get('status') || 'live'
+      date = url.searchParams.get('date') || date
+    }
     
     console.log(`Fetching matches with status: ${status}, date: ${date}`)
 
     // جلب المباريات من API Football
-    const apiUrl = status === 'live' 
-      ? 'https://v3.football.api-sports.io/fixtures?live=all'
-      : `https://v3.football.api-sports.io/fixtures?date=${date}&status=${status}`
+    let apiUrl: string
+    
+    if (status === 'live') {
+      apiUrl = 'https://v3.football.api-sports.io/fixtures?live=all'
+    } else if (status === 'finished') {
+      apiUrl = `https://v3.football.api-sports.io/fixtures?date=${date}&status=FT`
+    } else {
+      // upcoming matches
+      apiUrl = `https://v3.football.api-sports.io/fixtures?date=${date}&status=NS`
+    }
 
     console.log('Making API call to:', apiUrl)
 

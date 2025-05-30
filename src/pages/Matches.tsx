@@ -33,8 +33,15 @@ const Matches = () => {
       
       const today = new Date().toISOString().split('T')[0];
       
+      // إرسال المعاملات كـ query parameters عبر URL
+      const params = new URLSearchParams({
+        status: status,
+        date: today
+      });
+      
       const { data, error } = await supabase.functions.invoke('get-football-matches', {
-        method: 'GET'
+        method: 'GET',
+        body: { params: params.toString() }
       });
 
       if (error) {
