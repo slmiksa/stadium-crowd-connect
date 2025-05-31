@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock, User, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -96,6 +97,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
     
     setIsLoadingComments(true);
     try {
+      console.log('Loading comments for post:', post.id);
+      
       const { data, error } = await supabase
         .from('hashtag_comments')
         .select(`
@@ -114,6 +117,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
         return;
       }
 
+      console.log('Loaded comments:', data);
       const organizedComments = organizeComments(data || []);
       setComments(organizedComments);
     } catch (error) {
@@ -127,10 +131,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
     const commentMap = new Map();
     const rootComments: Comment[] = [];
 
+    // First, create all comment objects
     commentsData.forEach(comment => {
       commentMap.set(comment.id, { ...comment, replies: [] });
     });
 
+    // Then, organize them into parent-child relationships
     commentsData.forEach(comment => {
       if (comment.parent_id) {
         const parent = commentMap.get(comment.parent_id);
@@ -145,11 +151,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
     return rootComments;
   };
 
-  const handleCommentsToggle = () => {
+  const handleCommentsToggle = async () => {
     if (isHashtagsPage) {
       // For hashtags page, show inline comments
       if (!showComments) {
-        loadComments();
+        await loadComments();
       }
       setShowComments(!showComments);
     } else {
@@ -158,9 +164,9 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
     }
   };
 
-  const handleCommentAdded = () => {
+  const handleCommentAdded = async () => {
     if (isHashtagsPage) {
-      loadComments();
+      await loadComments();
     }
     setLocalCommentsCount(prev => prev + 1);
   };
