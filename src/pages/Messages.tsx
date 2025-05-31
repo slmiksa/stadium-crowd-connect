@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import { Search, MessageSquare, Bell, Users } from 'lucide-react';
+import { Search, MessageSquare, Bell, Users, CheckCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -407,6 +407,21 @@ const Messages = () => {
             className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 transition-colors"
           />
         </div>
+
+        {/* Mark All as Read Button - Only show for notifications tab */}
+        {activeTab === 'notifications' && unreadNotificationsCount > 0 && (
+          <div className="mb-4 w-full">
+            <div className="flex justify-center">
+              <Button
+                onClick={handleMarkAllNotificationsAsRead}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-lg"
+              >
+                <CheckCheck size={20} />
+                <span className="font-medium">تعليم الكل كمقروء</span>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         <div className="space-y-2">
