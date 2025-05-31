@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Send, Image, X, Reply, Hash, Video } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 interface CommentInputProps {
-  onSubmit: (content: string, mediaFile?: File, parentId?: string, mediaType?: string) => Promise<void>;
+  onSubmit: (content: string, mediaFile?: File, mediaType?: string) => Promise<void>;
   isSubmitting: boolean;
   placeholder?: string;
   replyTo?: {
@@ -108,12 +109,9 @@ const CommentInput: React.FC<CommentInputProps> = ({
     if (isSubmitting) return;
 
     try {
-      await onSubmit(trimmedComment, selectedMedia || undefined, replyTo?.id, mediaType || undefined);
+      await onSubmit(trimmedComment, selectedMedia || undefined, mediaType || undefined);
       setComment('');
       removeMedia();
-      if (onCancelReply) {
-        onCancelReply();
-      }
     } catch (error) {
       console.error('Error submitting comment:', error);
     }

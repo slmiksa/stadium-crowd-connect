@@ -124,7 +124,7 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
     return data.publicUrl;
   };
 
-  const handleSubmitComment = async (content: string, mediaFile?: File, parentId?: string, mediaType?: string) => {
+  const handleSubmitComment = async (content: string, mediaFile?: File, mediaType?: string) => {
     if (!user) {
       console.log('No user found');
       return;
@@ -135,7 +135,14 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
       return;
     }
 
-    console.log('Submitting comment:', { content, hasMedia: !!mediaFile, parentId, mediaType });
+    console.log('Submitting comment:', { 
+      content, 
+      hasMedia: !!mediaFile, 
+      parentId: replyTo?.id, 
+      mediaType,
+      replyTo 
+    });
+    
     setIsSubmitting(true);
     
     try {
@@ -160,7 +167,7 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
           content: content.trim() || '',
           media_url: mediaUrl,
           media_type: mediaType || null,
-          parent_id: parentId || null
+          parent_id: replyTo?.id || null
         })
         .select();
 
@@ -221,9 +228,7 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
       {/* Comment Input - Moved to top */}
       <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/40 mb-4">
         <CommentInput
-          onSubmit={(content, mediaFile, mediaType) => 
-            handleSubmitComment(content, mediaFile, replyTo?.id, mediaType)
-          }
+          onSubmit={handleSubmitComment}
           isSubmitting={isSubmitting}
           placeholder="اكتب تعليقاً..."
           replyTo={replyTo}
