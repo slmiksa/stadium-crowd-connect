@@ -95,27 +95,36 @@ const Hashtags = () => {
         return;
       }
 
-      console.log('Fetched posts data:', data);
+      console.log('Fetched all posts data:', data);
 
-      // Filter to only include posts that have hashtags and hashtags array is not empty
+      // تأكد من أن المنشورات التي تحتوي على هاشتاقات تظهر فقط
       const postsWithHashtags = (data || []).filter(post => {
-        const hasHashtags = post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0;
-        console.log(`Post ${post.id} has hashtags:`, hasHashtags, post.hashtags);
-        return hasHashtags;
+        // التحقق من وجود هاشتاقات صالحة
+        const hasValidHashtags = post.hashtags && 
+                                Array.isArray(post.hashtags) && 
+                                post.hashtags.length > 0 &&
+                                post.hashtags.some(tag => tag && tag.trim() !== '');
+        
+        console.log(`Post ${post.id} hashtags check:`, {
+          hashtags: post.hashtags,
+          hasValidHashtags,
+          content: post.content.substring(0, 50)
+        });
+        
+        return hasValidHashtags;
       });
       
-      console.log('Posts with hashtags:', postsWithHashtags.length);
+      console.log('Posts with valid hashtags:', postsWithHashtags.length);
       
       // Popular posts (most likes) - showing all posts with hashtags
       const popular = [...postsWithHashtags]
-        .sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0))
-        .slice(0, 20);
+        .sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
       
       // Trending posts (5+ comments for more realistic trending)
       const trending = postsWithHashtags.filter(post => (post.comments_count || 0) >= 5);
       
-      console.log('Popular posts:', popular.length);
-      console.log('Trending posts:', trending.length);
+      console.log('Popular posts count:', popular.length);
+      console.log('Trending posts count:', trending.length);
       
       setPopularPosts(popular);
       setTrendingPosts(trending);
@@ -217,8 +226,8 @@ const Hashtags = () => {
   };
 
   const handlePostLikeChange = () => {
-    // Don't refetch posts when likes change - this was causing posts to disappear
-    // The real-time subscriptions in individual posts will handle like count updates
+    // لا نعيد تحميل المنشورات عندما تتغير الإعجابات - هذا كان يسبب اختفاء المنشورات
+    // الاشتراكات في الوقت الفعلي في المنشورات الفردية ستتولى تحديث عدد الإعجابات
     console.log('Post like changed, keeping current view');
   };
 
