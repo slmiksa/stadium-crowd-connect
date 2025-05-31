@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock, User, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -59,6 +60,31 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
 
   // Check if we're on the hashtags page to determine comment display style
   const isHashtagsPage = location.pathname === '/hashtags' || location.pathname.startsWith('/hashtag/');
+
+  // Check if post is liked by current user on component mount
+  useEffect(() => {
+    const checkIfLiked = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('hashtag_likes')
+          .select('id')
+          .eq('post_id', post.id)
+          .eq('user_id', user.id)
+          .single();
+        
+        if (!error && data) {
+          setLocalIsLiked(true);
+        }
+      } catch (error) {
+        // No like found, which is fine
+        setLocalIsLiked(false);
+      }
+    };
+
+    checkIfLiked();
+  }, [post.id, user]);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -206,11 +232,17 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
   };
 
   const handleLike = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('User not logged in');
+      return;
+    }
+
+    console.log('Handling like for post:', post.id, 'Current liked state:', localIsLiked);
 
     try {
       if (localIsLiked) {
         // Unlike
+        console.log('Unliking post...');
         const { error } = await supabase
           .from('hashtag_likes')
           .delete()
@@ -218,12 +250,16 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
           .eq('user_id', user.id);
 
         if (!error) {
+          console.log('Successfully unliked post');
           setLocalIsLiked(false);
           setLocalLikesCount(prev => Math.max(0, prev - 1));
           if (onLikeChange) onLikeChange();
+        } else {
+          console.error('Error unliking post:', error);
         }
       } else {
         // Like
+        console.log('Liking post...');
         const { error } = await supabase
           .from('hashtag_likes')
           .insert({
@@ -232,9 +268,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
           });
 
         if (!error) {
+          console.log('Successfully liked post');
           setLocalIsLiked(true);
           setLocalLikesCount(prev => prev + 1);
           if (onLikeChange) onLikeChange();
+        } else {
+          console.error('Error liking post:', error);
         }
       }
     } catch (error) {
@@ -243,6 +282,20 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
 
     if (onLike) {
       onLike(post.id);
+    }
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'منشور من التطبيق',
+        text: post.content,
+        url: window.location.href
+      });
+    } else {
+      // Fallback - copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      console.log('Link copied to clipboard');
     }
   };
 
@@ -323,7 +376,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
           <div className="flex items-center gap-6">
             <button 
               onClick={handleLike}
-              className={`flex items-center gap-2 transition-all duration-200 group ${
+              disabled={!user}
+              className={`flex items-center gap-2 transition-all duration-200 group disabled:opacity-50 disabled:cursor-not-allowed ${
                 localIsLiked 
                   ? 'text-red-400 hover:text-red-300' 
                   : 'text-gray-400 hover:text-red-400'
@@ -344,7 +398,10 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
               <span className="font-medium">{localCommentsCount}</span>
             </button>
           </div>
-          <button className="text-gray-400 hover:text-green-400 transition-colors group">
+          <button 
+            onClick={handleShare}
+            className="text-gray-400 hover:text-green-400 transition-colors group"
+          >
             <Share2 size={20} className="group-hover:scale-110 transition-transform" />
           </button>
         </div>
@@ -546,3 +603,4 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
 };
 
 export default HashtagPost;
+
