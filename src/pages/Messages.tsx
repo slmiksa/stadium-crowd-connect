@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -61,8 +60,9 @@ const Messages = () => {
           },
           (payload) => {
             console.log('Message update:', payload);
-            // Only fetch if it's a message for or from this user
-            if (payload.new?.sender_id === user.id || payload.new?.receiver_id === user.id) {
+            // Safely check if the payload has the required properties and if it's for this user
+            const newRecord = payload.new as any;
+            if (newRecord && (newRecord.sender_id === user.id || newRecord.receiver_id === user.id)) {
               fetchConversations();
             }
           }
