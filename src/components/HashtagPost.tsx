@@ -305,8 +305,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
           </button>
         </div>
 
-        {/* Comments Section - Inline dropdown for hashtags page */}
-        {showComments && isHashtagsPage && (
+        {/* Comments Section - Always show as dropdown for hashtags pages */}
+        {showComments && (
           <div className="mt-6 pt-6 border-t border-gray-700/50">
             {user && (
               <div className="mb-4">
@@ -405,16 +405,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
           </div>
         )}
       </div>
-
-      {/* Modal Comments for non-hashtags pages */}
-      {showComments && !isHashtagsPage && (
-        <PostComments 
-          postId={post.id}
-          isOpen={showComments}
-          onClose={() => setShowComments(false)}
-          onCommentAdded={handleCommentAdded}
-        />
-      )}
 
       {/* Image Modal */}
       {showImageModal && post.image_url && (
