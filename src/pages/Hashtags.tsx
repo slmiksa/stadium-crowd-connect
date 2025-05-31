@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import HashtagPost from '@/components/HashtagPost';
 import HashtagTabs from '@/components/HashtagTabs';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
@@ -111,8 +111,13 @@ const Hashtags = () => {
   if (!isInitialized || isLoading) {
     return (
       <Layout>
-        <div className="p-4 flex items-center justify-center min-h-64">
-          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800">
+          <div className="p-6 flex items-center justify-center min-h-64">
+            <div className="relative">
+              <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-r-purple-500 rounded-full animate-spin animation-delay-150"></div>
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -121,8 +126,12 @@ const Hashtags = () => {
   if (!user) {
     return (
       <Layout>
-        <div className="p-4 text-center">
-          <p className="text-zinc-400">يرجى تسجيل الدخول لعرض الهاشتاقات</p>
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800">
+          <div className="p-6 text-center">
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50">
+              <p className="text-gray-300 text-lg">يرجى تسجيل الدخول لعرض الهاشتاقات</p>
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -130,34 +139,59 @@ const Hashtags = () => {
 
   return (
     <Layout>
-      <div className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">{t('hashtags')}</h1>
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="p-2 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors disabled:opacity-50"
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center space-x-4">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-2xl shadow-xl">
+                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">#</span>
+                </div>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  الهاشتاقات
+                </h1>
+                <p className="text-gray-400 text-sm mt-1">اكتشف المواضيع الشائعة</p>
+              </div>
+            </div>
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="group relative p-3 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 hover:bg-gray-700/50 transition-all duration-300 disabled:opacity-50 overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <RefreshCw 
+                size={20} 
+                className={`text-gray-300 group-hover:text-white transition-colors relative z-10 ${isRefreshing ? 'animate-spin' : ''}`} 
+              />
+            </button>
+          </div>
+
+          {/* Hashtag Tabs */}
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700/50 overflow-hidden">
+            <HashtagTabs
+              popularPosts={popularPosts}
+              trendingPosts={trendingPosts}
+              onPostLikeChange={handlePostLikeChange}
+              renderPost={renderPost}
+            />
+          </div>
+
+          {/* Floating Action Button */}
+          <button 
+            onClick={() => navigate('/create-hashtag-post')}
+            className="fixed bottom-24 right-6 group"
           >
-            <div className={`w-5 h-5 border-2 border-zinc-400 border-t-transparent rounded-full ${isRefreshing ? 'animate-spin' : ''}`}></div>
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur-lg opacity-70 group-hover:opacity-90 transition-opacity duration-300 animate-pulse"></div>
+              <div className="relative w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center shadow-2xl transform transition-all duration-300 group-hover:scale-110 group-active:scale-95">
+                <Plus size={28} className="text-white" />
+              </div>
+            </div>
           </button>
         </div>
-
-        {/* Hashtag Tabs */}
-        <HashtagTabs
-          popularPosts={popularPosts}
-          trendingPosts={trendingPosts}
-          onPostLikeChange={handlePostLikeChange}
-          renderPost={renderPost}
-        />
-
-        {/* Floating Action Button */}
-        <button 
-          onClick={() => navigate('/create-hashtag-post')}
-          className="fixed bottom-24 right-4 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors"
-        >
-          <Plus size={24} className="text-white" />
-        </button>
       </div>
     </Layout>
   );

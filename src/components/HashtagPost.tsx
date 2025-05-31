@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Heart, MessageCircle, Share2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -126,7 +126,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
           <button
             key={i}
             onClick={() => handleHashtagClick(hashtags[i].slice(1))}
-            className="text-blue-400 hover:text-blue-300 transition-colors"
+            className="text-blue-400 hover:text-blue-300 transition-colors font-medium"
           >
             {hashtags[i]}
           </button>
@@ -136,67 +136,104 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
     return result;
   };
 
+  const getAvatarGradient = () => {
+    const gradients = [
+      'from-blue-500 to-cyan-500',
+      'from-purple-500 to-pink-500',
+      'from-green-500 to-emerald-500',
+      'from-orange-500 to-yellow-500',
+      'from-red-500 to-rose-500',
+      'from-indigo-500 to-blue-500'
+    ];
+    const index = (post.user_id?.charCodeAt(0) || 0) % gradients.length;
+    return gradients[index];
+  };
+
   return (
     <>
-      <div className="bg-zinc-800 rounded-lg p-4">
+      <div className="group bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:bg-gray-800/60 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10">
         {/* Post Header */}
-        <div className="flex items-center mb-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+        <div className="flex items-center mb-4">
+          <div className={`w-12 h-12 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg`}>
             <span className="text-sm font-bold text-white">
               {post.profiles?.username?.charAt(0).toUpperCase() || post.user_id?.charAt(0).toUpperCase() || 'U'}
             </span>
           </div>
-          <div className="ml-3 flex-1">
-            <button
-              onClick={handleUsernameClick}
-              className="font-medium text-white hover:text-blue-400 transition-colors"
-            >
-              {post.profiles?.username || 'مستخدم مجهول'}
-            </button>
-            <p className="text-xs text-zinc-500">
-              {formatTimestamp(post.created_at)}
-            </p>
+          <div className="ml-4 flex-1">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleUsernameClick}
+                className="font-semibold text-white hover:text-blue-400 transition-colors"
+              >
+                {post.profiles?.username || 'مستخدم مجهول'}
+              </button>
+              <span className="text-gray-500 text-sm">•</span>
+              <div className="flex items-center text-gray-500 text-sm">
+                <Clock size={12} className="ml-1" />
+                {formatTimestamp(post.created_at)}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Post Content */}
-        <div className="mb-3">
-          <p className="text-white mb-2">
+        <div className="mb-4">
+          <p className="text-white leading-relaxed text-lg mb-3">
             {renderContentWithHashtags(post.content)}
           </p>
 
           {/* Image */}
           {post.image_url && (
-            <img 
-              src={post.image_url} 
-              alt="Post" 
-              className="w-full h-48 object-cover rounded-lg mt-2"
-            />
+            <div className="rounded-xl overflow-hidden shadow-lg">
+              <img 
+                src={post.image_url} 
+                alt="Post" 
+                className="w-full h-64 object-cover hover:scale-105 transition-transform duration-300"
+              />
+            </div>
           )}
         </div>
 
         {/* Post Actions */}
-        <div className="flex items-center justify-between pt-3 border-t border-zinc-700">
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-between pt-4 border-t border-gray-700/50">
+          <div className="flex items-center space-x-6">
             <button 
               onClick={handleLike}
               disabled={isLiking}
-              className={`flex items-center space-x-1 transition-colors ${
-                localIsLiked ? 'text-red-400' : 'text-zinc-400 hover:text-red-400'
+              className={`group flex items-center space-x-2 transition-all duration-300 ${
+                localIsLiked 
+                  ? 'text-red-400 hover:text-red-300' 
+                  : 'text-gray-400 hover:text-red-400'
               } ${isLiking ? 'opacity-50' : ''}`}
             >
-              <Heart size={18} fill={localIsLiked ? 'currentColor' : 'none'} />
-              <span className="text-sm">{localLikesCount}</span>
+              <div className="relative">
+                <Heart 
+                  size={20} 
+                  fill={localIsLiked ? 'currentColor' : 'none'} 
+                  className="transition-transform duration-200 group-hover:scale-110"
+                />
+                {localIsLiked && (
+                  <div className="absolute inset-0 animate-ping">
+                    <Heart size={20} fill="currentColor" className="opacity-75" />
+                  </div>
+                )}
+              </div>
+              <span className="text-sm font-medium">{localLikesCount}</span>
             </button>
+            
             <button 
               onClick={() => setShowComments(true)}
-              className="flex items-center space-x-1 text-zinc-400 hover:text-blue-400 transition-colors"
+              className="group flex items-center space-x-2 text-gray-400 hover:text-blue-400 transition-all duration-300"
             >
-              <MessageCircle size={18} />
-              <span className="text-sm">{localCommentsCount || 0}</span>
+              <MessageCircle 
+                size={20} 
+                className="transition-transform duration-200 group-hover:scale-110"
+              />
+              <span className="text-sm font-medium">{localCommentsCount || 0}</span>
             </button>
           </div>
-          <button className="text-zinc-400 hover:text-blue-400 transition-colors">
+          
+          <button className="p-2 text-gray-400 hover:text-blue-400 transition-colors rounded-lg hover:bg-gray-700/50">
             <Share2 size={18} />
           </button>
         </div>
