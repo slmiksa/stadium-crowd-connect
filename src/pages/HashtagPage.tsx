@@ -37,8 +37,7 @@ interface HashtagCommentWithProfile {
   user_id: string;
   post_id: string;
   parent_id?: string;
-  media_url?: string;
-  media_type?: string;
+  image_url?: string;
   type: 'comment';
   profiles: {
     id: string;
@@ -87,7 +86,7 @@ const HashtagPage = () => {
         console.error('Error fetching hashtag posts:', postsError);
       }
 
-      // Fetch comments with proper join - use single profile object
+      // Fetch comments with hashtags
       const { data: commentsData, error: commentsError } = await supabase
         .from('hashtag_comments')
         .select(`
@@ -104,6 +103,9 @@ const HashtagPage = () => {
       if (commentsError) {
         console.error('Error fetching hashtag comments:', commentsError);
       }
+
+      console.log('Posts data:', postsData);
+      console.log('Comments data:', commentsData);
 
       // Combine and sort all content by creation date
       const allContent: HashtagContent[] = [];
@@ -133,6 +135,7 @@ const HashtagPage = () => {
       // Sort by creation date (newest first)
       allContent.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
+      console.log('All content:', allContent);
       setContent(allContent);
     } catch (error) {
       console.error('Error:', error);
@@ -323,7 +326,11 @@ const HashtagPage = () => {
                     onClick={() => handleCommentClick(comment)}
                   >
                     <CommentItem
-                      comment={comment}
+                      comment={{
+                        ...comment,
+                        media_url: comment.image_url,
+                        media_type: comment.image_url ? 'image' : undefined
+                      }}
                       onReply={() => {}}
                       onProfileClick={handleProfileClick}
                     />
