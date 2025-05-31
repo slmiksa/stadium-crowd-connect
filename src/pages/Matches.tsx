@@ -59,8 +59,20 @@ const Matches = () => {
       console.log('Function response:', data);
       
       if (data && data.matches) {
-        setMatches(data.matches);
-        console.log(`Set ${data.matches.length} matches for status ${status}`);
+        // تأكد من أن المباريات المعروضة تطابق التبويب المحدد
+        const filteredMatches = data.matches.filter((match: Match) => {
+          if (status === 'live') {
+            return match.status === 'live';
+          } else if (status === 'upcoming') {
+            return match.status === 'upcoming';
+          } else if (status === 'finished') {
+            return match.status === 'finished';
+          }
+          return true;
+        });
+        
+        setMatches(filteredMatches);
+        console.log(`Set ${filteredMatches.length} matches for status ${status}`);
         console.log(`Total available: ${data.totalAvailable}, From target leagues: ${data.fromTargetLeagues}`);
       } else {
         setMatches([]);
@@ -171,7 +183,11 @@ const Matches = () => {
         {isLoading && (
           <div className="text-center py-8">
             <div className="w-8 h-8 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            <p className="text-zinc-400">جاري تحميل المباريات...</p>
+            <p className="text-zinc-400">
+              {activeTab === 'live' && 'جاري تحميل المباريات المباشرة...'}
+              {activeTab === 'upcoming' && 'جاري تحميل المباريات القادمة...'}
+              {activeTab === 'finished' && 'جاري تحميل المباريات المنتهية...'}
+            </p>
           </div>
         )}
 

@@ -38,7 +38,17 @@ const leagueTranslations: { [key: string]: string } = {
   'Copa del Rey': 'كأس ملك إسبانيا',
   'DFB Pokal': 'كأس ألمانيا',
   'Coppa Italia': 'كأس إيطاليا',
-  'Coupe de France': 'كأس فرنسا'
+  'Coupe de France': 'كأس فرنسا',
+  'Primera Nacional': 'الدوري الأرجنتيني الثاني',
+  'National League - Northern': 'الدوري الوطني - الشمالي',
+  'Friendlies Women': 'مباريات ودية للسيدات',
+  'Primera B Metropolitana': 'الدرجة الأولى ب متروبوليتانا',
+  'Liga Pro': 'الدوري المحترف',
+  'MLS Next Pro': 'دوري أم إل إس التالي المحترف',
+  'Primera B': 'الدرجة الأولى ب',
+  'USL League Two': 'دوري يو إس إل الثاني',
+  'Copa Colombia': 'كأس كولومبيا',
+  'Torneo Federal A': 'البطولة الفيدرالية أ'
 }
 
 // ترجمة أسماء الفرق
@@ -131,7 +141,31 @@ const teamTranslations: { [key: string]: string } = {
   'Atletico Madrid': 'أتلتيكو مدريد',
   'Sevilla': 'إشبيلية',
   'Valencia': 'فالنسيا',
-  'Villarreal': 'فياريال'
+  'Villarreal': 'فياريال',
+  
+  // فرق من الدوريات الأمريكية الجنوبية
+  'Gimnasia Y Tiro': 'خيمناسيا واي تيرو',
+  'Racing Cordoba': 'راسينغ قرطبة',
+  'Eastern Suburbs': 'الضواحي الشرقية',
+  'Fencibles United': 'فنسيبلز يونايتد',
+  'Mexico W': 'المكسيك للسيدات',
+  'Uruguay W': 'الأوروغواي للسيدات',
+  'San Martín Burzaco': 'سان مارتين بورزاكو',
+  'Real Pilar': 'ريال بيلار',
+  'Macara': 'ماكارا',
+  'Manta FC': 'مانتا',
+  'Austin II': 'أوستن الثاني',
+  'Houston Dynamo FC II': 'هيوستن دينامو الثاني',
+  'San Marcos de Arica': 'سان ماركوس دي أريكا',
+  'Deportes Copiapo': 'ديبورتيس كوبيابو',
+  'Minneapolis City': 'مينيابوليس سيتي',
+  'Chicago Dutch Lions': 'شيكاغو دوتش ليونز',
+  'Brazil W': 'البرازيل للسيدات',
+  'Japan W': 'اليابان للسيدات',
+  'Deportivo Cali': 'ديبورتيفو كالي',
+  'Popayan': 'بوبايان',
+  'Sarmiento de La Banda': 'سارمينتو دي لا باندا',
+  'Sarmiento Resistencia': 'سارمينتو ريسيستنسيا'
 }
 
 // معرفات الدوريات المهمة
@@ -227,107 +261,97 @@ serve(async (req) => {
     
     console.log(`Final parameters - Status: ${status}, Date: ${date}`)
 
-    // تحديد URL API حسب الحالة المطلوبة
-    let apiUrl: string
-    
+    let allMatches: any[] = []
+
+    // تحديد URL API حسب الحالة المطلوبة وجلب البيانات
     if (status === 'live') {
-      apiUrl = 'https://v3.football.api-sports.io/fixtures?live=all'
-    } else if (status === 'finished') {
+      console.log('Fetching live matches')
+      const apiUrl = 'https://v3.football.api-sports.io/fixtures?live=all'
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': apiKey,
+          'X-RapidAPI-Host': 'v3.football.api-sports.io'
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        allMatches = data.response || []
+        console.log(`Fetched ${allMatches.length} live matches`)
+      }
+    } 
+    else if (status === 'finished') {
+      console.log('Fetching finished matches')
       // للمباريات المنتهية - جلب مباريات اليوم وأمس
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
-      apiUrl = `https://v3.football.api-sports.io/fixtures?date=${date}&status=FT`
-    } else if (status === 'upcoming') {
-      // للمباريات القادمة - جلب مباريات اليوم وغداً
-      apiUrl = `https://v3.football.api-sports.io/fixtures?date=${date}&status=NS`
-    } else {
-      apiUrl = 'https://v3.football.api-sports.io/fixtures?live=all'
-    }
-
-    console.log('Making API call to:', apiUrl)
-
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': 'v3.football.api-sports.io'
-      }
-    })
-
-    console.log('API Response status:', response.status)
-
-    if (!response.ok) {
-      console.error('API response not ok:', response.status, response.statusText)
-      const errorText = await response.text()
-      console.error('API error response:', errorText)
-      return new Response(
-        JSON.stringify({ 
-          error: 'فشل في جلب البيانات من API',
-          details: `Status: ${response.status}`,
-          apiStatus: response.status
-        }),
-        { 
-          status: response.status, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    const data = await response.json()
-    console.log(`API returned ${data.response?.length || 0} total fixtures`)
-
-    let allMatches = data.response || []
-
-    // إذا كانت المباريات المنتهية، جلب من أمس أيضاً
-    if (status === 'finished' && allMatches.length < 5) {
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
-      const yesterdayUrl = `https://v3.football.api-sports.io/fixtures?date=${yesterday}&status=FT`
+      const dates = [
+        date, // اليوم
+        new Date(Date.now() - 86400000).toISOString().split('T')[0], // أمس
+        new Date(Date.now() - 172800000).toISOString().split('T')[0] // أمس الأول
+      ]
       
-      try {
-        const yesterdayResponse = await fetch(yesterdayUrl, {
-          method: 'GET',
-          headers: {
-            'X-RapidAPI-Key': apiKey,
-            'X-RapidAPI-Host': 'v3.football.api-sports.io'
-          }
-        })
+      for (const searchDate of dates) {
+        const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=FT`
+        console.log(`Fetching finished matches for date: ${searchDate}`)
         
-        if (yesterdayResponse.ok) {
-          const yesterdayData = await yesterdayResponse.json()
-          if (yesterdayData.response) {
-            allMatches = [...allMatches, ...yesterdayData.response]
-            console.log(`Added ${yesterdayData.response.length} matches from yesterday`)
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'X-RapidAPI-Key': apiKey,
+              'X-RapidAPI-Host': 'v3.football.api-sports.io'
+            }
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            if (data.response) {
+              allMatches = [...allMatches, ...data.response]
+              console.log(`Added ${data.response.length} finished matches from ${searchDate}`)
+            }
           }
+        } catch (error) {
+          console.log(`Error fetching matches for ${searchDate}:`, error)
         }
-      } catch (error) {
-        console.log('Error fetching yesterday matches:', error)
+      }
+    } 
+    else if (status === 'upcoming') {
+      console.log('Fetching upcoming matches')
+      // للمباريات القادمة - جلب مباريات اليوم وغداً وبعد غد
+      const dates = [
+        date, // اليوم
+        new Date(Date.now() + 86400000).toISOString().split('T')[0], // غداً
+        new Date(Date.now() + 172800000).toISOString().split('T')[0] // بعد غد
+      ]
+      
+      for (const searchDate of dates) {
+        const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=NS`
+        console.log(`Fetching upcoming matches for date: ${searchDate}`)
+        
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'X-RapidAPI-Key': apiKey,
+              'X-RapidAPI-Host': 'v3.football.api-sports.io'
+            }
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            if (data.response) {
+              allMatches = [...allMatches, ...data.response]
+              console.log(`Added ${data.response.length} upcoming matches from ${searchDate}`)
+            }
+          }
+        } catch (error) {
+          console.log(`Error fetching matches for ${searchDate}:`, error)
+        }
       }
     }
 
-    // إذا كانت المباريات القادمة، جلب من غداً أيضاً
-    if (status === 'upcoming' && allMatches.length < 5) {
-      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
-      const tomorrowUrl = `https://v3.football.api-sports.io/fixtures?date=${tomorrow}&status=NS`
-      
-      try {
-        const tomorrowResponse = await fetch(tomorrowUrl, {
-          method: 'GET',
-          headers: {
-            'X-RapidAPI-Key': apiKey,
-            'X-RapidAPI-Host': 'v3.football.api-sports.io'
-          }
-        })
-        
-        if (tomorrowResponse.ok) {
-          const tomorrowData = await tomorrowResponse.json()
-          if (tomorrowData.response) {
-            allMatches = [...allMatches, ...tomorrowData.response]
-            console.log(`Added ${tomorrowData.response.length} matches from tomorrow`)
-          }
-        }
-      } catch (error) {
-        console.log('Error fetching tomorrow matches:', error)
-      }
-    }
+    console.log(`Total fetched matches: ${allMatches.length}`)
 
     // فلترة المباريات حسب الدوريات المستهدفة
     let filteredMatches = allMatches.filter((fixture: any) => 
@@ -381,13 +405,14 @@ serve(async (req) => {
       }
     })
 
-    console.log(`Returning ${matches.length} processed matches`)
+    console.log(`Returning ${matches.length} processed matches for status: ${status}`)
 
     return new Response(
       JSON.stringify({ 
         matches,
         totalAvailable: allMatches.length || 0,
-        fromTargetLeagues: filteredMatches.length > 0
+        fromTargetLeagues: filteredMatches.length > 0,
+        requestedStatus: status
       }),
       { 
         status: 200, 
