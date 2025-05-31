@@ -8,6 +8,7 @@ import RoomMembersModal from '@/components/RoomMembersModal';
 import { ArrowLeft, Users, Settings, Quote } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface Message {
   id: string;
@@ -228,6 +229,10 @@ const ChatRoom = () => {
     setQuotedMessage(message);
   };
 
+  const navigateToUserProfile = (userId: string) => {
+    navigate(`/user/${userId}`);
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -303,7 +308,6 @@ const ChatRoom = () => {
               <button 
                 onClick={() => setShowMembersModal(true)}
                 className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
-                title="عرض الأعضاء"
               >
                 <Users size={20} className="text-white" />
               </button>
@@ -318,14 +322,23 @@ const ChatRoom = () => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((message) => (
             <div key={message.id} className="flex items-start space-x-3 group">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-sm font-bold text-white">
-                  {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                </span>
+              <div 
+                className="cursor-pointer"
+                onClick={() => navigateToUserProfile(message.user_id)}
+              >
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                    {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
               </div>
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-1">
-                  <span className="font-medium text-white">
+                  <span 
+                    className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
+                    onClick={() => navigateToUserProfile(message.user_id)}
+                  >
                     {message.profiles?.username || 'مستخدم مجهول'}
                   </span>
                   <OwnerBadge isOwner={message.user_id === roomInfo?.owner_id} />
@@ -335,7 +348,6 @@ const ChatRoom = () => {
                   <button
                     onClick={() => quoteMessage(message)}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
-                    title="اقتباس الرسالة"
                   >
                     <Quote size={14} className="text-zinc-400" />
                   </button>

@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Crown, UserMinus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface Member {
   id: string;
@@ -27,6 +29,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   roomId,
   isOwner
 }) => {
+  const navigate = useNavigate();
   const [members, setMembers] = useState<Member[]>([]);
   const [roomOwner, setRoomOwner] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -103,6 +106,11 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
     }
   };
 
+  const navigateToProfile = (userId: string) => {
+    onClose();
+    navigate(`/user/${userId}`);
+  };
+
   const formatJoinDate = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleDateString('ar-SA', {
@@ -138,12 +146,16 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
             <div className="space-y-3">
               {members.map((member) => (
                 <div key={member.id} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">
+                  <div 
+                    className="flex items-center space-x-3 cursor-pointer hover:bg-zinc-800 rounded-lg p-2 transition-colors flex-1"
+                    onClick={() => navigateToProfile(member.user_id)}
+                  >
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={member.profiles?.avatar_url} alt={member.profiles?.username} />
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                         {member.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                      </span>
-                    </div>
+                      </AvatarFallback>
+                    </Avatar>
                     <div>
                       <div className="flex items-center space-x-2">
                         <span className="font-medium text-white">
@@ -163,7 +175,6 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
                     <button
                       onClick={() => removeMember(member.user_id)}
                       className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
-                      title="إزالة العضو"
                     >
                       <UserMinus size={16} />
                     </button>
