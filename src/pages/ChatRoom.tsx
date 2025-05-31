@@ -5,7 +5,9 @@ import Layout from '@/components/Layout';
 import MediaInput from '@/components/MediaInput';
 import OwnerBadge from '@/components/OwnerBadge';
 import RoomMembersModal from '@/components/RoomMembersModal';
-import { ArrowLeft, Users, Settings, Quote, Wifi, Battery } from 'lucide-react';
+import ChatRoomSettingsModal from '@/components/ChatRoomSettingsModal';
+import ChatRoomAnnouncement from '@/components/ChatRoomAnnouncement';
+import { ArrowLeft, Users, Settings, Quote } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -30,6 +32,7 @@ interface RoomInfo {
   members_count: number;
   is_private: boolean;
   owner_id: string;
+  announcement?: string;
 }
 
 const ChatRoom = () => {
@@ -43,6 +46,7 @@ const ChatRoom = () => {
   const [isMember, setIsMember] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [quotedMessage, setQuotedMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +71,7 @@ const ChatRoom = () => {
     try {
       const { data, error } = await supabase
         .from('chat_rooms')
-        .select('*')
+        .select('*, announcement')
         .eq('id', roomId)
         .single();
 
@@ -250,6 +254,12 @@ const ChatRoom = () => {
     });
   };
 
+  const handleAnnouncementUpdate = (announcement: string | null) => {
+    if (roomInfo) {
+      setRoomInfo({ ...roomInfo, announcement });
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -360,12 +370,22 @@ const ChatRoom = () => {
               >
                 <Users size={20} className="text-white" />
               </button>
-              <button className="p-2 hover:bg-zinc-700 rounded-lg transition-colors">
-                <Settings size={20} className="text-white" />
-              </button>
+              {user?.id === roomInfo?.owner_id && (
+                <button 
+                  onClick={() => setShowSettingsModal(true)}
+                  className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
+                >
+                  <Settings size={20} className="text-white" />
+                </button>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Announcement */}
+        {roomInfo?.announcement && (
+          <ChatRoomAnnouncement announcement={roomInfo.announcement} />
+        )}
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -457,6 +477,15 @@ const ChatRoom = () => {
         onClose={() => setShowMembersModal(false)}
         roomId={roomId || ''}
         isOwner={user?.id === roomInfo?.owner_id}
+      />
+
+      {/* Settings Modal */}
+      <ChatRoomSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        roomId={roomId || ''}
+        currentAnnouncement={roomInfo?.announcement}
+        onAnnouncementUpdate={handleAnnouncementUpdate}
       />
     </Layout>
   );

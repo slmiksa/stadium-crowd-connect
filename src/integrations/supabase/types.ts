@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       chat_rooms: {
         Row: {
+          announcement: string | null
           avatar_url: string | null
           created_at: string | null
           description: string | null
@@ -22,6 +23,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          announcement?: string | null
           avatar_url?: string | null
           created_at?: string | null
           description?: string | null
@@ -33,6 +35,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          announcement?: string | null
           avatar_url?: string | null
           created_at?: string | null
           description?: string | null
