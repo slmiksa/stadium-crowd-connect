@@ -43,18 +43,17 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
   const [showComments, setShowComments] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // تحقق من حالة الإعجاب للمستخدم الحالي فقط
+  // Initialize like status based on current user
   useEffect(() => {
     if (user && post.hashtag_likes && Array.isArray(post.hashtag_likes)) {
       const userLike = post.hashtag_likes.find(like => like.user_id === user.id);
       setIsLiked(!!userLike);
-      console.log(`Post ${post.id} - User ${user.id} like status:`, !!userLike);
     } else {
       setIsLiked(false);
     }
   }, [user, post.hashtag_likes]);
 
-  // Set up real-time updates for comment count
+  // Real-time updates for comments
   useEffect(() => {
     const channel = supabase
       .channel(`post-${post.id}-comments`)
@@ -84,7 +83,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     };
   }, [post.id]);
 
-  // Set up real-time updates for likes
+  // Real-time updates for likes - fetch fresh data every time
   useEffect(() => {
     const channel = supabase
       .channel(`post-${post.id}-likes`)
@@ -97,7 +96,20 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
           filter: `post_id=eq.${post.id}`
         },
         async () => {
-          await fetchPostData();
+          // Fetch fresh like data
+          const { data: likesData, error } = await supabase
+            .from('hashtag_likes')
+            .select('user_id')
+            .eq('post_id', post.id);
+
+          if (!error && likesData) {
+            setLikesCount(likesData.length);
+            
+            if (user) {
+              const userLike = likesData.find(like => like.user_id === user.id);
+              setIsLiked(!!userLike);
+            }
+          }
         }
       )
       .subscribe();
@@ -106,26 +118,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
       supabase.removeChannel(channel);
     };
   }, [post.id, user]);
-
-  const fetchPostData = async () => {
-    if (!user) return;
-
-    try {
-      const { data: likesData, error: likesError } = await supabase
-        .from('hashtag_likes')
-        .select('user_id')
-        .eq('post_id', post.id);
-
-      if (!likesError && likesData) {
-        setLikesCount(likesData.length);
-        const userLike = likesData.find(like => like.user_id === user.id);
-        setIsLiked(!!userLike);
-        console.log(`Fetched data - Post ${post.id}: likes=${likesData.length}, userLiked=${!!userLike}`);
-      }
-    } catch (error) {
-      console.error('Error fetching post data:', error);
-    }
-  };
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -142,15 +134,10 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     if (!user || isProcessing) return;
 
     setIsProcessing(true);
-    console.log(`Like action started - Post: ${post.id}, User: ${user.id}, Current state: ${isLiked}`);
     
     try {
       if (!isLiked) {
-        console.log('Adding like...');
-        
-        setIsLiked(true);
-        setLikesCount(prev => prev + 1);
-        
+        // Add like
         const { error } = await supabase
           .from('hashtag_likes')
           .insert({
@@ -160,19 +147,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         
         if (error) {
           console.error('Error adding like:', error);
-          setIsLiked(false);
-          setLikesCount(prev => Math.max(0, prev - 1));
           toast.error('حدث خطأ في إضافة الإعجاب');
         } else {
-          console.log('Like added successfully');
+          // Don't update state manually - let real-time handle it
           toast.success('تم إضافة الإعجاب');
         }
       } else {
-        console.log('Removing like...');
-        
-        setIsLiked(false);
-        setLikesCount(prev => Math.max(0, prev - 1));
-        
+        // Remove like
         const { error } = await supabase
           .from('hashtag_likes')
           .delete()
@@ -181,11 +162,9 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         
         if (error) {
           console.error('Error removing like:', error);
-          setIsLiked(true);
-          setLikesCount(prev => prev + 1);
           toast.error('حدث خطأ في إزالة الإعجاب');
         } else {
-          console.log('Like removed successfully');
+          // Don't update state manually - let real-time handle it
           toast.success('تم إزالة الإعجاب');
         }
       }
@@ -195,7 +174,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      await fetchPostData();
       toast.error('حدث خطأ غير متوقع');
     } finally {
       setIsProcessing(false);
@@ -204,19 +182,30 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
 
   const handleShare = async () => {
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'منشور من تطبيق الهاشتاقات',
-          text: post.content,
-          url: window.location.href
-        });
+      const shareData = {
+        title: 'منشور من تطبيق الهاشتاقات',
+        text: post.content,
+        url: window.location.href
+      };
+
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        toast.success('تم مشاركة المنشور');
       } else {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success('تم نسخ رابط المنشور');
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(`${post.content}\n\n${window.location.href}`);
+        toast.success('تم نسخ المنشور للحافظة');
       }
     } catch (error) {
       console.error('Error sharing:', error);
-      toast.error('حدث خطأ في المشاركة');
+      // Fallback to clipboard if sharing fails
+      try {
+        await navigator.clipboard.writeText(`${post.content}\n\n${window.location.href}`);
+        toast.success('تم نسخ المنشور للحافظة');
+      } catch (clipboardError) {
+        console.error('Clipboard error:', clipboardError);
+        toast.error('حدث خطأ في المشاركة');
+      }
     }
   };
 
