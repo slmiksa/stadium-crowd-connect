@@ -65,11 +65,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
   const isChatRoom = notification.type === 'chat_room';
   console.log('isChatRoom variable:', isChatRoom);
-  console.log('About to render buttons. isChatRoom:', isChatRoom);
-  
-  if (isChatRoom) {
-    console.log('Rendering chat room buttons now!');
-  }
 
   return (
     <div
@@ -120,7 +115,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
           )}
 
           {/* عرض تفاصيل غرفة الدردشة */}
-          {isChatRoom && (
+          {notification.type === 'chat_room' && (
             <div className="bg-orange-900/30 rounded-lg p-3 mb-3 border border-orange-700/30">
               <p className="text-xs text-orange-400 mb-1">غرفة الدردشة:</p>
               <p className="text-white font-medium text-sm mb-1">
@@ -145,14 +140,14 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
           {/* أزرار التفاعل */}
           <div className="flex items-center gap-2 mt-3">
-            {/* أزرار غرفة الدردشة */}
-            {isChatRoom && (
+            {notification.type === 'chat_room' ? (
+              // أزرار غرفة الدردشة
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={(e) => {
-                    console.log('Chat room profile button clicked');
+                    console.log('Chat room profile button clicked for notification:', notification.id);
                     onProfileClick(notification, e);
                   }}
                   className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
@@ -165,7 +160,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   size="sm"
                   variant="outline"
                   onClick={(e) => {
-                    console.log('Chat room button clicked');
+                    console.log('Chat room button clicked for notification:', notification.id);
                     onRoomClick(notification, e);
                   }}
                   className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
@@ -174,10 +169,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   الغرفة
                 </Button>
               </div>
-            )}
-
-            {/* أزرار التنبيهات العادية */}
-            {!isChatRoom && (
+            ) : (
+              // أزرار التنبيهات العادية
               <div className="flex items-center gap-2">
                 {/* أزرار البروفايل للتنبيهات العادية */}
                 {(notification.type === 'follow' || notification.type === 'like' || 
