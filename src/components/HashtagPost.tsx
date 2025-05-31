@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -178,7 +179,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
           // Revert optimistic update on error
           setIsLiked(false);
           setLikesCount(prev => prev - 1);
-          toast.error('حدث خطأ في إضافة الإعجاب');
+          
+          // Handle specific error for duplicate likes
+          if (error.code === '23505') {
+            toast.error('لقد أعجبت بهذا المنشور من قبل');
+          } else {
+            toast.error('حدث خطأ في إضافة الإعجاب');
+          }
         } else {
           toast.success('تم إضافة الإعجاب');
         }
