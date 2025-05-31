@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -89,7 +90,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     if (post.user_id === user?.id) {
       navigate('/profile');
     } else {
-      navigate(`/user/${post.user_id}`);
+      navigate(`/user-profile/${post.user_id}`);
     }
   };
 

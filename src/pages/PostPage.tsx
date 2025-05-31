@@ -102,7 +102,7 @@ const PostPage = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="flex items-center p-4 border-b border-gray-800 bg-black/50 backdrop-blur-sm sticky top-0 z-10">
             <button 

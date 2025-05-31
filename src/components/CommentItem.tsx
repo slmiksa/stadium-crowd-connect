@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Reply, MoreVertical, Clock, X, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -89,8 +90,10 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   const handleProfileClick = () => {
-    if (onProfileClick && comment.user_id) {
-      onProfileClick(comment.user_id);
+    if (comment.user_id === user?.id) {
+      navigate('/profile');
+    } else {
+      navigate(`/user-profile/${comment.user_id}`);
     }
   };
 
