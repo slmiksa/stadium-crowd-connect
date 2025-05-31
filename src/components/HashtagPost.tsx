@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock, User, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -371,7 +370,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
               </div>
             )}
             
-            <div className="max-h-80 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600">
+            <div className="max-h-80 overflow-y-auto space-y-4 pr-2">
               {isLoadingComments ? (
                 <div className="flex justify-center py-8">
                   <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
@@ -383,15 +382,26 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
                 </div>
               ) : (
                 comments.map((comment) => (
-                  <div key={comment.id} className="bg-gray-800/50 rounded-lg p-3">
+                  <div key={comment.id} className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/30">
                     <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold text-white">
-                          {comment.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                        </span>
-                      </div>
+                      <button
+                        onClick={() => handleCommentProfileClick(comment.user_id)}
+                        className={`w-10 h-10 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg hover:scale-105 transition-transform duration-200`}
+                      >
+                        {comment.profiles?.avatar_url ? (
+                          <img 
+                            src={comment.profiles.avatar_url} 
+                            alt={comment.profiles.username}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm font-bold text-white">
+                            {comment.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                          </span>
+                        )}
+                      </button>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-2">
                           <button
                             onClick={() => handleCommentProfileClick(comment.user_id)}
                             className="font-medium text-gray-200 hover:text-blue-400 transition-colors text-sm"
@@ -402,25 +412,38 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
                             {formatTimestamp(comment.created_at)}
                           </span>
                         </div>
-                        <p className="text-gray-300 text-sm">{comment.content}</p>
+                        {comment.content && (
+                          <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap mb-2">{comment.content}</p>
+                        )}
                         {comment.image_url && (
                           <img 
                             src={comment.image_url} 
                             alt="Comment image" 
-                            className="mt-2 max-w-full h-auto rounded-lg"
+                            className="mt-2 max-w-full h-auto rounded-lg border border-gray-600/50"
                           />
                         )}
                         {/* Show replies if any */}
                         {comment.replies && comment.replies.length > 0 && (
-                          <div className="mt-3 ml-4 space-y-2">
+                          <div className="mt-3 ml-4 space-y-3 border-l-2 border-gray-700/50 pl-4">
                             {comment.replies.map((reply) => (
-                              <div key={reply.id} className="bg-gray-700/30 rounded-lg p-2">
+                              <div key={reply.id} className="bg-gray-700/30 rounded-lg p-3">
                                 <div className="flex items-start gap-2">
-                                  <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <span className="text-xs font-bold text-white">
-                                      {reply.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                                    </span>
-                                  </div>
+                                  <button
+                                    onClick={() => handleCommentProfileClick(reply.user_id)}
+                                    className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0"
+                                  >
+                                    {reply.profiles?.avatar_url ? (
+                                      <img 
+                                        src={reply.profiles.avatar_url} 
+                                        alt={reply.profiles.username}
+                                        className="w-full h-full rounded-full object-cover"
+                                      />
+                                    ) : (
+                                      <span className="text-xs font-bold text-white">
+                                        {reply.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                                      </span>
+                                    )}
+                                  </button>
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
                                       <button
@@ -433,12 +456,14 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
                                         {formatTimestamp(reply.created_at)}
                                       </span>
                                     </div>
-                                    <p className="text-gray-300 text-xs">{reply.content}</p>
+                                    {reply.content && (
+                                      <p className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap">{reply.content}</p>
+                                    )}
                                     {reply.image_url && (
                                       <img 
                                         src={reply.image_url} 
                                         alt="Reply image" 
-                                        className="mt-1 max-w-full h-auto rounded-lg"
+                                        className="mt-1 max-w-full h-auto rounded-lg border border-gray-600/50"
                                       />
                                     )}
                                   </div>
