@@ -5,6 +5,9 @@ import Layout from '@/components/Layout';
 import HashtagPost from '@/components/HashtagPost';
 import { ArrowLeft, Users, Heart, MessageSquare, UserPlus, UserMinus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface UserProfileData {
   id: string;
@@ -95,7 +98,6 @@ const UserProfile = () => {
 
       setIsFollowing(!!data);
     } catch (error) {
-      // No follow relationship exists
       setIsFollowing(false);
     } finally {
       setIsLoading(false);
@@ -108,7 +110,6 @@ const UserProfile = () => {
     setIsFollowLoading(true);
     try {
       if (isFollowing) {
-        // Unfollow
         const { error } = await supabase
           .from('follows')
           .delete()
@@ -122,7 +123,6 @@ const UserProfile = () => {
 
         setIsFollowing(false);
       } else {
-        // Follow
         const { error } = await supabase
           .from('follows')
           .insert({
@@ -138,7 +138,6 @@ const UserProfile = () => {
         setIsFollowing(true);
       }
 
-      // Refresh profile to get updated counts
       fetchUserProfile();
     } catch (error) {
       console.error('Error:', error);
@@ -153,7 +152,6 @@ const UserProfile = () => {
   };
 
   const handlePostInteraction = () => {
-    // تحديث المنشورات عند حدوث تفاعل
     fetchUserPosts();
   };
 
@@ -171,8 +169,11 @@ const UserProfile = () => {
   if (isLoading) {
     return (
       <Layout>
-        <div className="p-4 flex items-center justify-center min-h-64">
-          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="relative">
+            <div className="w-12 h-12 border-4 border-blue-200 rounded-full animate-spin border-t-blue-500"></div>
+            <div className="absolute inset-0 w-12 h-12 border-4 border-transparent rounded-full animate-pulse border-t-purple-400"></div>
+          </div>
         </div>
       </Layout>
     );
@@ -181,20 +182,23 @@ const UserProfile = () => {
   if (!profile) {
     return (
       <Layout>
-        <div className="p-4 text-center">
-          <p className="text-zinc-400">المستخدم غير موجود</p>
-          <button
+        <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center">
+          <div className="w-24 h-24 bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center mb-6">
+            <Users size={40} className="text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-4">المستخدم غير موجود</h2>
+          <p className="text-zinc-400 mb-6">عذراً، لم نتمكن من العثور على هذا المستخدم</p>
+          <Button
             onClick={() => navigate(-1)}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 shadow-lg"
           >
             العودة
-          </button>
+          </Button>
         </div>
       </Layout>
     );
   }
 
-  // Don't show this page if viewing own profile
   if (user?.id === userId) {
     navigate('/profile');
     return null;
@@ -202,108 +206,163 @@ const UserProfile = () => {
 
   return (
     <Layout>
-      <div className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <button 
-              onClick={() => navigate(-1)}
-              className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
-            >
-              <ArrowLeft size={20} className="text-white" />
-            </button>
-            <h1 className="text-xl font-bold text-white">ملف المستخدم</h1>
+      <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black">
+        {/* Header with Glass Effect */}
+        <div className="sticky top-0 z-10 backdrop-blur-md bg-zinc-900/70 border-b border-zinc-800/50">
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center space-x-3">
+              <Button
+                onClick={() => navigate(-1)}
+                variant="ghost" 
+                size="icon"
+                className="hover:bg-zinc-800/50 text-white rounded-xl transition-all duration-300"
+              >
+                <ArrowLeft size={20} />
+              </Button>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-white to-zinc-300 bg-clip-text text-transparent">
+                ملف المستخدم
+              </h1>
+            </div>
           </div>
         </div>
 
-        {/* Profile Header */}
-        <div className="bg-zinc-800 rounded-lg p-6 mb-6">
-          <div className="flex items-center space-x-4 mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">
-                {profile.username?.charAt(0).toUpperCase() || 'U'}
-              </span>
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-white">{profile.username}</h2>
-              {profile.bio && (
-                <p className="text-zinc-300 mt-1">{profile.bio}</p>
-              )}
-              {profile.favorite_team && (
-                <p className="text-blue-400 mt-1">⚽ {profile.favorite_team}</p>
-              )}
-            </div>
-          </div>
+        <div className="p-4 space-y-6">
+          {/* Profile Card with Enhanced Design */}
+          <Card className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 border-zinc-700/50 backdrop-blur-sm shadow-2xl">
+            <CardContent className="p-8">
+              {/* Cover Pattern */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-lg"></div>
+              
+              <div className="relative">
+                {/* Avatar and Basic Info */}
+                <div className="flex items-start space-x-6 mb-8">
+                  <div className="relative">
+                    <Avatar className="w-24 h-24 border-4 border-gradient-to-br from-blue-400 via-purple-500 to-pink-500 shadow-xl">
+                      <AvatarImage src={profile.avatar_url} alt={profile.username} />
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 via-purple-600 to-pink-600 text-white text-2xl font-bold">
+                        {profile.username?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full border-4 border-zinc-800 flex items-center justify-center">
+                      <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent mb-2">
+                      {profile.username}
+                    </h2>
+                    {profile.bio && (
+                      <p className="text-zinc-300 leading-relaxed mb-3 bg-zinc-800/30 p-3 rounded-lg border border-zinc-700/30">
+                        {profile.bio}
+                      </p>
+                    )}
+                    {profile.favorite_team && (
+                      <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 px-4 py-2 rounded-full border border-blue-400/30">
+                        <span className="text-lg">⚽</span>
+                        <span className="text-blue-300 font-medium">{profile.favorite_team}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-          {/* Stats */}
-          <div className="flex space-x-6 mb-4">
-            <div className="flex items-center space-x-2 text-zinc-300">
-              <Users size={18} />
-              <span>{profile.followers_count || 0} متابِع</span>
-            </div>
-            <div className="flex items-center space-x-2 text-zinc-300">
-              <Heart size={18} />
-              <span>{profile.following_count || 0} متابَع</span>
-            </div>
-            <div className="flex items-center space-x-2 text-zinc-300">
-              <MessageSquare size={18} />
-              <span>{posts.length} منشور</span>
-            </div>
-          </div>
+                {/* Enhanced Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                  <div className="text-center bg-zinc-800/40 p-4 rounded-xl border border-zinc-700/30 hover:bg-zinc-700/40 transition-all duration-300 cursor-pointer group">
+                    <div className="flex items-center justify-center mb-2">
+                      <Users className="text-blue-400 group-hover:text-blue-300 transition-colors" size={20} />
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-1">{profile.followers_count || 0}</div>
+                    <div className="text-xs text-zinc-400">متابِع</div>
+                  </div>
+                  
+                  <div className="text-center bg-zinc-800/40 p-4 rounded-xl border border-zinc-700/30 hover:bg-zinc-700/40 transition-all duration-300 cursor-pointer group">
+                    <div className="flex items-center justify-center mb-2">
+                      <Heart className="text-pink-400 group-hover:text-pink-300 transition-colors" size={20} />
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-1">{profile.following_count || 0}</div>
+                    <div className="text-xs text-zinc-400">متابَع</div>
+                  </div>
+                  
+                  <div className="text-center bg-zinc-800/40 p-4 rounded-xl border border-zinc-700/30 hover:bg-zinc-700/40 transition-all duration-300 cursor-pointer group">
+                    <div className="flex items-center justify-center mb-2">
+                      <MessageSquare className="text-green-400 group-hover:text-green-300 transition-colors" size={20} />
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-1">{posts.length}</div>
+                    <div className="text-xs text-zinc-400">منشور</div>
+                  </div>
+                </div>
 
-          {/* Action Buttons */}
-          <div className="flex space-x-3">
-            <button
-              onClick={handleFollow}
-              disabled={isFollowLoading}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${
-                isFollowing 
-                  ? 'bg-zinc-600 hover:bg-zinc-700 text-white' 
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
-            >
-              {isFollowing ? <UserMinus size={18} /> : <UserPlus size={18} />}
-              <span>{isFollowing ? 'إلغاء المتابعة' : 'متابعة'}</span>
-            </button>
-            
-            <button
-              onClick={handleSendMessage}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
-            >
-              <MessageSquare size={18} />
-              <span>رسالة</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Posts */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold text-white">المنشورات</h3>
-          {posts.length === 0 ? (
-            <div className="text-center py-8">
-              <MessageSquare size={48} className="mx-auto text-zinc-600 mb-4" />
-              <p className="text-zinc-400">لا توجد منشورات</p>
-            </div>
-          ) : (
-            posts.map((post) => (
-              <div key={post.id} className="bg-zinc-800 rounded-lg overflow-hidden">
-                <HashtagPost
-                  post={{
-                    ...post,
-                    user_id: profile.id,
-                    hashtag: post.hashtags?.[0] || '',
-                    profiles: {
-                      id: profile.id,
-                      username: profile.username,
-                      avatar_url: profile.avatar_url
-                    }
-                  }}
-                  onLikeChange={handlePostInteraction}
-                  hideCommentsButton={false}
-                />
+                {/* Enhanced Action Buttons */}
+                <div className="flex space-x-3">
+                  <Button
+                    onClick={handleFollow}
+                    disabled={isFollowLoading}
+                    className={`flex-1 flex items-center justify-center space-x-2 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-[1.02] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isFollowing 
+                        ? 'bg-gradient-to-r from-zinc-600 to-zinc-700 hover:from-zinc-700 hover:to-zinc-800 text-white border border-zinc-500' 
+                        : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-blue-500/25'
+                    }`}
+                  >
+                    {isFollowing ? <UserMinus size={18} /> : <UserPlus size={18} />}
+                    <span>{isFollowing ? 'إلغاء المتابعة' : 'متابعة'}</span>
+                  </Button>
+                  
+                  <Button
+                    onClick={handleSendMessage}
+                    className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-green-500/25"
+                  >
+                    <MessageSquare size={18} />
+                    <span>رسالة</span>
+                  </Button>
+                </div>
               </div>
-            ))
-          )}
+            </CardContent>
+          </Card>
+
+          {/* Posts Section with Enhanced Design */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
+              <h3 className="text-xl font-bold bg-gradient-to-r from-white to-zinc-300 bg-clip-text text-transparent">
+                المنشورات
+              </h3>
+              <div className="flex-1 h-px bg-gradient-to-r from-zinc-700 to-transparent"></div>
+            </div>
+            
+            {posts.length === 0 ? (
+              <Card className="bg-zinc-800/30 border-zinc-700/50 backdrop-blur-sm">
+                <CardContent className="text-center py-16">
+                  <div className="w-24 h-24 bg-gradient-to-br from-zinc-600 to-zinc-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <MessageSquare size={40} className="text-zinc-400" />
+                  </div>
+                  <h4 className="text-xl font-semibold text-white mb-2">لا توجد منشورات</h4>
+                  <p className="text-zinc-400">لم ينشر هذا المستخدم أي منشورات بعد</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <Card key={post.id} className="bg-zinc-800/50 border-zinc-700/50 backdrop-blur-sm overflow-hidden hover:bg-zinc-800/70 transition-all duration-300 shadow-lg">
+                    <HashtagPost
+                      post={{
+                        ...post,
+                        user_id: profile.id,
+                        hashtag: post.hashtags?.[0] || '',
+                        profiles: {
+                          id: profile.id,
+                          username: profile.username,
+                          avatar_url: profile.avatar_url
+                        }
+                      }}
+                      onLikeChange={handlePostInteraction}
+                      hideCommentsButton={false}
+                    />
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Layout>
