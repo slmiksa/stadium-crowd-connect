@@ -87,7 +87,6 @@ const Hashtags = () => {
             user_id
           )
         `)
-        .not('hashtags', 'eq', '{}')
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -149,7 +148,6 @@ const Hashtags = () => {
           )
         `)
         .or(`content.ilike.%${searchQuery}%,hashtags.cs.{${searchQuery}}`)
-        .not('hashtags', 'eq', '{}')
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -170,14 +168,15 @@ const Hashtags = () => {
       // Extract unique hashtags from all sources and calculate their popularity
       const hashtagCounts = new Map<string, number>();
       
-      // Count hashtags from posts
-      postsData?.forEach(post => {
-        post.hashtags?.forEach(tag => {
-          if (tag.toLowerCase().includes(searchQuery)) {
-            hashtagCounts.set(tag, (hashtagCounts.get(tag) || 0) + 1);
-          }
+      // Count hashtags from posts - only from posts that have hashtags
+      postsData?.filter(post => post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0)
+        .forEach(post => {
+          post.hashtags?.forEach(tag => {
+            if (tag.toLowerCase().includes(searchQuery)) {
+              hashtagCounts.set(tag, (hashtagCounts.get(tag) || 0) + 1);
+            }
+          });
         });
-      });
 
       // Count hashtags from comments
       commentsData?.forEach(comment => {
@@ -201,8 +200,13 @@ const Hashtags = () => {
         .slice(0, 10)
         .map(([tag]) => tag);
 
+      // Filter search results to only include posts with hashtags
+      const filteredPostsData = (postsData || []).filter(post => 
+        post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0
+      );
+
       setSearchResults({
-        posts: postsData || [],
+        posts: filteredPostsData,
         hashtags: sortedHashtags
       });
     } catch (error) {
