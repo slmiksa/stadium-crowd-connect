@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -297,8 +296,7 @@ const UserProfile = () => {
                       id: profile.id,
                       username: profile.username,
                       avatar_url: profile.avatar_url
-                    },
-                    hashtag_likes: []
+                    }
                   }}
                   onLikeChange={handlePostInteraction}
                   hideCommentsButton={false}
