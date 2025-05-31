@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import HashtagPost from '@/components/HashtagPost';
+import VerificationBadge from '@/components/VerificationBadge';
 import { ArrowLeft, Users, Heart, MessageSquare, UserPlus, UserMinus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -18,6 +19,7 @@ interface UserProfileData {
   avatar_url?: string;
   followers_count: number;
   following_count: number;
+  verification_status?: string;
 }
 
 interface HashtagPost {
@@ -319,9 +321,16 @@ const UserProfile = () => {
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent mb-2">
-                      {profile?.username}
-                    </h2>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h2 className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent">
+                        {profile?.username}
+                      </h2>
+                      <VerificationBadge 
+                        verificationStatus={profile?.verification_status} 
+                        size={20} 
+                        showLabel={true} 
+                      />
+                    </div>
                     {profile?.bio && (
                       <p className="text-zinc-300 leading-relaxed mb-3 bg-zinc-800/30 p-3 rounded-lg border border-zinc-700/30">
                         {profile.bio}
@@ -428,7 +437,8 @@ const UserProfile = () => {
                         profiles: {
                           id: profile.id,
                           username: profile.username,
-                          avatar_url: profile.avatar_url
+                          avatar_url: profile.avatar_url,
+                          verification_status: profile.verification_status
                         }
                       }}
                       onLikeChange={handlePostInteraction}

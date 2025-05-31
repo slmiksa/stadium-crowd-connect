@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
+import VerificationBadge from '@/components/VerificationBadge';
 import { ArrowLeft, Users, UserPlus, UserMinus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -11,6 +13,7 @@ interface UserProfile {
   username: string;
   bio?: string;
   avatar_url?: string;
+  verification_status?: string;
 }
 
 interface FollowData {
@@ -45,7 +48,7 @@ const FollowersFollowing = () => {
           .from('follows')
           .select(`
             follower_id,
-            profiles:follower_id (id, username, bio, avatar_url)
+            profiles:follower_id (id, username, bio, avatar_url, verification_status)
           `)
           .eq('following_id', userId);
       } else {
@@ -53,7 +56,7 @@ const FollowersFollowing = () => {
           .from('follows')
           .select(`
             following_id,
-            profiles:following_id (id, username, bio, avatar_url)
+            profiles:following_id (id, username, bio, avatar_url, verification_status)
           `)
           .eq('follower_id', userId);
       }
@@ -176,12 +179,26 @@ const FollowersFollowing = () => {
                     onClick={() => handleUserProfileClick(userProfile.id)}
                   >
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
-                      <span className="text-lg font-bold text-white">
-                        {userProfile.username?.charAt(0).toUpperCase() || 'U'}
-                      </span>
+                      {userProfile.avatar_url ? (
+                        <img 
+                          src={userProfile.avatar_url} 
+                          alt={userProfile.username} 
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg font-bold text-white">
+                          {userProfile.username?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      )}
                     </div>
                     <div>
-                      <h3 className="font-medium text-white">{userProfile.username}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-medium text-white">{userProfile.username}</h3>
+                        <VerificationBadge 
+                          verificationStatus={userProfile.verification_status} 
+                          size={16} 
+                        />
+                      </div>
                       {userProfile.bio && (
                         <p className="text-sm text-zinc-400">{userProfile.bio}</p>
                       )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Layout from '@/components/Layout';
+import VerificationBadge from '@/components/VerificationBadge';
 import { Camera, Edit3, Users, MessageSquare, Hash, Settings, LogOut, Trash2, Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +22,7 @@ interface UserProfile {
   followers_count: number;
   following_count: number;
   created_at: string;
+  verification_status?: string;
 }
 
 interface ChatRoom {
@@ -354,6 +356,11 @@ const Profile = () => {
           <div className="text-center mb-6">
             <div className="flex items-center justify-center space-x-2 mb-2">
               <h1 className="text-2xl font-bold text-white">{profile?.username}</h1>
+              <VerificationBadge 
+                verificationStatus={profile?.verification_status} 
+                size={20} 
+                showLabel={true} 
+              />
               <button
                 onClick={() => setIsEditing(!isEditing)}
                 className="p-1 hover:bg-zinc-700 rounded-lg transition-colors"
