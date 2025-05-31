@@ -7,6 +7,7 @@ import { Search, MessageSquare, Bell, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface ConversationProfile {
   id: string;
@@ -558,12 +559,15 @@ const Messages = () => {
                       {/* Avatar - Clickable to profile */}
                       <div 
                         onClick={(e) => handleUserProfileClick(conversation.other_user.id, e)}
-                        className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:scale-105 transition-transform"
+                        className="cursor-pointer hover:scale-105 transition-transform"
                         title="انقر للذهاب إلى البروفايل"
                       >
-                        <span className="text-sm font-bold text-white">
-                          {conversation.other_user.username?.charAt(0).toUpperCase() || 'U'}
-                        </span>
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={conversation.other_user.avatar_url} alt={conversation.other_user.username} />
+                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-green-500 text-white">
+                            {conversation.other_user.username?.charAt(0).toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
                       </div>
                       
                       {/* Message Content - Clickable to chat */}
