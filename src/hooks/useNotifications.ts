@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,6 +44,16 @@ export const useNotifications = () => {
     try {
       console.log('Fetching notifications for user:', user.id);
       
+      // أولاً تحديث تنبيهات غرف الدردشة في قاعدة البيانات قبل جلب البيانات
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('type', 'chat_room')
+        .eq('is_read', false);
+
+      console.log('Marked all chat room notifications as read in database');
+      
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -66,7 +77,7 @@ export const useNotifications = () => {
             type: notif.type as 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room',
             title: notif.title,
             message: notif.message,
-            is_read: notif.type === 'chat_room' ? true : (notif.is_read ?? false), // تعليم تنبيهات غرف الدردشة كمقروءة
+            is_read: notif.is_read ?? false,
             created_at: notif.created_at || '',
             data: notificationData
           };
@@ -115,21 +126,6 @@ export const useNotifications = () => {
       );
 
       setNotifications(enrichedNotifications);
-
-      // تحديث قاعدة البيانات لتعليم تنبيهات غرف الدردشة كمقروءة
-      const chatRoomNotifications = (data || []).filter(notif => 
-        notif.type === 'chat_room' && !notif.is_read
-      );
-
-      if (chatRoomNotifications.length > 0) {
-        const chatRoomIds = chatRoomNotifications.map(notif => notif.id);
-        await supabase
-          .from('notifications')
-          .update({ is_read: true })
-          .in('id', chatRoomIds);
-        
-        console.log('Auto-marked chat room notifications as read in database:', chatRoomIds);
-      }
 
     } catch (error) {
       console.error('Error:', error);
