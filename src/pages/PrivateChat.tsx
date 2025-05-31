@@ -138,6 +138,18 @@ const PrivateChat = () => {
       
       console.log('Uploading voice file:', fileName);
       
+      // First, ensure the bucket exists
+      const { error: bucketError } = await supabase.storage.createBucket('voice-messages', {
+        public: true,
+        allowedMimeTypes: ['audio/webm', 'audio/mp3', 'audio/wav'],
+        fileSizeLimit: 10485760 // 10MB
+      });
+
+      // Ignore error if bucket already exists
+      if (bucketError && !bucketError.message.includes('already exists')) {
+        console.error('Error creating bucket:', bucketError);
+      }
+
       const { data, error } = await supabase.storage
         .from('voice-messages')
         .upload(fileName, audioBlob, {

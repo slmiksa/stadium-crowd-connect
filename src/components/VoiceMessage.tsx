@@ -41,7 +41,6 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
       return;
     }
 
-    // Reset error state when user tries again
     setHasError(false);
 
     try {
@@ -62,7 +61,6 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
           return;
         } catch (error) {
           console.log('VoiceMessage: Resume failed, creating new audio instance');
-          // Fall through to create new audio instance
         }
       }
 
@@ -80,21 +78,7 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
       const audio = new Audio();
       audioRef.current = audio;
 
-      // Set up event listeners before loading
-      audio.addEventListener('loadstart', () => {
-        console.log('VoiceMessage: Load started');
-      });
-
-      audio.addEventListener('canplay', () => {
-        console.log('VoiceMessage: Audio can play');
-        setIsLoading(false);
-      });
-
-      audio.addEventListener('loadeddata', () => {
-        console.log('VoiceMessage: Audio data loaded, duration:', audio.duration);
-        setIsLoading(false);
-      });
-
+      // Set up event listeners
       audio.addEventListener('timeupdate', () => {
         setCurrentTime(audio.currentTime);
       });
@@ -107,91 +91,38 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
 
       audio.addEventListener('error', (e) => {
         console.error('VoiceMessage: Audio error:', e);
-        console.error('VoiceMessage: Audio error details:', audio.error);
         setIsLoading(false);
         setHasError(true);
         setIsPlaying(false);
       });
 
-      audio.addEventListener('abort', () => {
-        console.log('VoiceMessage: Audio loading aborted');
+      audio.addEventListener('canplay', () => {
+        console.log('VoiceMessage: Audio can play');
         setIsLoading(false);
       });
 
-      // Try different URL variations
-      let finalUrl = voiceUrl;
-      
-      // If URL doesn't have proper protocol, try adding it
-      if (!voiceUrl.startsWith('http://') && !voiceUrl.startsWith('https://')) {
-        console.log('VoiceMessage: URL missing protocol, attempting to fix...');
-        if (voiceUrl.includes('supabase')) {
-          finalUrl = `https://${voiceUrl}`;
-        }
-      }
-
-      // Add timestamp to bypass cache if needed
-      if (finalUrl.indexOf('?') === -1) {
-        finalUrl += `?t=${Date.now()}`;
-      } else {
-        finalUrl += `&t=${Date.now()}`;
-      }
-
-      console.log('VoiceMessage: Final URL:', finalUrl);
-
-      // Set crossOrigin to handle CORS issues
+      // Set crossOrigin and preload
       audio.crossOrigin = 'anonymous';
+      audio.preload = 'auto';
       
-      // Load the audio with error handling
-      audio.src = finalUrl;
+      // Set the source
+      audio.src = voiceUrl;
       
-      // Try to load and play
-      try {
-        audio.load();
-        
-        // Wait for the audio to be ready with shorter timeout
-        await new Promise((resolve, reject) => {
-          const timeoutId = setTimeout(() => {
-            reject(new Error('Audio loading timeout'));
-          }, 5000); // 5 second timeout
-
-          const onCanPlay = () => {
-            clearTimeout(timeoutId);
-            audio.removeEventListener('canplay', onCanPlay);
-            audio.removeEventListener('error', onError);
-            resolve(true);
-          };
-
-          const onError = () => {
-            clearTimeout(timeoutId);
-            audio.removeEventListener('canplay', onCanPlay);
-            audio.removeEventListener('error', onError);
-            reject(audio.error || new Error('Audio loading failed'));
-          };
-
-          audio.addEventListener('canplay', onCanPlay);
-          audio.addEventListener('error', onError);
-        });
-
-        // Now try to play
-        await audio.play();
+      // Load and play
+      audio.load();
+      
+      // Wait for audio to be ready then play
+      const playPromise = audio.play();
+      
+      if (playPromise !== undefined) {
+        await playPromise;
         setIsPlaying(true);
         setIsLoading(false);
         console.log('VoiceMessage: Audio started playing successfully');
-        
-      } catch (playError) {
-        console.error('VoiceMessage: Failed to play audio:', playError);
-        setIsLoading(false);
-        setHasError(true);
-        setIsPlaying(false);
-        
-        // Additional debug info
-        console.log('VoiceMessage: Audio readyState:', audio.readyState);
-        console.log('VoiceMessage: Audio networkState:', audio.networkState);
-        console.log('VoiceMessage: Audio src:', audio.src);
       }
 
     } catch (error) {
-      console.error('VoiceMessage: Error during playback setup:', error);
+      console.error('VoiceMessage: Error during playback:', error);
       setIsLoading(false);
       setHasError(true);
       setIsPlaying(false);

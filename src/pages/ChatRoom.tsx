@@ -214,6 +214,18 @@ const ChatRoom = () => {
         
         const fileName = `voice_${user.id}_${Date.now()}.webm`;
 
+        // First, ensure the bucket exists by trying to create it
+        const { error: bucketError } = await supabase.storage.createBucket('voice-messages', {
+          public: true,
+          allowedMimeTypes: ['audio/webm', 'audio/mp3', 'audio/wav'],
+          fileSizeLimit: 10485760 // 10MB
+        });
+
+        // Ignore error if bucket already exists
+        if (bucketError && !bucketError.message.includes('already exists')) {
+          console.error('ChatRoom: Error creating bucket:', bucketError);
+        }
+
         const { data, error: uploadError } = await supabase.storage
           .from('voice-messages')
           .upload(fileName, voiceFile, {
@@ -235,27 +247,6 @@ const ChatRoom = () => {
 
         voiceUrl = publicUrl;
         console.log('ChatRoom: Voice public URL generated:', voiceUrl);
-        
-        // Test the URL immediately with proper headers
-        try {
-          const testResponse = await fetch(voiceUrl, { 
-            method: 'HEAD',
-            mode: 'cors'
-          });
-          console.log('ChatRoom: Voice URL test response status:', testResponse.status);
-          if (!testResponse.ok) {
-            console.error('ChatRoom: Voice URL not accessible:', testResponse.status);
-            // Try to get URL again in case of temporary issue
-            const { data: { publicUrl: retryUrl } } = supabase.storage
-              .from('voice-messages')
-              .getPublicUrl(fileName);
-            voiceUrl = retryUrl;
-            console.log('ChatRoom: Retry URL:', voiceUrl);
-          }
-        } catch (testError) {
-          console.error('ChatRoom: Voice URL test failed:', testError);
-          // URL might still work, so continue
-        }
       }
 
       let finalContent = content || 'رسالة صوتية';
