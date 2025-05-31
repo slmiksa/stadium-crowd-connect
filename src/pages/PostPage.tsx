@@ -33,6 +33,7 @@ const PostPage = () => {
   const navigate = useNavigate();
   const [post, setPost] = useState<HashtagPostWithProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (postId) {
@@ -77,6 +78,7 @@ const PostPage = () => {
 
   const handleCommentAdded = () => {
     fetchPost();
+    setRefreshKey(prev => prev + 1);
   };
 
   if (isLoading) {
@@ -129,6 +131,7 @@ const PostPage = () => {
           {/* Comments Section */}
           <div className="bg-black">
             <CollapsibleComments
+              key={refreshKey}
               postId={post.id}
               onCommentAdded={handleCommentAdded}
             />
