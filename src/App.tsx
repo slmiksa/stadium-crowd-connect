@@ -1,6 +1,7 @@
+
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import Index from '@/pages/Index';
@@ -27,19 +28,19 @@ import Notifications from '@/pages/Notifications';
 const queryClient = new QueryClient();
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    if (!isLoggedIn && !isLoading) {
+    if (!user && !isLoading) {
       window.location.href = '/login';
     }
-  }, [isLoggedIn, isLoading]);
+  }, [user, isLoading]);
 
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  if (!isLoggedIn) {
+  if (!user) {
     return null;
   }
 

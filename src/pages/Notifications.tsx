@@ -43,7 +43,18 @@ const Notifications = () => {
         return;
       }
 
-      setNotifications(data || []);
+      // Type cast the data to match our Notification interface
+      const typedNotifications: Notification[] = (data || []).map(item => ({
+        id: item.id,
+        type: item.type as 'like' | 'comment' | 'follow' | 'message',
+        title: item.title,
+        message: item.message,
+        is_read: item.is_read,
+        created_at: item.created_at,
+        data: item.data
+      }));
+
+      setNotifications(typedNotifications);
     } catch (error) {
       console.error('Error:', error);
     } finally {
