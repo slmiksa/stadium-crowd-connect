@@ -7,11 +7,10 @@ import OwnerBadge from '@/components/OwnerBadge';
 import RoomMembersModal from '@/components/RoomMembersModal';
 import ChatRoomSettingsModal from '@/components/ChatRoomSettingsModal';
 import ChatRoomAnnouncement from '@/components/ChatRoomAnnouncement';
-import { ArrowLeft, Users, Settings, Quote, ArrowDown } from 'lucide-react';
+import { ArrowLeft, Users, Settings, Quote } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Message {
   id: string;
@@ -50,7 +49,6 @@ const ChatRoom = () => {
   const [quotedMessage, setQuotedMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const [showScrollButton, setShowScrollButton] = useState(false);
 
   useEffect(() => {
     if (roomId && user) {
@@ -67,15 +65,6 @@ const ChatRoom = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    setShowScrollButton(false);
-  };
-
-  const handleScroll = () => {
-    if (messagesContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-      setShowScrollButton(!isNearBottom);
-    }
   };
 
   const fetchRoomInfo = async () => {
@@ -392,38 +381,41 @@ const ChatRoom = () => {
       </div>
 
       {/* Content with proper spacing */}
-      <div className="flex-1 flex flex-col pt-20 pb-20">
+      <div className="flex-1 flex flex-col pt-20 pb-24">
         {/* Announcement */}
         {roomInfo?.announcement && (
           <ChatRoomAnnouncement announcement={roomInfo.announcement} />
         )}
 
-        {/* Messages with ScrollArea */}
-        <ScrollArea className="flex-1 px-4">
-          <div 
-            ref={messagesContainerRef}
-            onScroll={handleScroll}
-            className="space-y-4 py-4"
-          >
+        {/* Messages Container with Native Scrolling */}
+        <div 
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto px-4 py-4"
+          style={{ 
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain'
+          }}
+        >
+          <div className="space-y-6">
             {messages.map((message) => {
               console.log('ChatRoom: Rendering room message:', message);
               return (
                 <div key={message.id} className="flex items-start space-x-3 group">
                   <div 
-                    className="cursor-pointer"
+                    className="cursor-pointer flex-shrink-0"
                     onClick={() => navigateToUserProfile(message.user_id)}
                   >
-                    <Avatar className="w-8 h-8">
+                    <Avatar className="w-10 h-10">
                       <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
                       <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
                         {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-2">
                       <span 
-                        className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
+                        className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors text-sm"
                         onClick={() => navigateToUserProfile(message.user_id)}
                       >
                         {message.profiles?.username || 'مستخدم مجهول'}
@@ -440,36 +432,36 @@ const ChatRoom = () => {
                       </button>
                     </div>
                     
-                    {message.media_url ? (
-                      <div className="mb-2">
+                    {message.media_url && (
+                      <div className="mb-3">
                         {message.media_type?.startsWith('image/') ? (
                           <img 
                             src={message.media_url} 
                             alt="مرفق" 
-                            className="max-w-xs rounded-lg"
+                            className="max-w-xs rounded-xl border border-zinc-700"
                           />
                         ) : (
                           <a 
                             href={message.media_url} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-blue-400 hover:underline"
+                            className="inline-flex items-center px-3 py-2 bg-zinc-800 rounded-lg text-blue-400 hover:text-blue-300 hover:bg-zinc-700 transition-colors text-sm"
                           >
                             عرض المرفق
                           </a>
                         )}
                       </div>
-                    ) : null}
+                    )}
                     
-                    <div className="text-zinc-300">
+                    <div className="text-zinc-300 leading-relaxed">
                       {message.content.split('\n').map((line, index) => (
                         <div key={index}>
                           {line.startsWith('> ') ? (
-                            <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic">
+                            <div className="border-l-4 border-blue-500 pl-3 mb-2 text-zinc-400 italic bg-zinc-800/50 rounded-r-lg py-2">
                               {line.substring(2)}
                             </div>
                           ) : (
-                            <span>{line}</span>
+                            <div className="break-words">{line}</div>
                           )}
                         </div>
                       ))}
@@ -480,18 +472,8 @@ const ChatRoom = () => {
             })}
             <div ref={messagesEndRef} />
           </div>
-        </ScrollArea>
+        </div>
       </div>
-
-      {/* Scroll to bottom button */}
-      {showScrollButton && (
-        <button
-          onClick={scrollToBottom}
-          className="fixed bottom-24 right-4 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-all duration-200 z-30"
-        >
-          <ArrowDown size={20} />
-        </button>
-      )}
 
       <MediaInput 
         onSendMessage={sendMessage} 
