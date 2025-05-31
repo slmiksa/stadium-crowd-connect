@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -49,9 +48,9 @@ const Messages = () => {
       fetchConversations();
       fetchNotifications();
       
-      // Subscribe to real-time updates for messages
+      // Subscribe to real-time updates for messages with better channel names
       const messagesChannel = supabase
-        .channel('private_messages_changes')
+        .channel(`messages_${user.id}`)
         .on(
           'postgres_changes',
           {
@@ -59,7 +58,8 @@ const Messages = () => {
             schema: 'public',
             table: 'private_messages'
           },
-          () => {
+          (payload) => {
+            console.log('Message update:', payload);
             fetchConversations();
           }
         )
@@ -67,7 +67,7 @@ const Messages = () => {
 
       // Subscribe to real-time updates for notifications
       const notificationsChannel = supabase
-        .channel('notifications_changes')
+        .channel(`notifications_${user.id}`)
         .on(
           'postgres_changes',
           {
@@ -76,7 +76,8 @@ const Messages = () => {
             table: 'notifications',
             filter: `user_id=eq.${user.id}`
           },
-          () => {
+          (payload) => {
+            console.log('Notification update:', payload);
             fetchNotifications();
           }
         )
@@ -216,7 +217,19 @@ const Messages = () => {
     }
   };
 
-  const handleConversationClick = (conversation: Conversation) => {
+  const handleConversationClick = async (conversation: Conversation) => {
+    // Mark messages as read when opening conversation
+    try {
+      await supabase
+        .from('private_messages')
+        .update({ is_read: true })
+        .eq('sender_id', conversation.other_user.id)
+        .eq('receiver_id', user?.id)
+        .eq('is_read', false);
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
+    
     navigate(`/private-chat/${conversation.other_user.id}`);
   };
 
