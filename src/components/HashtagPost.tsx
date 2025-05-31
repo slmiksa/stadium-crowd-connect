@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock, User, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,6 +18,7 @@ interface Comment {
     username: string;
     avatar_url?: string;
   };
+  replies?: Comment[];
 }
 
 interface HashtagPostProps {
@@ -146,14 +146,22 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
   };
 
   const handleCommentsToggle = () => {
-    if (!showComments) {
-      loadComments();
+    if (isHashtagsPage) {
+      // For hashtags page, show inline comments
+      if (!showComments) {
+        loadComments();
+      }
+      setShowComments(!showComments);
+    } else {
+      // For other pages, show modal
+      setShowComments(!showComments);
     }
-    setShowComments(!showComments);
   };
 
   const handleCommentAdded = () => {
-    loadComments();
+    if (isHashtagsPage) {
+      loadComments();
+    }
     setLocalCommentsCount(prev => prev + 1);
   };
 
@@ -305,8 +313,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
           </button>
         </div>
 
-        {/* Comments Section - Always show as dropdown for hashtags pages */}
-        {showComments && (
+        {/* Comments Section - Inline dropdown for hashtags page */}
+        {showComments && isHashtagsPage && (
           <div className="mt-6 pt-6 border-t border-gray-700/50">
             {user && (
               <div className="mb-4">
@@ -396,6 +404,43 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
                             className="mt-2 max-w-full h-auto rounded-lg"
                           />
                         )}
+                        {/* Show replies if any */}
+                        {comment.replies && comment.replies.length > 0 && (
+                          <div className="mt-3 ml-4 space-y-2">
+                            {comment.replies.map((reply) => (
+                              <div key={reply.id} className="bg-gray-700/30 rounded-lg p-2">
+                                <div className="flex items-start gap-2">
+                                  <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span className="text-xs font-bold text-white">
+                                      {reply.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                                    </span>
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <button
+                                        onClick={() => handleCommentProfileClick(reply.user_id)}
+                                        className="font-medium text-gray-200 hover:text-blue-400 transition-colors text-xs"
+                                      >
+                                        {reply.profiles?.username || 'مستخدم مجهول'}
+                                      </button>
+                                      <span className="text-xs text-gray-500">
+                                        {formatTimestamp(reply.created_at)}
+                                      </span>
+                                    </div>
+                                    <p className="text-gray-300 text-xs">{reply.content}</p>
+                                    {reply.image_url && (
+                                      <img 
+                                        src={reply.image_url} 
+                                        alt="Reply image" 
+                                        className="mt-1 max-w-full h-auto rounded-lg"
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -405,6 +450,16 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
           </div>
         )}
       </div>
+
+      {/* Modal Comments for non-hashtags pages */}
+      {showComments && !isHashtagsPage && (
+        <PostComments 
+          postId={post.id}
+          isOpen={showComments}
+          onClose={() => setShowComments(false)}
+          onCommentAdded={handleCommentAdded}
+        />
+      )}
 
       {/* Image Modal */}
       {showImageModal && post.image_url && (
