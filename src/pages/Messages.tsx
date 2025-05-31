@@ -213,17 +213,34 @@ const Messages = () => {
   const handleNotificationClick = async (notification: Notification) => {
     await markNotificationAsRead(notification.id);
 
-    // Navigate based on notification type and data
-    if (notification.type === 'follow' && notification.data?.follower_id) {
-      navigate(`/user-profile/${notification.data.follower_id}`);
-    } else if (notification.type === 'like' && notification.data?.liker_id) {
-      navigate(`/user-profile/${notification.data.liker_id}`);
-    } else if (notification.type === 'comment' && notification.data?.commenter_id) {
-      navigate(`/user-profile/${notification.data.commenter_id}`);
-    } else if (notification.type === 'message' && notification.data?.sender_id) {
-      navigate(`/user-profile/${notification.data.sender_id}`);
+    // Navigate based on notification type
+    if (notification.type === 'comment' || notification.type === 'like') {
+      // For comments and likes, go to the post
+      if (notification.data?.post_id) {
+        console.log('Navigating to post:', notification.data.post_id);
+        navigate(`/post/${notification.data.post_id}`);
+      } else {
+        console.log('No post_id found, going to hashtags');
+        navigate('/hashtags');
+      }
+    } else if (notification.type === 'follow') {
+      // For follows, go to the follower's profile
+      const userId = notification.data?.follower_id;
+      if (userId) {
+        console.log('Navigating to user profile:', userId);
+        navigate(`/user-profile/${userId}`);
+      } else {
+        navigate('/hashtags');
+      }
+    } else if (notification.type === 'message') {
+      // For messages, go to the sender's profile or messages
+      if (notification.data?.sender_id) {
+        navigate(`/private-chat/${notification.data.sender_id}`);
+      } else {
+        navigate('/messages');
+      }
     } else {
-      // Fallback to hashtags page if no specific profile to navigate to
+      // Fallback to hashtags page if no specific navigation
       navigate('/hashtags');
     }
   };
@@ -409,7 +426,12 @@ const Messages = () => {
                           {notification.message}
                         </p>
                         <p className="text-xs text-blue-400 mt-1">
-                          انقر للذهاب إلى البروفايل
+                          {notification.type === 'comment' || notification.type === 'like' 
+                            ? 'انقر للذهاب إلى المنشور'
+                            : notification.type === 'follow'
+                            ? 'انقر للذهاب إلى البروفايل'
+                            : 'انقر للذهاب إلى المحادثة'
+                          }
                         </p>
                       </div>
                     </div>
