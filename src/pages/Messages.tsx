@@ -213,13 +213,18 @@ const Messages = () => {
   const handleNotificationClick = async (notification: Notification) => {
     await markNotificationAsRead(notification.id);
 
-    // Navigate based on notification type
+    // Navigate based on notification type and data
     if (notification.type === 'follow' && notification.data?.follower_id) {
       navigate(`/user-profile/${notification.data.follower_id}`);
-    } else if (notification.type === 'comment' && notification.data?.post_id) {
-      navigate(`/hashtags`);
+    } else if (notification.type === 'like' && notification.data?.liker_id) {
+      navigate(`/user-profile/${notification.data.liker_id}`);
+    } else if (notification.type === 'comment' && notification.data?.commenter_id) {
+      navigate(`/user-profile/${notification.data.commenter_id}`);
     } else if (notification.type === 'message' && notification.data?.sender_id) {
-      navigate(`/private-chat/${notification.data.sender_id}`);
+      navigate(`/user-profile/${notification.data.sender_id}`);
+    } else {
+      // Fallback to hashtags page if no specific profile to navigate to
+      navigate('/hashtags');
     }
   };
 
@@ -237,6 +242,11 @@ const Messages = () => {
     }
     
     navigate(`/private-chat/${conversation.other_user.id}`);
+  };
+
+  const handleUserProfileClick = (userId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    navigate(`/user-profile/${userId}`);
   };
 
   const filteredConversations = conversations.filter(conversation =>
@@ -370,9 +380,10 @@ const Messages = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3 flex-1">
                       {/* Notification Icon */}
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer ${
                         notification.type === 'follow' ? 'bg-green-500' :
                         notification.type === 'comment' ? 'bg-blue-500' :
+                        notification.type === 'like' ? 'bg-red-500' :
                         notification.type === 'message' ? 'bg-purple-500' : 'bg-gray-500'
                       }`}>
                         {notification.type === 'follow' ? (
@@ -396,6 +407,9 @@ const Messages = () => {
                         </div>
                         <p className={`text-sm truncate ${!notification.is_read ? 'text-zinc-300' : 'text-zinc-400'}`}>
                           {notification.message}
+                        </p>
+                        <p className="text-xs text-blue-400 mt-1">
+                          انقر للذهاب إلى البروفايل
                         </p>
                       </div>
                     </div>
@@ -424,22 +438,28 @@ const Messages = () => {
               filteredConversations.map((conversation) => (
                 <div
                   key={conversation.id}
-                  onClick={() => handleConversationClick(conversation)}
-                  className={`p-4 rounded-lg cursor-pointer transition-colors hover:bg-zinc-750 ${
+                  className={`p-4 rounded-lg transition-colors hover:bg-zinc-750 ${
                     conversation.unread ? 'bg-zinc-800 border-l-4 border-blue-500' : 'bg-zinc-800/50'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3 flex-1">
-                      {/* Avatar */}
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      {/* Avatar - Clickable to profile */}
+                      <div 
+                        onClick={(e) => handleUserProfileClick(conversation.other_user.id, e)}
+                        className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:scale-105 transition-transform"
+                        title="انقر للذهاب إلى البروفايل"
+                      >
                         <span className="text-sm font-bold text-white">
                           {conversation.other_user.username?.charAt(0).toUpperCase() || 'U'}
                         </span>
                       </div>
                       
-                      {/* Message Content */}
-                      <div className="flex-1 min-w-0">
+                      {/* Message Content - Clickable to chat */}
+                      <div 
+                        onClick={() => handleConversationClick(conversation)}
+                        className="flex-1 min-w-0 cursor-pointer"
+                      >
                         <div className="flex items-center justify-between mb-1">
                           <h3 className={`font-medium truncate ${conversation.unread ? 'text-white' : 'text-zinc-300'}`}>
                             {conversation.other_user.username || 'مستخدم مجهول'}
@@ -450,6 +470,9 @@ const Messages = () => {
                         </div>
                         <p className={`text-sm truncate ${conversation.unread ? 'text-zinc-300' : 'text-zinc-400'}`}>
                           {conversation.last_message}
+                        </p>
+                        <p className="text-xs text-blue-400 mt-1">
+                          انقر على الصورة للبروفايل • انقر هنا للمحادثة
                         </p>
                       </div>
                     </div>
