@@ -65,6 +65,11 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
   const isChatRoom = notification.type === 'chat_room';
   console.log('isChatRoom variable:', isChatRoom);
+  console.log('About to render buttons. isChatRoom:', isChatRoom);
+  
+  if (isChatRoom) {
+    console.log('Rendering chat room buttons now!');
+  }
 
   return (
     <div
@@ -140,12 +145,9 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
           {/* أزرار التفاعل */}
           <div className="flex items-center gap-2 mt-3">
-            {console.log('About to render buttons. isChatRoom:', isChatRoom)}
-            
             {/* أزرار غرفة الدردشة */}
             {isChatRoom && (
               <div className="flex items-center gap-2">
-                {console.log('Rendering chat room buttons now!')}
                 <Button
                   size="sm"
                   variant="outline"
