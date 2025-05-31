@@ -18,6 +18,7 @@ const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
     setIsDragging(true);
     setDragStart({ x: e.clientX - cropArea.x, y: e.clientY - cropArea.y });
   };
@@ -33,6 +34,31 @@ const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
   };
 
   const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Touch event handlers for mobile support
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent scrolling
+    const touch = e.touches[0];
+    setIsDragging(true);
+    setDragStart({ x: touch.clientX - cropArea.x, y: touch.clientY - cropArea.y });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || !containerRef.current) return;
+    e.preventDefault(); // Prevent scrolling
+    
+    const touch = e.touches[0];
+    const rect = containerRef.current.getBoundingClientRect();
+    const newX = Math.max(0, Math.min(rect.width - cropArea.size, touch.clientX - rect.left - dragStart.x));
+    const newY = Math.max(0, Math.min(rect.height - cropArea.size, touch.clientY - rect.top - dragStart.y));
+    
+    setCropArea(prev => ({ ...prev, x: newX, y: newY }));
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
     setIsDragging(false);
   };
 
@@ -83,17 +109,20 @@ const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{ touchAction: 'none' }} // Prevent default touch behaviors
           >
             <img
               ref={imageRef}
               src={imageUrl}
               alt="للاقتصاص"
-              className="max-w-full h-auto rounded-lg"
+              className="max-w-full h-auto rounded-lg select-none"
               style={{ maxWidth: '300px', maxHeight: '300px' }}
               draggable={false}
             />
             <div
-              className="absolute border-2 border-blue-500 cursor-move bg-black/20 rounded-full"
+              className="absolute border-2 border-blue-500 cursor-move bg-black/20 rounded-full touch-none"
               style={{
                 left: cropArea.x,
                 top: cropArea.y,
@@ -101,6 +130,7 @@ const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
                 height: cropArea.size,
               }}
               onMouseDown={handleMouseDown}
+              onTouchStart={handleTouchStart}
             >
               <div className="w-full h-full rounded-full border-2 border-white border-dashed opacity-50"></div>
             </div>
