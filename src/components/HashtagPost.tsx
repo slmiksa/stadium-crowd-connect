@@ -41,6 +41,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
   const [likesCount, setLikesCount] = useState(post.likes_count);
   const [commentsCount, setCommentsCount] = useState(post.comments_count);
   const [showComments, setShowComments] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -54,26 +55,43 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
   };
 
   const handleLike = async () => {
-    if (!user) return;
+    if (!user || isLiking) return;
+
+    setIsLiking(true);
+    console.log('Handling like for post:', post.id, 'by user:', user.id);
 
     try {
       if (isLiked) {
-        await supabase
+        console.log('Removing like...');
+        const { error } = await supabase
           .from('hashtag_likes')
           .delete()
           .eq('post_id', post.id)
           .eq('user_id', user.id);
         
+        if (error) {
+          console.error('Error removing like:', error);
+          return;
+        }
+        
+        console.log('Like removed successfully');
         setIsLiked(false);
         setLikesCount(prev => prev - 1);
       } else {
-        await supabase
+        console.log('Adding like...');
+        const { error } = await supabase
           .from('hashtag_likes')
           .insert({
             post_id: post.id,
             user_id: user.id
           });
         
+        if (error) {
+          console.error('Error adding like:', error);
+          return;
+        }
+        
+        console.log('Like added successfully');
         setIsLiked(true);
         setLikesCount(prev => prev + 1);
       }
@@ -83,6 +101,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
       }
     } catch (error) {
       console.error('Error toggling like:', error);
+    } finally {
+      setIsLiking(false);
     }
   };
 
@@ -204,13 +224,14 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
               <div className="flex items-center space-x-6 space-x-reverse">
                 <button
                   onClick={handleLike}
-                  className={`flex items-center space-x-2 space-x-reverse transition-all duration-200 group ${
+                  disabled={isLiking}
+                  className={`flex items-center space-x-2 space-x-reverse transition-all duration-200 group disabled:opacity-70 ${
                     isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-400'
                   }`}
                 >
                   <Heart 
                     size={20} 
-                    className={`transition-transform group-hover:scale-110 ${isLiked ? 'fill-current' : ''}`}
+                    className={`transition-transform group-hover:scale-110 ${isLiked ? 'fill-current' : ''} ${isLiking ? 'animate-pulse' : ''}`}
                   />
                   <span className="text-sm font-medium">{likesCount}</span>
                 </button>

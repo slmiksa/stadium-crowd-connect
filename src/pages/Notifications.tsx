@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -45,6 +44,8 @@ const Notifications = () => {
     if (!user) return;
 
     try {
+      console.log('Fetching notifications for user:', user.id);
+      
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -55,6 +56,8 @@ const Notifications = () => {
         console.error('Error fetching notifications:', error);
         return;
       }
+
+      console.log('Fetched notifications:', data);
 
       // جلب تفاصيل المنشورات والتعليقات للتنبيهات
       const enrichedNotifications = await Promise.all(
@@ -195,31 +198,18 @@ const Notifications = () => {
     console.log('Notification clicked:', notification);
     console.log('Notification type:', notification.type);
     console.log('Notification data:', notification.data);
-    console.log('Post ID:', notification.data?.post_id);
 
     if (!notification.is_read) {
       await markAsRead(notification.id);
     }
 
-    // منع أي سلوك افتراضي للحدث
-    const navigateToPost = (postId: string) => {
-      console.log('Navigating to post:', postId);
-      window.location.href = `/post/${postId}`;
-    };
-
-    // Navigate based on notification type
-    if (notification.type === 'comment') {
+    // Navigate based on notification type - ALWAYS go to the post for likes and comments
+    if (notification.type === 'comment' || notification.type === 'like') {
       if (notification.data?.post_id) {
-        navigateToPost(notification.data.post_id);
+        console.log('Navigating to post:', notification.data.post_id);
+        navigate(`/post/${notification.data.post_id}`);
       } else {
-        console.log('No post_id found for comment notification');
-        navigate('/hashtags');
-      }
-    } else if (notification.type === 'like') {
-      if (notification.data?.post_id) {
-        navigateToPost(notification.data.post_id);
-      } else {
-        console.log('No post_id found for like notification');
+        console.log('No post_id found, going to hashtags');
         navigate('/hashtags');
       }
     } else if (notification.type === 'follow') {
