@@ -3,9 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Send, Users } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { ArrowLeft, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import MediaInput from '@/components/MediaInput';
 
 interface ChatRoom {
   id: string;
@@ -14,6 +14,7 @@ interface ChatRoom {
   is_private: boolean;
   members_count: number;
   owner_id: string;
+  avatar_url?: string;
 }
 
 interface Message {
@@ -21,6 +22,8 @@ interface Message {
   content: string;
   created_at: string;
   user_id: string;
+  media_url?: string;
+  media_type?: string;
   profiles: {
     username: string;
     avatar_url?: string;
@@ -35,7 +38,6 @@ const ChatRoom = () => {
   
   const [room, setRoom] = useState<ChatRoom | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isMember, setIsMember] = useState(false);
@@ -145,26 +147,72 @@ const ChatRoom = () => {
     }
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !user || isSending) return;
+  const uploadMedia = async (file: File, messageId: string): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${messageId}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('room-messages')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('Error uploading media:', uploadError);
+        return null;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('room-messages')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error in uploadMedia:', error);
+      return null;
+    }
+  };
+
+  const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
+    if ((!content.trim() && !mediaFile) || !user || isSending) return;
 
     setIsSending(true);
     try {
-      const { error } = await supabase
+      // Insert message first to get the ID
+      const { data: messageData, error: insertError } = await supabase
         .from('room_messages')
         .insert({
           room_id: roomId,
           user_id: user.id,
-          content: newMessage.trim()
-        });
+          content: content || '',
+          media_type: mediaType || null
+        })
+        .select()
+        .single();
 
-      if (error) {
-        console.error('Error sending message:', error);
+      if (insertError) {
+        console.error('Error sending message:', insertError);
         return;
       }
 
-      setNewMessage('');
+      // Upload media if provided
+      let mediaUrl = null;
+      if (mediaFile && messageData) {
+        mediaUrl = await uploadMedia(mediaFile, messageData.id);
+        
+        if (mediaUrl) {
+          // Update message with media URL
+          const { error: updateError } = await supabase
+            .from('room_messages')
+            .update({ media_url: mediaUrl })
+            .eq('id', messageData.id);
+
+          if (updateError) {
+            console.error('Error updating message with media:', updateError);
+          }
+        }
+      }
+
       fetchMessages();
     } catch (error) {
       console.error('Error:', error);
@@ -179,6 +227,34 @@ const ChatRoom = () => {
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  };
+
+  const renderMessageContent = (message: Message) => {
+    return (
+      <div className="space-y-2">
+        {message.media_url && (
+          <div className="max-w-xs">
+            {message.media_type === 'image' ? (
+              <img 
+                src={message.media_url} 
+                alt="مرفق" 
+                className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => window.open(message.media_url, '_blank')}
+              />
+            ) : message.media_type === 'video' ? (
+              <video 
+                src={message.media_url} 
+                controls 
+                className="rounded-lg max-w-full h-auto"
+              />
+            ) : null}
+          </div>
+        )}
+        {message.content && (
+          <p className="text-zinc-300">{message.content}</p>
+        )}
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -214,6 +290,24 @@ const ChatRoom = () => {
             >
               <ArrowLeft size={20} className="text-white" />
             </button>
+            
+            {/* Room Avatar */}
+            <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+              {room.avatar_url ? (
+                <img 
+                  src={room.avatar_url} 
+                  alt={room.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <span className="text-sm font-bold text-white">
+                    {room.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
+            
             <div>
               <h1 className="text-lg font-bold text-white">{room.name}</h1>
               <div className="flex items-center space-x-2 text-sm text-zinc-400">
@@ -263,7 +357,7 @@ const ChatRoom = () => {
                         {formatTimestamp(message.created_at)}
                       </span>
                     </div>
-                    <p className="text-zinc-300">{message.content}</p>
+                    {renderMessageContent(message)}
                   </div>
                 </div>
               ))
@@ -271,25 +365,11 @@ const ChatRoom = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Message Input */}
-          <div className="bg-zinc-800 border-t border-zinc-700 p-4">
-            <form onSubmit={sendMessage} className="flex space-x-2">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="اكتب رسالة..."
-                className="flex-1 bg-zinc-700 border-zinc-600 text-white"
-                disabled={isSending}
-              />
-              <Button 
-                type="submit" 
-                disabled={!newMessage.trim() || isSending}
-                className="bg-blue-500 hover:bg-blue-600"
-              >
-                <Send size={18} />
-              </Button>
-            </form>
-          </div>
+          {/* Media Input */}
+          <MediaInput 
+            onSendMessage={sendMessage} 
+            isSending={isSending} 
+          />
         </>
       )}
     </div>

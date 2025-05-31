@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import { ArrowLeft, Hash, Lock, Globe } from 'lucide-react';
+import { ArrowLeft, Hash, Lock, Globe, Camera, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -14,10 +14,63 @@ const CreateChatRoom = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "حجم الملف كبير جداً",
+          description: "يجب أن يكون حجم الصورة أقل من 5 ميجابايت",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setAvatarPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadAvatar = async (roomId: string): Promise<string | null> => {
+    if (!avatarFile) return null;
+
+    try {
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileName = `${roomId}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('room-avatars')
+        .upload(filePath, avatarFile);
+
+      if (uploadError) {
+        console.error('Error uploading avatar:', uploadError);
+        return null;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('room-avatars')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error in uploadAvatar:', error);
+      return null;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +80,7 @@ const CreateChatRoom = () => {
     try {
       console.log('Creating room with data:', { name: name.trim(), description: description.trim(), isPrivate, userId: user.id });
       
-      // إنشاء الغرفة
+      // إنشاء الغرفة أولاً
       const { data: room, error: roomError } = await supabase
         .from('chat_rooms')
         .insert({
@@ -51,6 +104,23 @@ const CreateChatRoom = () => {
       }
 
       console.log('Room created successfully:', room);
+
+      // رفع الأيقونة إذا تم اختيارها
+      let avatarUrl = null;
+      if (avatarFile) {
+        avatarUrl = await uploadAvatar(room.id);
+        if (avatarUrl) {
+          // تحديث الغرفة بـ URL الأيقونة
+          const { error: updateError } = await supabase
+            .from('chat_rooms')
+            .update({ avatar_url: avatarUrl })
+            .eq('id', room.id);
+
+          if (updateError) {
+            console.error('Error updating room avatar:', updateError);
+          }
+        }
+      }
 
       // إضافة المنشئ كعضو في الغرفة
       const { error: memberError } = await supabase
@@ -110,6 +180,41 @@ const CreateChatRoom = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Room Avatar */}
+          <div className="bg-zinc-800 rounded-lg p-4">
+            <label className="block text-sm font-medium text-zinc-300 mb-3">
+              أيقونة الغرفة (اختياري)
+            </label>
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 bg-zinc-700 rounded-lg flex items-center justify-center overflow-hidden">
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="معاينة الأيقونة" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera size={24} className="text-zinc-400" />
+                )}
+              </div>
+              <div className="flex-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full bg-zinc-700 border-zinc-600 hover:bg-zinc-600"
+                >
+                  <Upload size={18} className="mr-2" />
+                  اختيار صورة
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarSelect}
+                  className="hidden"
+                />
+                <p className="text-xs text-zinc-500 mt-1">الحد الأقصى 5 ميجابايت</p>
+              </div>
+            </div>
+          </div>
+
           {/* Room Name */}
           <div className="bg-zinc-800 rounded-lg p-4">
             <label className="block text-sm font-medium text-zinc-300 mb-2">
