@@ -151,8 +151,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
   const handleLike = async () => {
     if (!user || isLiking) return;
 
+    // Optimistic UI update
+    const previousIsLiked = isLiked;
+    const previousLikesCount = likesCount;
+    
+    setIsLiked(!isLiked);
+    setLikesCount(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
     setIsLiking(true);
-    console.log('Handling like for post:', post.id, 'by user:', user.id);
 
     try {
       if (isLiked) {
@@ -165,12 +170,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         
         if (error) {
           console.error('Error removing like:', error);
+          // Revert optimistic update
+          setIsLiked(previousIsLiked);
+          setLikesCount(previousLikesCount);
           return;
         }
         
         console.log('Like removed successfully');
-        setIsLiked(false);
-        setLikesCount(prev => Math.max(0, prev - 1));
       } else {
         console.log('Adding like...');
         const { error } = await supabase
@@ -182,12 +188,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         
         if (error) {
           console.error('Error adding like:', error);
+          // Revert optimistic update
+          setIsLiked(previousIsLiked);
+          setLikesCount(previousLikesCount);
           return;
         }
         
         console.log('Like added successfully');
-        setIsLiked(true);
-        setLikesCount(prev => prev + 1);
       }
       
       if (onLikeChange) {
@@ -195,6 +202,9 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
       }
     } catch (error) {
       console.error('Error toggling like:', error);
+      // Revert optimistic update
+      setIsLiked(previousIsLiked);
+      setLikesCount(previousLikesCount);
     } finally {
       setIsLiking(false);
     }

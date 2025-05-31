@@ -73,9 +73,9 @@ const Hashtags = () => {
         return;
       }
 
-      // Filter posts that actually contain hashtags
+      // Only include posts that have hashtags and hashtags array is not empty
       const postsWithHashtags = (data || []).filter(post => 
-        post.hashtags && post.hashtags.length > 0
+        post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0
       );
       
       // Popular posts (most likes)
@@ -173,7 +173,9 @@ const Hashtags = () => {
   };
 
   const handlePostLikeChange = () => {
-    fetchPosts();
+    // Instead of refetching all posts, just update the current state
+    // This prevents posts from disappearing when likes change
+    console.log('Post like changed, maintaining current view');
   };
 
   const renderPost = (post: HashtagPostWithProfile) => (
