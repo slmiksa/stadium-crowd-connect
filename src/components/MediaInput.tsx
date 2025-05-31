@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Camera, Video, Image, Send, X, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,6 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
         alert('حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت');
         return;
@@ -49,7 +47,6 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
       setSelectedMedia(file);
       setMediaType(type);
       
-      // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         setMediaPreview(e.target?.result as string);
@@ -60,18 +57,24 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
 
   const handleVoiceRecorded = async (audioBlob: Blob, duration: number) => {
     try {
-      console.log('MediaInput: Voice recorded, blob size:', audioBlob.size, 'duration:', duration);
+      console.log('MediaInput: Voice recorded callback received');
+      console.log('MediaInput: Audio blob details:', {
+        size: audioBlob.size,
+        type: audioBlob.type,
+        duration: duration
+      });
       
-      if (audioBlob.size === 0) {
-        throw new Error('الملف الصوتي فارغ');
+      if (!audioBlob || audioBlob.size === 0) {
+        throw new Error('الملف الصوتي فارغ أو غير صالح');
       }
 
-      if (duration === 0) {
+      if (!duration || duration === 0) {
         throw new Error('مدة التسجيل غير صحيحة');
       }
 
-      // إنشاء ملف صوتي مع الاسم والنوع الصحيح
-      const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, {
+      // إنشاء ملف صوتي مع اسم فريد
+      const fileName = `voice_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
+      const audioFile = new File([audioBlob], fileName, {
         type: audioBlob.type || 'audio/webm'
       });
 
@@ -82,12 +85,16 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         duration: duration
       });
 
+      console.log('MediaInput: Calling onSendMessage...');
+      
       // إرسال الرسالة الصوتية
       await onSendMessage('رسالة صوتية', undefined, undefined, audioFile, duration);
+      
+      console.log('MediaInput: onSendMessage completed successfully');
       setShowVoiceRecorder(false);
       
     } catch (error) {
-      console.error('MediaInput: Error handling voice recording:', error);
+      console.error('MediaInput: Error in handleVoiceRecorded:', error);
       alert('فشل في إرسال الرسالة الصوتية: ' + error.message);
       setShowVoiceRecorder(false);
     }
@@ -100,7 +107,6 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     
     onSendMessage(message.trim(), selectedMedia || undefined, mediaType || undefined);
     
-    // Reset form
     setMessage('');
     setSelectedMedia(null);
     setMediaPreview(null);
@@ -128,7 +134,10 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     return (
       <VoiceRecorder
         onVoiceRecorded={handleVoiceRecorded}
-        onCancel={() => setShowVoiceRecorder(false)}
+        onCancel={() => {
+          console.log('MediaInput: Voice recorder cancelled');
+          setShowVoiceRecorder(false);
+        }}
       />
     );
   }
