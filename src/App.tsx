@@ -98,6 +98,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/user/:userId"
+                element={
+                  <AuthGuard>
+                    <UserProfile />
+                  </AuthGuard>
+                }
+              />
+              <Route
                 path="/user-profile/:userId"
                 element={
                   <AuthGuard>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Crown, UserMinus } from 'lucide-react';
+import { X, Crown, UserX, Ban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ interface Member {
   id: string;
   user_id: string;
   joined_at: string;
+  is_banned: boolean;
   profiles: {
     username: string;
     avatar_url?: string;
@@ -85,7 +86,49 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
     }
   };
 
-  const removeMember = async (userId: string) => {
+  const banMember = async (userId: string) => {
+    if (!isOwner || userId === roomOwner) return;
+
+    try {
+      const { error } = await supabase
+        .from('room_members')
+        .update({ is_banned: true })
+        .eq('room_id', roomId)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error banning member:', error);
+        return;
+      }
+
+      fetchMembers();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const unbanMember = async (userId: string) => {
+    if (!isOwner || userId === roomOwner) return;
+
+    try {
+      const { error } = await supabase
+        .from('room_members')
+        .update({ is_banned: false })
+        .eq('room_id', roomId)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error unbanning member:', error);
+        return;
+      }
+
+      fetchMembers();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const kickMember = async (userId: string) => {
     if (!isOwner || userId === roomOwner) return;
 
     try {
@@ -96,7 +139,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error removing member:', error);
+        console.error('Error kicking member:', error);
         return;
       }
 
@@ -164,6 +207,9 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
                         {member.user_id === roomOwner && (
                           <Crown size={16} className="text-yellow-500" />
                         )}
+                        {member.is_banned && (
+                          <span className="text-xs bg-red-600 text-white px-2 py-1 rounded">محظور</span>
+                        )}
                       </div>
                       <span className="text-xs text-zinc-500">
                         انضم في {formatJoinDate(member.joined_at)}
@@ -172,12 +218,34 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
                   </div>
                   
                   {isOwner && member.user_id !== roomOwner && (
-                    <button
-                      onClick={() => removeMember(member.user_id)}
-                      className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
-                    >
-                      <UserMinus size={16} />
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      {member.is_banned ? (
+                        <button
+                          onClick={() => unbanMember(member.user_id)}
+                          className="p-2 text-green-400 hover:bg-green-900/20 rounded-lg transition-colors"
+                          title="فك الحظر"
+                        >
+                          <Ban size={16} />
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => banMember(member.user_id)}
+                            className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="حظر"
+                          >
+                            <Ban size={16} />
+                          </button>
+                          <button
+                            onClick={() => kickMember(member.user_id)}
+                            className="p-2 text-orange-400 hover:bg-orange-900/20 rounded-lg transition-colors"
+                            title="طرد"
+                          >
+                            <UserX size={16} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}

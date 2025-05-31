@@ -41,6 +41,7 @@ const ChatRoom = () => {
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
+  const [isBanned, setIsBanned] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [quotedMessage, setQuotedMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -86,14 +87,21 @@ const ChatRoom = () => {
     try {
       const { data, error } = await supabase
         .from('room_members')
-        .select('id')
+        .select('id, is_banned')
         .eq('room_id', roomId)
         .eq('user_id', user?.id)
         .single();
 
-      setIsMember(!!data);
+      if (data) {
+        setIsMember(true);
+        setIsBanned(data.is_banned || false);
+      } else {
+        setIsMember(false);
+        setIsBanned(false);
+      }
     } catch (error) {
       setIsMember(false);
+      setIsBanned(false);
     } finally {
       setIsLoading(false);
     }
@@ -238,6 +246,23 @@ const ChatRoom = () => {
       <Layout>
         <div className="p-4 flex items-center justify-center min-h-64">
           <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (isBanned) {
+    return (
+      <Layout>
+        <div className="p-4 text-center">
+          <h2 className="text-xl font-bold text-white mb-4">محظور من الغرفة</h2>
+          <p className="text-zinc-400 mb-6">تم حظرك من هذه الغرفة ولا يمكنك المشاركة فيها.</p>
+          <Button
+            onClick={() => navigate('/chat-rooms')}
+            className="bg-blue-500 hover:bg-blue-600"
+          >
+            العودة للغرف
+          </Button>
         </div>
       </Layout>
     );
