@@ -56,21 +56,6 @@ export const useNotifications = () => {
 
       console.log('Fetched notifications:', data);
 
-      // تلقائياً تعليم تنبيهات غرف الدردشة كمقروءة
-      const chatRoomNotifications = (data || []).filter(notif => 
-        notif.type === 'chat_room' && !notif.is_read
-      );
-
-      if (chatRoomNotifications.length > 0) {
-        const chatRoomIds = chatRoomNotifications.map(notif => notif.id);
-        await supabase
-          .from('notifications')
-          .update({ is_read: true })
-          .in('id', chatRoomIds);
-        
-        console.log('Auto-marked chat room notifications as read:', chatRoomIds);
-      }
-
       // جلب تفاصيل المنشورات والتعليقات للتنبيهات
       const enrichedNotifications = await Promise.all(
         (data || []).map(async (notif) => {
@@ -130,6 +115,22 @@ export const useNotifications = () => {
       );
 
       setNotifications(enrichedNotifications);
+
+      // تحديث قاعدة البيانات لتعليم تنبيهات غرف الدردشة كمقروءة
+      const chatRoomNotifications = (data || []).filter(notif => 
+        notif.type === 'chat_room' && !notif.is_read
+      );
+
+      if (chatRoomNotifications.length > 0) {
+        const chatRoomIds = chatRoomNotifications.map(notif => notif.id);
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .in('id', chatRoomIds);
+        
+        console.log('Auto-marked chat room notifications as read in database:', chatRoomIds);
+      }
+
     } catch (error) {
       console.error('Error:', error);
     } finally {
