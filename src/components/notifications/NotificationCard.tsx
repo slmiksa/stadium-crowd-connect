@@ -58,6 +58,12 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   console.log('NotificationCard - notification data:', notification.data);
   console.log('NotificationCard - Is chat_room?:', notification.type === 'chat_room');
 
+  // Add console log for buttons rendering
+  console.log('Rendering buttons section for type:', notification.type);
+  if (notification.type === 'chat_room') {
+    console.log('Rendering chat room buttons');
+  }
+
   return (
     <div
       onClick={() => onNotificationClick(notification)}
@@ -132,8 +138,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
           {/* أزرار التفاعل */}
           <div className="flex items-center gap-2 mt-3">
-            {console.log('Rendering buttons section for type:', notification.type)}
-            
             {/* زر البروفايل للتنبيهات العادية (غير غرف الدردشة) */}
             {(notification.type === 'follow' || notification.type === 'like' || 
               notification.type === 'comment' || notification.type === 'follower_comment' ||
@@ -152,7 +156,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             {/* أزرار غرف الدردشة */}
             {notification.type === 'chat_room' && (
               <div className="flex items-center gap-2 w-full">
-                {console.log('Rendering chat room buttons')}
                 <Button
                   size="sm"
                   variant="outline"
