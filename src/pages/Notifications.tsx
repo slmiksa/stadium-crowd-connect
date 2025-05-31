@@ -450,7 +450,7 @@ const Notifications = () => {
                         </div>
                       )}
 
-                      {/* أزرار التفاعل */}
+                      {/* أزرار التفاعل - تظهر تحت جميع التنبيهات */}
                       <div className="flex items-center gap-2 mt-3">
                         {/* زر البروفايل لجميع أنواع التنبيهات */}
                         {(notification.type === 'follow' || notification.type === 'like' || 
@@ -482,8 +482,8 @@ const Notifications = () => {
                           </Button>
                         )}
 
-                        {/* زر دخول الغرفة لتنبيهات غرف الدردشة */}
-                        {notification.type === 'chat_room' && notification.data?.room_id && (
+                        {/* زر دخول الغرفة لتنبيهات غرف الدردشة - يظهر دائماً */}
+                        {notification.type === 'chat_room' && (
                           <Button
                             size="sm"
                             variant="outline"
