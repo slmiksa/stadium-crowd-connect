@@ -25,32 +25,32 @@ const HashtagTabs: React.FC<HashtagTabsProps> = ({
 }) => {
   return (
     <Tabs defaultValue="popular" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 bg-gray-900/50 backdrop-blur-sm mb-6 p-1 rounded-xl border border-gray-700/50">
+      <TabsList className="grid w-full grid-cols-2 bg-gray-900/80 backdrop-blur-md mb-6 p-2 rounded-2xl border border-gray-700/30 shadow-2xl">
         <TabsTrigger 
           value="popular" 
-          className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-gray-300 rounded-lg transition-all duration-300 py-3 px-6 font-medium"
+          className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300 rounded-xl transition-all duration-300 py-4 px-6 font-semibold text-lg hover:text-white hover:bg-gray-700/50"
         >
-          <Hash size={18} className="ml-2" />
+          <Hash size={20} className="ml-2" />
           هاشتاقات شائعة
         </TabsTrigger>
         <TabsTrigger 
           value="trending"
-          className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white text-gray-300 rounded-lg transition-all duration-300 py-3 px-6 font-medium"
+          className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300 rounded-xl transition-all duration-300 py-4 px-6 font-semibold text-lg hover:text-white hover:bg-gray-700/50"
         >
-          <TrendingUp size={18} className="ml-2" />
+          <TrendingUp size={20} className="ml-2" />
           هاشتاقات ترند ({trendingHashtags.length})
         </TabsTrigger>
       </TabsList>
       
       <TabsContent value="popular" className="space-y-4 px-6 pb-6">
         {popularPosts.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Hash size={32} className="text-gray-400" />
+          <div className="text-center py-16">
+            <div className="bg-gray-800/40 backdrop-blur-sm rounded-3xl p-12 border border-gray-700/30 shadow-xl">
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
+                <Hash size={40} className="text-gray-400" />
               </div>
-              <p className="text-gray-400 text-lg">لا توجد منشورات شائعة حالياً</p>
-              <p className="text-gray-500 text-sm mt-2">كن أول من ينشر محتوى مميز!</p>
+              <h3 className="text-gray-300 text-xl font-semibold mb-3">لا توجد منشورات شائعة حالياً</h3>
+              <p className="text-gray-500 text-base">كن أول من ينشر محتوى مميز واكتشف عالم الهاشتاقات!</p>
             </div>
           </div>
         ) : (
@@ -60,13 +60,13 @@ const HashtagTabs: React.FC<HashtagTabsProps> = ({
       
       <TabsContent value="trending" className="space-y-4 px-6 pb-6">
         {trendingHashtags.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrendingUp size={32} className="text-gray-400" />
+          <div className="text-center py-16">
+            <div className="bg-gray-800/40 backdrop-blur-sm rounded-3xl p-12 border border-gray-700/30 shadow-xl">
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-purple-500/20">
+                <TrendingUp size={40} className="text-gray-400" />
               </div>
-              <p className="text-gray-400 text-lg">لا توجد هاشتاقات ترند حالياً</p>
-              <p className="text-gray-500 text-sm mt-2">الهاشتاقات التي تحصل على 35+ منشور في آخر 24 ساعة تظهر هنا</p>
+              <h3 className="text-gray-300 text-xl font-semibold mb-3">لا توجد هاشتاقات ترند حالياً</h3>
+              <p className="text-gray-500 text-base">الهاشتاقات التي تحصل على 35+ منشور في آخر 24 ساعة تظهر هنا</p>
             </div>
           </div>
         ) : (
