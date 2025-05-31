@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -170,7 +171,13 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
 
       console.log('Comment inserted successfully:', insertData);
 
+      // Clear reply state immediately after successful submission
+      setReplyTo(null);
+      
+      // Refresh comments
       await fetchComments();
+      
+      // Call parent callback
       onCommentAdded();
       
     } catch (error) {
@@ -190,7 +197,11 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
   };
 
   const handleProfileClick = (userId: string) => {
-    navigate(`/user/${userId}`);
+    if (userId === user?.id) {
+      navigate('/profile');
+    } else {
+      navigate(`/user-profile/${userId}`);
+    }
   };
 
   const organizeComments = (comments: Comment[]) => {
@@ -210,7 +221,9 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
       {/* Comment Input - Moved to top */}
       <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/40 mb-4">
         <CommentInput
-          onSubmit={handleSubmitComment}
+          onSubmit={(content, mediaFile, mediaType) => 
+            handleSubmitComment(content, mediaFile, replyTo?.id, mediaType)
+          }
           isSubmitting={isSubmitting}
           placeholder="اكتب تعليقاً..."
           replyTo={replyTo}
