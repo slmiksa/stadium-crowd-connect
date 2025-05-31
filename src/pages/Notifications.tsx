@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -191,25 +192,35 @@ const Notifications = () => {
   };
 
   const handleNotificationClick = async (notification: Notification) => {
+    console.log('Notification clicked:', notification);
+    console.log('Notification type:', notification.type);
+    console.log('Notification data:', notification.data);
+    console.log('Post ID:', notification.data?.post_id);
+
     if (!notification.is_read) {
       await markAsRead(notification.id);
     }
 
     // Navigate based on notification type
     if (notification.type === 'comment' && notification.data?.post_id) {
-      // توجيه المستخدم إلى صفحة المنشور المحددة عند الضغط على تنبيه التعليق
+      console.log('Navigating to post page for comment:', notification.data.post_id);
       navigate(`/post/${notification.data.post_id}`);
     } else if (notification.type === 'like' && notification.data?.post_id) {
-      // توجيه المستخدم إلى صفحة المنشور المحددة عند الضغط على تنبيه الإعجاب
+      console.log('Navigating to post page for like:', notification.data.post_id);
       navigate(`/post/${notification.data.post_id}`);
     } else if (notification.type === 'follow') {
       const userId = notification.data?.follower_id;
       if (userId) {
+        console.log('Navigating to user profile:', userId);
         navigate(`/user-profile/${userId}`);
       }
     } else if (notification.type === 'message') {
+      console.log('Navigating to messages');
       navigate('/messages');
     } else {
+      console.log('Fallback navigation to hashtags');
+      console.log('Notification type was:', notification.type);
+      console.log('Post ID was:', notification.data?.post_id);
       // fallback للهاشتاقات في حالة عدم وجود post_id
       navigate('/hashtags');
     }
