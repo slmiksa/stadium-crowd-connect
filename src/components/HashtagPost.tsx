@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -189,7 +188,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
   };
 
   const handleProfileClick = (userId: string) => {
-    navigate(`/user/${userId}`);
+    if (userId && userId !== user?.id) {
+      navigate(`/user/${userId}`);
+    } else if (userId === user?.id) {
+      navigate('/profile');
+    }
   };
 
   const organizeComments = (comments: Comment[]) => {
