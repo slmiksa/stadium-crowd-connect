@@ -79,7 +79,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-zinc-800 border-t border-zinc-700 p-4 z-10">
+    <div className="bg-zinc-800 border-t border-zinc-700 p-4">
       {/* Quoted Message Preview */}
       {quotedMessage && (
         <div className="mb-3 bg-zinc-700 rounded-lg p-3 border-l-4 border-blue-500">
@@ -123,7 +123,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="flex items-end gap-2">
         {/* Media Button */}
         <Button
           type="button"
@@ -148,7 +148,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="اكتب رسالة..."
-          className="flex-1 bg-zinc-700 border-zinc-600 text-white placeholder:text-zinc-400 h-10"
+          className="flex-1 bg-zinc-700 border-zinc-600 text-white"
           disabled={isSending}
         />
 
@@ -156,7 +156,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         <Button 
           type="submit" 
           disabled={(!message.trim() && !selectedMedia) || isSending}
-          className="bg-blue-500 hover:bg-blue-600 flex-shrink-0 h-10 w-10 p-2"
+          className="bg-blue-500 hover:bg-blue-600 flex-shrink-0"
         >
           <Send size={18} />
         </Button>

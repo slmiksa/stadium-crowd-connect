@@ -48,7 +48,6 @@ const ChatRoom = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [quotedMessage, setQuotedMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (roomId && user) {
@@ -342,145 +341,135 @@ const ChatRoom = () => {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 flex flex-col">
-      {/* Header */}
-      <div className="bg-zinc-800 border-b border-zinc-700 p-4 fixed top-0 left-0 right-0 z-20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <button 
-              onClick={() => navigate('/chat-rooms')}
-              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
-            >
-              <ArrowLeft size={20} className="text-white" />
-            </button>
-            <div>
-              <h1 className="text-lg font-bold text-white">{roomInfo?.name}</h1>
-              <div className="flex items-center space-x-2 text-sm text-zinc-400">
-                <Users size={14} />
-                <span>{roomInfo?.members_count} عضو</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button 
-              onClick={() => setShowMembersModal(true)}
-              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
-            >
-              <Users size={20} className="text-white" />
-            </button>
-            {user?.id === roomInfo?.owner_id && (
+    <Layout showBottomNav={false}>
+      <div className="flex flex-col h-screen">
+        {/* Header */}
+        <div className="bg-zinc-800 border-b border-zinc-700 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
               <button 
-                onClick={() => setShowSettingsModal(true)}
+                onClick={() => navigate('/chat-rooms')}
                 className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
               >
-                <Settings size={20} className="text-white" />
+                <ArrowLeft size={20} className="text-white" />
               </button>
-            )}
+              <div>
+                <h1 className="text-lg font-bold text-white">{roomInfo?.name}</h1>
+                <div className="flex items-center space-x-2 text-sm text-zinc-400">
+                  <Users size={14} />
+                  <span>{roomInfo?.members_count} عضو</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => setShowMembersModal(true)}
+                className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
+              >
+                <Users size={20} className="text-white" />
+              </button>
+              {user?.id === roomInfo?.owner_id && (
+                <button 
+                  onClick={() => setShowSettingsModal(true)}
+                  className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
+                >
+                  <Settings size={20} className="text-white" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Content with proper spacing */}
-      <div className="flex-1 flex flex-col pt-20 pb-24">
         {/* Announcement */}
         {roomInfo?.announcement && (
           <ChatRoomAnnouncement announcement={roomInfo.announcement} />
         )}
 
-        {/* Messages Container with Native Scrolling */}
-        <div 
-          ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto px-4 py-4"
-          style={{ 
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'contain'
-          }}
-        >
-          <div className="space-y-6">
-            {messages.map((message) => {
-              console.log('ChatRoom: Rendering room message:', message);
-              return (
-                <div key={message.id} className="flex items-start space-x-3 group">
-                  <div 
-                    className="cursor-pointer flex-shrink-0"
-                    onClick={() => navigateToUserProfile(message.user_id)}
-                  >
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                        {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.map((message) => {
+            console.log('ChatRoom: Rendering room message:', message);
+            return (
+              <div key={message.id} className="flex items-start space-x-3 group">
+                <div 
+                  className="cursor-pointer"
+                  onClick={() => navigateToUserProfile(message.user_id)}
+                >
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                      {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span 
+                      className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
+                      onClick={() => navigateToUserProfile(message.user_id)}
+                    >
+                      {message.profiles?.username || 'مستخدم مجهول'}
+                    </span>
+                    <OwnerBadge isOwner={message.user_id === roomInfo?.owner_id} />
+                    <span className="text-xs text-zinc-500">
+                      {formatTimestamp(message.created_at)}
+                    </span>
+                    <button
+                      onClick={() => quoteMessage(message)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
+                    >
+                      <Quote size={14} className="text-zinc-400" />
+                    </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <span 
-                        className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors text-sm"
-                        onClick={() => navigateToUserProfile(message.user_id)}
-                      >
-                        {message.profiles?.username || 'مستخدم مجهول'}
-                      </span>
-                      <OwnerBadge isOwner={message.user_id === roomInfo?.owner_id} />
-                      <span className="text-xs text-zinc-500">
-                        {formatTimestamp(message.created_at)}
-                      </span>
-                      <button
-                        onClick={() => quoteMessage(message)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
-                      >
-                        <Quote size={14} className="text-zinc-400" />
-                      </button>
+                  
+                  {message.media_url ? (
+                    <div className="mb-2">
+                      {message.media_type?.startsWith('image/') ? (
+                        <img 
+                          src={message.media_url} 
+                          alt="مرفق" 
+                          className="max-w-xs rounded-lg"
+                        />
+                      ) : (
+                        <a 
+                          href={message.media_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline"
+                        >
+                          عرض المرفق
+                        </a>
+                      )}
                     </div>
-                    
-                    {message.media_url && (
-                      <div className="mb-3">
-                        {message.media_type?.startsWith('image/') ? (
-                          <img 
-                            src={message.media_url} 
-                            alt="مرفق" 
-                            className="max-w-xs rounded-xl border border-zinc-700"
-                          />
+                  ) : null}
+                  
+                  <div className="text-zinc-300">
+                    {message.content.split('\n').map((line, index) => (
+                      <div key={index}>
+                        {line.startsWith('> ') ? (
+                          <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic">
+                            {line.substring(2)}
+                          </div>
                         ) : (
-                          <a 
-                            href={message.media_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center px-3 py-2 bg-zinc-800 rounded-lg text-blue-400 hover:text-blue-300 hover:bg-zinc-700 transition-colors text-sm"
-                          >
-                            عرض المرفق
-                          </a>
+                          <span>{line}</span>
                         )}
                       </div>
-                    )}
-                    
-                    <div className="text-zinc-300 leading-relaxed">
-                      {message.content.split('\n').map((line, index) => (
-                        <div key={index}>
-                          {line.startsWith('> ') ? (
-                            <div className="border-l-4 border-blue-500 pl-3 mb-2 text-zinc-400 italic bg-zinc-800/50 rounded-r-lg py-2">
-                              {line.substring(2)}
-                            </div>
-                          ) : (
-                            <div className="break-words">{line}</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    ))}
                   </div>
                 </div>
-              );
-            })}
-            <div ref={messagesEndRef} />
-          </div>
+              </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
         </div>
-      </div>
 
-      <MediaInput 
-        onSendMessage={sendMessage} 
-        isSending={false}
-        quotedMessage={quotedMessage}
-        onClearQuote={() => setQuotedMessage(null)}
-      />
+        <MediaInput 
+          onSendMessage={sendMessage} 
+          isSending={false}
+          quotedMessage={quotedMessage}
+          onClearQuote={() => setQuotedMessage(null)}
+        />
+      </div>
 
       {showMembersModal && roomId && (
         <RoomMembersModal
@@ -500,7 +489,7 @@ const ChatRoom = () => {
           onAnnouncementUpdate={handleAnnouncementUpdate}
         />
       )}
-    </div>
+    </Layout>
   );
 };
 

@@ -158,24 +158,9 @@ html, body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes fadeOut {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-10px); }
-}
-
 @keyframes slideIn {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-@keyframes scaleOut {
-  from { transform: scale(1); opacity: 1; }
-  to { transform: scale(0.8); opacity: 0; }
 }
 
 @keyframes pulse {
@@ -184,35 +169,13 @@ html, body {
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.5s ease-out;
-}
-
-.animate-fade-out {
-  animation: fadeOut 0.5s ease-out;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .animate-slide-in {
   animation: slideIn 0.3s ease-out;
 }
 
-.animate-scale-in {
-  animation: scaleIn 0.5s ease-out;
-}
-
-.animate-scale-out {
-  animation: scaleOut 0.5s ease-out;
-}
-
 .animate-pulse {
   animation: pulse 2s infinite;
-}
-
-/* Intro screen specific animations */
-@keyframes logoGlow {
-  0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(34, 197, 94, 0.6); }
-}
-
-.animate-logo-glow {
-  animation: logoGlow 2s ease-in-out infinite;
 }
