@@ -25,19 +25,19 @@ const HashtagTabs: React.FC<HashtagTabsProps> = ({
 }) => {
   return (
     <Tabs defaultValue="popular" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 bg-gray-900/80 backdrop-blur-md mb-6 p-2 rounded-2xl border border-gray-700/30 shadow-2xl">
+      <TabsList className="grid w-full grid-cols-2 bg-gray-900/80 backdrop-blur-md mb-6 p-1 rounded-xl border border-gray-700/30 shadow-2xl">
         <TabsTrigger 
           value="popular" 
-          className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300 rounded-xl transition-all duration-300 py-4 px-6 font-semibold text-lg hover:text-white hover:bg-gray-700/50"
+          className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300 rounded-lg transition-all duration-300 py-2 px-4 font-medium text-sm hover:text-white hover:bg-gray-700/50"
         >
-          <Hash size={20} className="ml-2" />
+          <Hash size={16} className="ml-1" />
           هاشتاقات شائعة
         </TabsTrigger>
         <TabsTrigger 
           value="trending"
-          className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300 rounded-xl transition-all duration-300 py-4 px-6 font-semibold text-lg hover:text-white hover:bg-gray-700/50"
+          className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300 rounded-lg transition-all duration-300 py-2 px-4 font-medium text-sm hover:text-white hover:bg-gray-700/50"
         >
-          <TrendingUp size={20} className="ml-2" />
+          <TrendingUp size={16} className="ml-1" />
           هاشتاقات ترند ({trendingHashtags.length})
         </TabsTrigger>
       </TabsList>
