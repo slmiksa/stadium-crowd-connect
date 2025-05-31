@@ -5,7 +5,7 @@ import HashtagPost from '@/components/HashtagPost';
 import HashtagTabs from '@/components/HashtagTabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Hash, TrendingUp, Sparkles, Plus } from 'lucide-react';
+import { Search, Hash, TrendingUp, Sparkles, Plus, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface HashtagPostWithProfile {
@@ -40,6 +40,7 @@ const Hashtags = () => {
   const [searchResults, setSearchResults] = useState<{posts: HashtagPostWithProfile[], hashtags: string[]}>({posts: [], hashtags: []});
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     fetchPosts();
@@ -345,6 +346,23 @@ const Hashtags = () => {
     fetchPosts();
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    console.log('Manual refresh triggered');
+    
+    try {
+      await Promise.all([
+        fetchPosts(),
+        fetchTrendingHashtags()
+      ]);
+      console.log('Manual refresh completed');
+    } catch (error) {
+      console.error('Error during refresh:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const renderPost = (post: HashtagPostWithProfile) => (
     <HashtagPost 
       key={post.id} 
@@ -420,14 +438,31 @@ const Hashtags = () => {
                 </div>
               </div>
               
-              {/* Create Post Button */}
-              <Button
-                onClick={() => navigate('/create-hashtag-post')}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-4 py-2 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
-              >
-                <Plus size={20} className="ml-2" />
-                منشور جديد
-              </Button>
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3">
+                {/* Refresh Button */}
+                <Button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  variant="outline"
+                  className="border-gray-600 hover:border-blue-500 text-gray-300 hover:text-white bg-gray-800/50 hover:bg-gray-700/50 px-3 py-2 rounded-xl transition-all duration-200"
+                >
+                  <RefreshCw 
+                    size={18} 
+                    className={`${isRefreshing ? 'animate-spin' : ''} transition-transform`} 
+                  />
+                  {isRefreshing ? 'جاري التحديث...' : 'تحديث'}
+                </Button>
+                
+                {/* Create Post Button */}
+                <Button
+                  onClick={() => navigate('/create-hashtag-post')}
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-4 py-2 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
+                >
+                  <Plus size={20} className="ml-2" />
+                  منشور جديد
+                </Button>
+              </div>
             </div>
             
             {/* Search */}
