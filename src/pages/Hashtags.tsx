@@ -65,7 +65,6 @@ const Hashtags = () => {
           )
         `)
         .not('hashtags', 'eq', '{}')
-        .gt('hashtags', 'array_length', 0)
         .order('created_at', { ascending: false })
         .limit(50);
 
