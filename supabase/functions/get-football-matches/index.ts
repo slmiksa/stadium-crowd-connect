@@ -183,23 +183,10 @@ serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get('FOOTBALL_API_KEY')
+    // استخدام مفتاح API الجديد مباشرة
+    const apiKey = '1718fbf0680b579a071488f3516fd243'
     
-    if (!apiKey) {
-      console.error('FOOTBALL_API_KEY not found in environment variables')
-      return new Response(
-        JSON.stringify({ 
-          error: 'مفتاح API غير موجود، يرجى إعداده في Supabase Secrets',
-          matches: []
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-    
-    console.log('Using API Key:', apiKey.substring(0, 8) + '...')
+    console.log('Using new API Key:', apiKey.substring(0, 8) + '...')
 
     // Test the API key first with a simple call
     const testResponse = await fetch('https://v3.football.api-sports.io/status', {
