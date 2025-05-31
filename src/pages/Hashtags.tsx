@@ -308,8 +308,6 @@ const Hashtags = () => {
   };
 
   const handlePostLikeChange = () => {
-    // لا نعيد تحميل المنشورات عندما تتغير الإعجابات - هذا كان يسبب اختفاء المنشورات
-    // الاشتراكات في الوقت الفعلي في المنشورات الفردية ستتولى تحديث عدد الإعجابات
     console.log('Post like changed, keeping current view');
   };
 

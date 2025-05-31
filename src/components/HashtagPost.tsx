@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, Share2, MoreVertical, Clock, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,12 +8,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import CollapsibleComments from './CollapsibleComments';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import LikeButton from './LikeButton';
 
 interface HashtagPostProps {
   post: {
     id: string;
     content: string;
     hashtags: string[];
+    likes_count: number;
     comments_count: number;
     created_at: string;
     image_url?: string;
@@ -34,16 +35,18 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
   const { user } = useAuth();
   const navigate = useNavigate();
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [showComments, setShowComments] = useState(false);
 
-  // Update comments count when post prop changes
+  // Update counts when post prop changes
   useEffect(() => {
     setCommentsCount(post.comments_count || 0);
-  }, [post.comments_count]);
+    setLikesCount(post.likes_count || 0);
+  }, [post.comments_count, post.likes_count]);
 
-  // Real-time updates for comments
+  // Real-time updates for comments and likes
   useEffect(() => {
-    const channel = supabase
+    const commentsChannel = supabase
       .channel(`post-${post.id}-comments`)
       .on(
         'postgres_changes',
@@ -66,8 +69,32 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
       )
       .subscribe();
 
+    const likesChannel = supabase
+      .channel(`post-${post.id}-likes`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'hashtag_likes',
+          filter: `post_id=eq.${post.id}`
+        },
+        async () => {
+          const { count } = await supabase
+            .from('hashtag_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          if (count !== null) {
+            setLikesCount(count);
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(commentsChannel);
+      supabase.removeChannel(likesChannel);
     };
   }, [post.id]);
 
@@ -84,7 +111,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
 
   const handleShare = async () => {
     try {
-      // تحديث الرابط ليوجه إلى صفحة المنشور مباشرة
       const postUrl = `${window.location.origin}/post/${post.id}`;
       
       const shareData = {
@@ -97,13 +123,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         await navigator.share(shareData);
         toast.success('تم مشاركة المنشور');
       } else {
-        // Fallback to clipboard
         await navigator.clipboard.writeText(`${post.content}\n\n${postUrl}`);
         toast.success('تم نسخ المنشور للحافظة');
       }
     } catch (error) {
       console.error('Error sharing:', error);
-      // Fallback to clipboard if sharing fails
       try {
         const postUrl = `${window.location.origin}/post/${post.id}`;
         await navigator.clipboard.writeText(`${post.content}\n\n${postUrl}`);
@@ -163,6 +187,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
 
   const handleCommentsClick = () => {
     navigate(`/post/${post.id}`);
+  };
+
+  const handleLikeChange = () => {
+    if (onLikeChange) {
+      onLikeChange();
+    }
   };
 
   const renderContentWithHashtags = (content: string) => {
@@ -285,6 +315,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
             
             <div className="flex items-center justify-between pt-2">
               <div className="flex items-center space-x-8 space-x-reverse">
+                <LikeButton
+                  postId={post.id}
+                  initialLikesCount={likesCount}
+                  onLikeChange={handleLikeChange}
+                  size="md"
+                />
+
                 {!hideCommentsButton && (
                   <button 
                     onClick={handleCommentsClick}

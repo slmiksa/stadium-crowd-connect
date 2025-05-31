@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Reply, MoreVertical, Clock, X, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import LikeButton from './LikeButton';
 
 interface CommentItemProps {
   comment: {
@@ -101,11 +101,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
   const shouldNest = level < maxLevel;
   const marginClass = shouldNest ? `mr-${Math.min(level * 3, 9)}` : '';
 
-  // Use the media_url if available, otherwise fallback to image_url for backward compatibility
   const mediaUrl = comment.media_url || comment.image_url;
   const mediaType = comment.media_type || (comment.image_url ? 'image' : null);
 
-  // Different background color for replies to distinguish them
   const isReply = comment.parent_id !== null;
   const cardBgColor = isReply ? 'bg-blue-900/20' : 'bg-gray-800/60';
   const borderColor = isReply ? 'border-blue-700/30' : 'border-gray-700/30';
@@ -170,8 +168,12 @@ const CommentItem: React.FC<CommentItemProps> = ({
                 </div>
               )}
               
-              {/* Comment Actions */}
               <div className="flex items-center gap-4 pt-2 border-t border-gray-700/30">
+                <LikeButton
+                  commentId={comment.id}
+                  size="sm"
+                />
+                
                 <button
                   onClick={() => onReply(comment.id, comment.profiles?.username || 'مستخدم مجهول')}
                   className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-400 transition-colors group/btn"
@@ -182,7 +184,6 @@ const CommentItem: React.FC<CommentItemProps> = ({
               </div>
             </div>
             
-            {/* Replies */}
             {replies.length > 0 && (
               <div className="mt-3 space-y-2">
                 {replies.slice(0, showReplies ? replies.length : 2).map((reply) => (
@@ -208,7 +209,6 @@ const CommentItem: React.FC<CommentItemProps> = ({
         </div>
       </div>
 
-      {/* Media Modal */}
       {showMediaModal && mediaUrl && mediaType === 'image' && (
         <div 
           className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
