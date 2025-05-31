@@ -54,14 +54,16 @@ const Notifications = () => {
           />
 
           {hasUnreadNotifications && (
-            <div className="mb-6 flex justify-center">
-              <Button
-                onClick={handleMarkAllAsRead}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
-              >
-                <CheckCheck size={20} />
-                <span>تعليم الكل كمقروء</span>
-              </Button>
+            <div className="mb-6 w-full">
+              <div className="flex justify-center">
+                <Button
+                  onClick={handleMarkAllAsRead}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-lg"
+                >
+                  <CheckCheck size={20} />
+                  <span className="font-medium">تعليم الكل كمقروء</span>
+                </Button>
+              </div>
             </div>
           )}
 
