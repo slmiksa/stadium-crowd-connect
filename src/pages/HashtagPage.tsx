@@ -38,8 +38,6 @@ interface HashtagCommentWithProfile {
   post_id: string;
   parent_id?: string;
   image_url?: string;
-  media_url?: string;
-  media_type?: string;
   type: 'comment';
   profiles: {
     id: string;
@@ -90,23 +88,15 @@ const HashtagPage = () => {
         console.error('Error fetching hashtag posts:', postsError);
       }
 
-      // Fetch comments with hashtags - using multiple queries to ensure we get all comments
-      let commentsData = [];
+      // Fetch comments with hashtags - improved approach with proper JOIN
+      let allComments = [];
       
-      // First, try to get comments that have the hashtag in the hashtags array
-      const { data: hashtagCommentsData, error: hashtagCommentsError } = await supabase
+      // Get comments that contain the hashtag in the hashtags array
+      const { data: arrayComments, error: arrayError } = await supabase
         .from('hashtag_comments')
         .select(`
-          id,
-          content,
-          hashtags,
-          created_at,
-          user_id,
-          post_id,
-          parent_id,
-          image_url,
-          updated_at,
-          profiles!hashtag_comments_user_id_fkey (
+          *,
+          profiles (
             id,
             username,
             avatar_url
@@ -115,24 +105,16 @@ const HashtagPage = () => {
         .contains('hashtags', [hashtag])
         .order('created_at', { ascending: false });
 
-      if (hashtagCommentsData) {
-        commentsData.push(...hashtagCommentsData);
+      if (arrayComments) {
+        allComments.push(...arrayComments);
       }
 
-      // Second, try to get comments that contain the hashtag in the content
-      const { data: contentCommentsData, error: contentCommentsError } = await supabase
+      // Get comments that contain the hashtag in the content text
+      const { data: contentComments, error: contentError } = await supabase
         .from('hashtag_comments')
         .select(`
-          id,
-          content,
-          hashtags,
-          created_at,
-          user_id,
-          post_id,
-          parent_id,
-          image_url,
-          updated_at,
-          profiles!hashtag_comments_user_id_fkey (
+          *,
+          profiles (
             id,
             username,
             avatar_url
@@ -141,22 +123,22 @@ const HashtagPage = () => {
         .ilike('content', `%#${hashtag}%`)
         .order('created_at', { ascending: false });
 
-      if (contentCommentsData) {
-        // Filter out duplicates based on id
-        const existingIds = new Set(commentsData.map(c => c.id));
-        const newComments = contentCommentsData.filter(c => !existingIds.has(c.id));
-        commentsData.push(...newComments);
+      if (contentComments) {
+        // Remove duplicates by filtering out comments that already exist
+        const existingIds = new Set(allComments.map(c => c.id));
+        const uniqueContentComments = contentComments.filter(c => !existingIds.has(c.id));
+        allComments.push(...uniqueContentComments);
       }
 
-      if (hashtagCommentsError) {
-        console.error('Error fetching hashtag comments from hashtags array:', hashtagCommentsError);
+      if (arrayError) {
+        console.error('Error fetching comments from hashtags array:', arrayError);
       }
-      if (contentCommentsError) {
-        console.error('Error fetching hashtag comments from content:', contentCommentsError);
+      if (contentError) {
+        console.error('Error fetching comments from content:', contentError);
       }
 
       console.log('Posts data:', postsData);
-      console.log('Comments data:', commentsData);
+      console.log('Comments data:', allComments);
 
       // Combine and sort all content by creation date
       const allContent: HashtagContent[] = [];
@@ -170,16 +152,10 @@ const HashtagPage = () => {
         });
       }
 
-      if (commentsData) {
-        commentsData.forEach(comment => {
-          // Handle the case where profiles might be an array (from the join)
-          const profileData = Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles;
-          
+      if (allComments && allComments.length > 0) {
+        allComments.forEach(comment => {
           allContent.push({
             ...comment,
-            profiles: profileData,
-            media_url: comment.image_url,
-            media_type: comment.image_url ? 'image' : undefined,
             type: 'comment' as const
           });
         });
@@ -381,8 +357,8 @@ const HashtagPage = () => {
                     <CommentItem
                       comment={{
                         ...comment,
-                        media_url: comment.media_url || comment.image_url,
-                        media_type: comment.media_type || (comment.image_url ? 'image' : undefined)
+                        media_url: comment.image_url,
+                        media_type: comment.image_url ? 'image' : undefined
                       }}
                       onReply={() => {}}
                       onProfileClick={handleProfileClick}
