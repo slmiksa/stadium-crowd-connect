@@ -291,6 +291,7 @@ const UserProfile = () => {
                 <HashtagPost
                   post={{
                     ...post,
+                    user_id: profile.id,
                     hashtag: post.hashtags?.[0] || '',
                     profiles: {
                       id: profile.id,
