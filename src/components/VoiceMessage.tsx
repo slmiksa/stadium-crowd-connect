@@ -13,13 +13,14 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [audioReady, setAudioReady] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.src = '';
         audioRef.current = null;
       }
     };
@@ -36,54 +37,84 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
     
     if (!voiceUrl) {
       console.error('VoiceMessage: No voice URL provided');
+      setHasError(true);
       return;
     }
 
-    if (!audioRef.current) {
-      console.log('VoiceMessage: Creating new audio element');
-      setIsLoading(true);
-      
-      const audio = new Audio();
-      audioRef.current = audio;
-
-      audio.ontimeupdate = () => {
-        setCurrentTime(audio.currentTime);
-      };
-
-      audio.onended = () => {
-        console.log('VoiceMessage: Audio ended');
-        setIsPlaying(false);
-        setCurrentTime(0);
-      };
-
-      audio.onloadeddata = () => {
-        console.log('VoiceMessage: Audio loaded successfully');
-        setIsLoading(false);
-        setAudioReady(true);
-      };
-
-      audio.oncanplay = () => {
-        console.log('VoiceMessage: Audio can play');
-        setIsLoading(false);
-        setAudioReady(true);
-      };
-
-      audio.onerror = (e) => {
-        console.error('VoiceMessage: Audio error:', e);
-        setIsLoading(false);
-        setAudioReady(false);
-        alert('خطأ في تحميل الملف الصوتي');
-      };
-
-      // Set source and load
-      audio.src = voiceUrl;
-      audio.load();
-      
-      // Wait for audio to be ready before trying to play
-      return;
+    if (hasError) {
+      console.log('VoiceMessage: Retrying after error');
+      setHasError(false);
     }
 
     try {
+      if (!audioRef.current || hasError) {
+        console.log('VoiceMessage: Creating new audio element');
+        setIsLoading(true);
+        setHasError(false);
+        
+        // Clean up existing audio
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.src = '';
+        }
+        
+        const audio = new Audio();
+        audioRef.current = audio;
+
+        // Set up event listeners
+        audio.addEventListener('timeupdate', () => {
+          setCurrentTime(audio.currentTime);
+        });
+
+        audio.addEventListener('ended', () => {
+          console.log('VoiceMessage: Audio ended');
+          setIsPlaying(false);
+          setCurrentTime(0);
+        });
+
+        audio.addEventListener('canplaythrough', () => {
+          console.log('VoiceMessage: Audio can play through');
+          setIsLoading(false);
+        });
+
+        audio.addEventListener('loadeddata', () => {
+          console.log('VoiceMessage: Audio data loaded');
+          setIsLoading(false);
+        });
+
+        audio.addEventListener('error', (e) => {
+          console.error('VoiceMessage: Audio error:', e);
+          setIsLoading(false);
+          setHasError(true);
+        });
+
+        // Load the audio
+        audio.src = voiceUrl;
+        audio.preload = 'auto';
+        
+        // Wait for audio to load
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Audio loading timeout'));
+          }, 10000);
+
+          audio.addEventListener('canplay', () => {
+            clearTimeout(timeout);
+            resolve(true);
+          }, { once: true });
+
+          audio.addEventListener('error', () => {
+            clearTimeout(timeout);
+            reject(new Error('Audio loading failed'));
+          }, { once: true });
+
+          audio.load();
+        });
+
+        setIsLoading(false);
+      }
+
+      // Play or pause
       if (isPlaying) {
         console.log('VoiceMessage: Pausing audio');
         audioRef.current.pause();
@@ -96,25 +127,10 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
     } catch (error) {
       console.error('VoiceMessage: Error during playback:', error);
       setIsLoading(false);
-      alert('لا يمكن تشغيل الملف الصوتي');
+      setHasError(true);
+      setIsPlaying(false);
     }
   };
-
-  // Auto-play when audio is ready if user clicked play while loading
-  useEffect(() => {
-    if (audioReady && !isPlaying && audioRef.current && !isLoading) {
-      // Small delay to ensure audio is fully ready
-      setTimeout(() => {
-        if (audioRef.current && !isPlaying) {
-          audioRef.current.play().then(() => {
-            setIsPlaying(true);
-          }).catch((error) => {
-            console.error('VoiceMessage: Auto-play failed:', error);
-          });
-        }
-      }, 100);
-    }
-  }, [audioReady, isLoading]);
 
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -127,10 +143,12 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
         disabled={isLoading || !voiceUrl}
         className={`rounded-full w-10 h-10 flex-shrink-0 ${
           isOwn ? 'bg-blue-600 hover:bg-blue-700' : 'bg-zinc-600 hover:bg-zinc-500'
-        }`}
+        } ${hasError ? 'bg-red-500 hover:bg-red-600' : ''}`}
       >
         {isLoading ? (
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        ) : hasError ? (
+          <Play size={16} />
         ) : isPlaying ? (
           <Pause size={16} />
         ) : (
@@ -141,19 +159,21 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
           <span className="text-white text-sm">
-            {formatTime(currentTime)} / {formatTime(duration)}
+            {hasError ? 'خطأ - اضغط للمحاولة مرة أخرى' : `${formatTime(currentTime)} / ${formatTime(duration)}`}
           </span>
         </div>
-        <div className={`w-full h-1 rounded-full ${
-          isOwn ? 'bg-blue-600' : 'bg-zinc-600'
-        }`}>
-          <div 
-            className={`h-1 rounded-full transition-all duration-300 ${
-              isOwn ? 'bg-white' : 'bg-blue-500'
-            }`}
-            style={{ width: `${progressPercentage}%` }}
-          />
-        </div>
+        {!hasError && (
+          <div className={`w-full h-1 rounded-full ${
+            isOwn ? 'bg-blue-600' : 'bg-zinc-600'
+          }`}>
+            <div 
+              className={`h-1 rounded-full transition-all duration-300 ${
+                isOwn ? 'bg-white' : 'bg-blue-500'
+              }`}
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
