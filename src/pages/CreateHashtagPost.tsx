@@ -199,7 +199,7 @@ const CreateHashtagPost = () => {
               </Avatar>
               <div>
                 <h3 className="font-medium text-white">
-                  {profile?.username || user?.email}
+                  {profile?.username || user?.email?.split('@')[0] || 'مستخدم'}
                 </h3>
               </div>
             </div>
@@ -233,7 +233,7 @@ const CreateHashtagPost = () => {
                 <button
                   type="button"
                   onClick={removeImage}
-                  className="absolute top-2 right-2 bg-red-500 rounded-full p-1 hover:bg-red-600 transition-colors"
+                  className="absolute top-2 right-2 bg-red-500 rounded-full p-1 hover:bg-red-600 transition-colors text-white text-sm w-6 h-6 flex items-center justify-center"
                 >
                   ×
                 </button>
