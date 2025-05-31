@@ -1,9 +1,21 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import { ArrowLeft, Bell, Heart, MessageCircle, User, CheckCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+
+interface NotificationData {
+  post_id?: string;
+  comment_id?: string;
+  follower_id?: string;
+  sender_id?: string;
+  message_id?: string;
+  like_id?: string;
+  liker_id?: string;
+  commenter_id?: string;
+}
 
 interface Notification {
   id: string;
@@ -12,7 +24,7 @@ interface Notification {
   message: string;
   is_read: boolean;
   created_at: string;
-  data: any;
+  data: NotificationData;
   post_content?: string;
   comment_content?: string;
 }
@@ -47,23 +59,33 @@ const Notifications = () => {
       // جلب تفاصيل المنشورات والتعليقات للتنبيهات
       const enrichedNotifications = await Promise.all(
         (data || []).map(async (notif) => {
-          let enrichedNotif = { ...notif };
+          const notificationData = (notif.data as NotificationData) || {};
+          
+          const enrichedNotif: Notification = {
+            id: notif.id,
+            type: notif.type as 'like' | 'comment' | 'follow' | 'message',
+            title: notif.title,
+            message: notif.message,
+            is_read: notif.is_read ?? false,
+            created_at: notif.created_at || '',
+            data: notificationData
+          };
 
           // إذا كان التنبيه عن تعليق، جلب تفاصيل المنشور والتعليق
-          if (notif.type === 'comment' && notif.data?.post_id && notif.data?.comment_id) {
+          if (notif.type === 'comment' && notificationData.post_id && notificationData.comment_id) {
             try {
               // جلب تفاصيل المنشور
               const { data: postData } = await supabase
                 .from('hashtag_posts')
                 .select('content')
-                .eq('id', notif.data.post_id)
+                .eq('id', notificationData.post_id)
                 .single();
 
               // جلب تفاصيل التعليق
               const { data: commentData } = await supabase
                 .from('hashtag_comments')
                 .select('content')
-                .eq('id', notif.data.comment_id)
+                .eq('id', notificationData.comment_id)
                 .single();
 
               enrichedNotif.post_content = postData?.content;
@@ -74,12 +96,12 @@ const Notifications = () => {
           }
 
           // إذا كان التنبيه عن إعجاب، جلب تفاصيل المنشور
-          if (notif.type === 'like' && notif.data?.post_id) {
+          if (notif.type === 'like' && notificationData.post_id) {
             try {
               const { data: postData } = await supabase
                 .from('hashtag_posts')
                 .select('content')
-                .eq('id', notif.data.post_id)
+                .eq('id', notificationData.post_id)
                 .single();
 
               enrichedNotif.post_content = postData?.content;
