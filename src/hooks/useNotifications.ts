@@ -44,16 +44,6 @@ export const useNotifications = () => {
     try {
       console.log('Fetching notifications for user:', user.id);
       
-      // أولاً تحديث تنبيهات غرف الدردشة في قاعدة البيانات قبل جلب البيانات
-      await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('user_id', user.id)
-        .eq('type', 'chat_room')
-        .eq('is_read', false);
-
-      console.log('Marked all chat room notifications as read in database');
-      
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -67,6 +57,23 @@ export const useNotifications = () => {
 
       console.log('Fetched notifications:', data);
 
+      // تحديث تنبيهات غرف الدردشة في قاعدة البيانات
+      const chatRoomNotifications = (data || []).filter(notif => 
+        notif.type === 'chat_room' && !notif.is_read
+      );
+
+      if (chatRoomNotifications.length > 0) {
+        const chatRoomIds = chatRoomNotifications.map(notif => notif.id);
+        const { error: updateError } = await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .in('id', chatRoomIds);
+        
+        if (!updateError) {
+          console.log('Auto-marked chat room notifications as read in database:', chatRoomIds);
+        }
+      }
+
       // جلب تفاصيل المنشورات والتعليقات للتنبيهات
       const enrichedNotifications = await Promise.all(
         (data || []).map(async (notif) => {
@@ -77,7 +84,7 @@ export const useNotifications = () => {
             type: notif.type as 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room',
             title: notif.title,
             message: notif.message,
-            is_read: notif.is_read ?? false,
+            is_read: notif.type === 'chat_room' ? true : (notif.is_read ?? false), // تعليم تنبيهات غرف الدردشة كمقروءة في الواجهة
             created_at: notif.created_at || '',
             data: notificationData
           };
