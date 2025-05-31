@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -283,17 +282,13 @@ const HashtagPage = () => {
           </div>
         </div>
 
-        {/* Hashtag Stats */}
+        {/* Hashtag Stats - Removed comments count */}
         <div className="bg-zinc-800 rounded-lg p-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex gap-6">
               <div>
                 <p className="text-sm text-zinc-400">عدد المنشورات</p>
                 <p className="text-lg font-bold text-white">{postsCount}</p>
-              </div>
-              <div>
-                <p className="text-sm text-zinc-400">عدد التعليقات</p>
-                <p className="text-lg font-bold text-white">{commentsCount}</p>
               </div>
               <div>
                 <p className="text-sm text-zinc-400">المجموع</p>
