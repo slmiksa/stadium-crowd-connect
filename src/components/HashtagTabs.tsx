@@ -66,7 +66,7 @@ const HashtagTabs: React.FC<HashtagTabsProps> = ({
                 <TrendingUp size={32} className="text-gray-400" />
               </div>
               <p className="text-gray-400 text-lg">لا توجد هاشتاقات ترند حالياً</p>
-              <p className="text-gray-500 text-sm mt-2">الهاشتاقات التي تحصل على 35+ منشور تظهر هنا</p>
+              <p className="text-gray-500 text-sm mt-2">الهاشتاقات التي تحصل على 35+ منشور في آخر 24 ساعة تظهر هنا</p>
             </div>
           </div>
         ) : (

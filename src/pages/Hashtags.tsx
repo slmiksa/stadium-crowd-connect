@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -162,10 +161,15 @@ const Hashtags = () => {
     try {
       console.log('=== Starting fetchTrendingHashtags ===');
       
+      // Get posts from the last 24 hours only
+      const twentyFourHoursAgo = new Date();
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+      
       const { data, error } = await supabase
         .from('hashtag_posts')
-        .select('hashtags')
-        .not('hashtags', 'is', null);
+        .select('hashtags, created_at')
+        .not('hashtags', 'is', null)
+        .gte('created_at', twentyFourHoursAgo.toISOString());
 
       if (error) {
         console.error('Error fetching hashtags:', error);
@@ -173,12 +177,14 @@ const Hashtags = () => {
       }
 
       if (!data || data.length === 0) {
-        console.log('No hashtag data found');
+        console.log('No hashtag data found for last 24 hours');
         setTrendingHashtags([]);
         return;
       }
 
-      // Count hashtag occurrences
+      console.log(`Found ${data.length} posts with hashtags in last 24 hours`);
+
+      // Count hashtag occurrences in the last 24 hours
       const hashtagCounts = new Map<string, number>();
       
       data.forEach(post => {
@@ -192,16 +198,19 @@ const Hashtags = () => {
         }
       });
 
-      // Filter hashtags with more than 35 posts and sort by count
+      // Filter hashtags with 35+ posts in the last 24 hours and sort by count
       const trendingHashtagsArray = Array.from(hashtagCounts.entries())
-        .filter(([hashtag, count]) => count > 35)
+        .filter(([hashtag, count]) => {
+          console.log(`Hashtag ${hashtag}: ${count} posts in last 24h`);
+          return count >= 35;
+        })
         .sort((a, b) => b[1] - a[1])
         .map(([hashtag, count]) => ({
           hashtag,
           post_count: count
         }));
 
-      console.log('Trending hashtags (>35 posts):', trendingHashtagsArray);
+      console.log('Trending hashtags (35+ posts in last 24h):', trendingHashtagsArray);
       setTrendingHashtags(trendingHashtagsArray);
     } catch (error) {
       console.error('Error in fetchTrendingHashtags:', error);
@@ -331,7 +340,7 @@ const Hashtags = () => {
               #{hashtagData.hashtag}
             </h3>
             <p className="text-gray-400 text-sm">
-              {hashtagData.post_count} منشور
+              {hashtagData.post_count} منشور في آخر 24 ساعة
             </p>
           </div>
         </div>
@@ -345,7 +354,7 @@ const Hashtags = () => {
       
       <div className="flex items-center gap-2 text-gray-400 text-sm">
         <TrendingUp size={16} className="text-purple-400" />
-        <span>هاشتاق شائع</span>
+        <span>هاشتاق ترند (35+ منشور/يوم)</span>
       </div>
     </div>
   );
