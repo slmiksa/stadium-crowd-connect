@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, MoreVertical, Clock } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreVertical, Clock, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import CollapsibleComments from './CollapsibleComments';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 interface HashtagPostProps {
   post: {
@@ -41,11 +43,14 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
   const [showComments, setShowComments] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Check if user has liked the post
+  // تحقق من حالة الإعجاب للمستخدم الحالي فقط
   useEffect(() => {
-    if (user && post.hashtag_likes) {
+    if (user && post.hashtag_likes && Array.isArray(post.hashtag_likes)) {
       const userLike = post.hashtag_likes.find(like => like.user_id === user.id);
       setIsLiked(!!userLike);
+      console.log(`Post ${post.id} - User ${user.id} like status:`, !!userLike);
+    } else {
+      setIsLiked(false);
     }
   }, [user, post.hashtag_likes]);
 
@@ -92,7 +97,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
           filter: `post_id=eq.${post.id}`
         },
         async () => {
-          // عند تغيير الإعجابات، نعيد جلب البيانات الحديثة
           await fetchPostData();
         }
       )
@@ -107,7 +111,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     if (!user) return;
 
     try {
-      // جلب عدد الإعجابات الفعلي وحالة إعجاب المستخدم
       const { data: likesData, error: likesError } = await supabase
         .from('hashtag_likes')
         .select('user_id')
@@ -117,6 +120,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         setLikesCount(likesData.length);
         const userLike = likesData.find(like => like.user_id === user.id);
         setIsLiked(!!userLike);
+        console.log(`Fetched data - Post ${post.id}: likes=${likesData.length}, userLiked=${!!userLike}`);
       }
     } catch (error) {
       console.error('Error fetching post data:', error);
@@ -138,13 +142,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     if (!user || isProcessing) return;
 
     setIsProcessing(true);
+    console.log(`Like action started - Post: ${post.id}, User: ${user.id}, Current state: ${isLiked}`);
     
     try {
       if (!isLiked) {
-        // إضافة إعجاب جديد
-        console.log('Adding like for post:', post.id, 'by user:', user.id);
+        console.log('Adding like...');
         
-        // تحديث فوري للواجهة
         setIsLiked(true);
         setLikesCount(prev => prev + 1);
         
@@ -157,17 +160,16 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         
         if (error) {
           console.error('Error adding like:', error);
-          // إعادة التغيير في حالة الخطأ
           setIsLiked(false);
           setLikesCount(prev => Math.max(0, prev - 1));
+          toast.error('حدث خطأ في إضافة الإعجاب');
         } else {
           console.log('Like added successfully');
+          toast.success('تم إضافة الإعجاب');
         }
       } else {
-        // إزالة إعجاب
-        console.log('Removing like for post:', post.id, 'by user:', user.id);
+        console.log('Removing like...');
         
-        // تحديث فوري للواجهة
         setIsLiked(false);
         setLikesCount(prev => Math.max(0, prev - 1));
         
@@ -179,11 +181,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         
         if (error) {
           console.error('Error removing like:', error);
-          // إعادة التغيير في حالة الخطأ
           setIsLiked(true);
           setLikesCount(prev => prev + 1);
+          toast.error('حدث خطأ في إزالة الإعجاب');
         } else {
           console.log('Like removed successfully');
+          toast.success('تم إزالة الإعجاب');
         }
       }
       
@@ -192,10 +195,60 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      // في حالة خطأ غير متوقع، نعيد جلب البيانات الصحيحة
       await fetchPostData();
+      toast.error('حدث خطأ غير متوقع');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'منشور من تطبيق الهاشتاقات',
+          text: post.content,
+          url: window.location.href
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('تم نسخ رابط المنشور');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast.error('حدث خطأ في المشاركة');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!user || user.id !== post.user_id) {
+      toast.error('لا يمكنك حذف هذا المنشور');
+      return;
+    }
+
+    if (!confirm('هل أنت متأكد من حذف هذا المنشور؟')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('hashtag_posts')
+        .delete()
+        .eq('id', post.id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting post:', error);
+        toast.error('حدث خطأ في حذف المنشور');
+      } else {
+        toast.success('تم حذف المنشور بنجاح');
+        if (onLikeChange) {
+          onLikeChange();
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('حدث خطأ غير متوقع');
     }
   };
 
@@ -293,9 +346,32 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
                   {formatTimestamp(post.created_at)}
                 </div>
               </div>
-              <button className="text-gray-500 hover:text-white transition-colors p-1 rounded-full hover:bg-gray-800">
-                <MoreVertical size={18} />
-              </button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="text-gray-500 hover:text-white transition-colors p-1 rounded-full hover:bg-gray-800">
+                    <MoreVertical size={18} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+                  {user?.id === post.user_id && (
+                    <DropdownMenuItem 
+                      onClick={handleDelete}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-900/20 cursor-pointer"
+                    >
+                      <Trash2 size={16} className="ml-2" />
+                      حذف المنشور
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem 
+                    onClick={handleShare}
+                    className="text-gray-300 hover:text-white hover:bg-gray-700 cursor-pointer"
+                  >
+                    <Share2 size={16} className="ml-2" />
+                    مشاركة
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             
             <div className="text-white mb-3 leading-relaxed whitespace-pre-wrap text-base">
@@ -351,7 +427,10 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
                   </Collapsible>
                 )}
                 
-                <button className="text-gray-500 hover:text-green-400 transition-colors">
+                <button 
+                  onClick={handleShare}
+                  className="text-gray-500 hover:text-green-400 transition-colors"
+                >
                   <Share2 size={20} />
                 </button>
               </div>
