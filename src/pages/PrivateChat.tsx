@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface Message {
   id: string;
@@ -201,11 +201,12 @@ const PrivateChat = () => {
           >
             <ArrowLeft size={20} className="text-white" />
           </button>
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
-            <span className="text-sm font-bold text-white">
+          <Avatar className="w-10 h-10">
+            <AvatarImage src={otherUser.avatar_url} alt={otherUser.username} />
+            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-green-500 text-white">
               {otherUser.username?.charAt(0).toUpperCase() || 'U'}
-            </span>
-          </div>
+            </AvatarFallback>
+          </Avatar>
           <div>
             <h1 className="text-lg font-bold text-white">{otherUser.username}</h1>
           </div>
@@ -223,8 +224,17 @@ const PrivateChat = () => {
           messages.map((message) => (
             <div 
               key={message.id} 
-              className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+              className={`flex items-start space-x-3 ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
             >
+              {message.sender_id !== user?.id && (
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={message.sender_profile?.avatar_url} alt={message.sender_profile?.username} />
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                    {message.sender_profile?.username?.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+              
               <div 
                 className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                   message.sender_id === user?.id 
@@ -239,6 +249,15 @@ const PrivateChat = () => {
                   {formatTimestamp(message.created_at)}
                 </p>
               </div>
+
+              {message.sender_id === user?.id && (
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.email} />
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                    {user?.email?.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              )}
             </div>
           ))
         )}
