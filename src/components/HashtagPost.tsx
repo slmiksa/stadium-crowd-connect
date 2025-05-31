@@ -43,12 +43,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
 
   // Check if user has liked the post
   useEffect(() => {
-    if (user) {
-      checkUserLike();
+    if (user && post.hashtag_likes) {
+      const userLike = post.hashtag_likes.find(like => like.user_id === user.id);
+      setIsLiked(!!userLike);
     }
-  }, [user, post.id]);
+  }, [user, post.hashtag_likes]);
 
-  // Set up real-time updates for comment count only
+  // Set up real-time updates for comment count
   useEffect(() => {
     const channel = supabase
       .channel(`post-${post.id}-comments`)
@@ -61,7 +62,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
           filter: `post_id=eq.${post.id}`
         },
         async () => {
-          // Refetch the actual comment count when comments change
           const { count } = await supabase
             .from('hashtag_comments')
             .select('*', { count: 'exact', head: true })
@@ -92,11 +92,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
           filter: `post_id=eq.${post.id}`
         },
         async () => {
-          // Refetch the actual likes count and user like status
-          await Promise.all([
-            fetchCurrentLikesCount(),
-            checkUserLike()
-          ]);
+          // عند تغيير الإعجابات، نعيد جلب البيانات الحديثة
+          await fetchPostData();
         }
       )
       .subscribe();
@@ -106,41 +103,23 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     };
   }, [post.id, user]);
 
-  const fetchCurrentLikesCount = async () => {
-    try {
-      const { data: updatedPost, error } = await supabase
-        .from('hashtag_posts')
-        .select('likes_count')
-        .eq('id', post.id)
-        .single();
-
-      if (!error && updatedPost) {
-        setLikesCount(updatedPost.likes_count || 0);
-      }
-    } catch (error) {
-      console.error('Error fetching likes count:', error);
-    }
-  };
-
-  const checkUserLike = async () => {
+  const fetchPostData = async () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      // جلب عدد الإعجابات الفعلي وحالة إعجاب المستخدم
+      const { data: likesData, error: likesError } = await supabase
         .from('hashtag_likes')
-        .select('id')
-        .eq('post_id', post.id)
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .select('user_id')
+        .eq('post_id', post.id);
 
-      if (error) {
-        console.error('Error checking user like:', error);
-        return;
+      if (!likesError && likesData) {
+        setLikesCount(likesData.length);
+        const userLike = likesData.find(like => like.user_id === user.id);
+        setIsLiked(!!userLike);
       }
-
-      setIsLiked(!!data);
     } catch (error) {
-      console.error('Error checking user like:', error);
+      console.error('Error fetching post data:', error);
     }
   };
 
@@ -162,8 +141,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     
     try {
       if (!isLiked) {
-        // إضافة إعجاب
-        console.log('Adding like for post:', post.id);
+        // إضافة إعجاب جديد
+        console.log('Adding like for post:', post.id, 'by user:', user.id);
         
         // تحديث فوري للواجهة
         setIsLiked(true);
@@ -180,15 +159,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
           console.error('Error adding like:', error);
           // إعادة التغيير في حالة الخطأ
           setIsLiked(false);
-          setLikesCount(prev => prev - 1);
+          setLikesCount(prev => Math.max(0, prev - 1));
         } else {
           console.log('Like added successfully');
-          // التأكد من أن العدد محدث من قاعدة البيانات
-          await fetchCurrentLikesCount();
         }
       } else {
         // إزالة إعجاب
-        console.log('Removing like for post:', post.id);
+        console.log('Removing like for post:', post.id, 'by user:', user.id);
         
         // تحديث فوري للواجهة
         setIsLiked(false);
@@ -207,8 +184,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
           setLikesCount(prev => prev + 1);
         } else {
           console.log('Like removed successfully');
-          // التأكد من أن العدد محدث من قاعدة البيانات
-          await fetchCurrentLikesCount();
         }
       }
       
@@ -217,11 +192,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      // إعادة الحالة في حالة خطأ غير متوقع
-      await Promise.all([
-        fetchCurrentLikesCount(),
-        checkUserLike()
-      ]);
+      // في حالة خطأ غير متوقع، نعيد جلب البيانات الصحيحة
+      await fetchPostData();
     } finally {
       setIsProcessing(false);
     }
@@ -236,7 +208,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
   };
 
   const handleCommentAdded = () => {
-    // The real-time subscription will handle updating the count
     if (onLikeChange) {
       onLikeChange();
     }
