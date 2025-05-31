@@ -7,6 +7,8 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isInitialized: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string, username: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -14,6 +16,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
   isInitialized: false,
+  login: async () => false,
+  register: async () => false,
   signOut: async () => {},
 });
 
@@ -29,6 +33,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+        return false;
+      }
+
+      return !!data.user;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (email: string, password: string, username: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username: username,
+          },
+        },
+      });
+
+      if (error) {
+        console.error('Registration error:', error);
+        return false;
+      }
+
+      return !!data.user;
+    } catch (error) {
+      console.error('Registration error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -68,6 +121,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     isLoading,
     isInitialized,
+    login,
+    register,
     signOut,
   };
 
