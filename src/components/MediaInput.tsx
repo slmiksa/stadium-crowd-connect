@@ -4,12 +4,22 @@ import { Camera, Video, Image, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+interface Message {
+  id: string;
+  content: string;
+  profiles: {
+    username: string;
+  };
+}
+
 interface MediaInputProps {
   onSendMessage: (content: string, mediaFile?: File, mediaType?: string) => void;
   isSending: boolean;
+  quotedMessage?: Message | null;
+  onClearQuote?: () => void;
 }
 
-const MediaInput = ({ onSendMessage, isSending }: MediaInputProps) => {
+const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: MediaInputProps) => {
   const [message, setMessage] = useState('');
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -73,6 +83,22 @@ const MediaInput = ({ onSendMessage, isSending }: MediaInputProps) => {
 
   return (
     <div className="bg-zinc-800 border-t border-zinc-700 p-4">
+      {/* Quoted Message Preview */}
+      {quotedMessage && (
+        <div className="mb-3 bg-zinc-700 rounded-lg p-3 border-l-4 border-blue-500">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm text-blue-400">الرد على {quotedMessage.profiles?.username}</span>
+            <button
+              onClick={onClearQuote}
+              className="text-zinc-400 hover:text-white transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <p className="text-sm text-zinc-300 truncate">{quotedMessage.content}</p>
+        </div>
+      )}
+
       {/* Media Preview */}
       {mediaPreview && (
         <div className="mb-3 relative">

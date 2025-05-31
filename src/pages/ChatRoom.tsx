@@ -41,6 +41,7 @@ const ChatRoom = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
+  const [quotedMessage, setQuotedMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -169,7 +170,6 @@ const ChatRoom = () => {
     try {
       let mediaUrl = null;
       
-      // رفع الملف إذا كان موجود
       if (mediaFile) {
         const fileExt = mediaFile.name.split('.').pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
@@ -190,12 +190,17 @@ const ChatRoom = () => {
         mediaUrl = publicUrl;
       }
 
+      let finalContent = content || 'مرفق';
+      if (quotedMessage) {
+        finalContent = `> ${quotedMessage.profiles?.username || 'مستخدم مجهول'}: ${quotedMessage.content}\n\n${finalContent}`;
+      }
+
       const { error } = await supabase
         .from('room_messages')
         .insert({
           room_id: roomId,
           user_id: user.id,
-          content: content || 'مرفق',
+          content: finalContent,
           media_url: mediaUrl,
           media_type: mediaType
         });
@@ -204,6 +209,8 @@ const ChatRoom = () => {
         console.error('Error sending message:', error);
         return;
       }
+
+      setQuotedMessage(null);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -218,9 +225,7 @@ const ChatRoom = () => {
   };
 
   const quoteMessage = (message: Message) => {
-    const quotedText = `"${message.content}" - ${message.profiles?.username || 'مستخدم مجهول'}`;
-    // يمكن إضافة منطق لوضع النص المقتبس في حقل الإدخال
-    console.log('Quoted message:', quotedText);
+    setQuotedMessage(message);
   };
 
   if (isLoading) {
@@ -357,7 +362,19 @@ const ChatRoom = () => {
                   </div>
                 ) : null}
                 
-                <p className="text-zinc-300">{message.content}</p>
+                <div className="text-zinc-300">
+                  {message.content.split('\n').map((line, index) => (
+                    <div key={index}>
+                      {line.startsWith('> ') ? (
+                        <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic">
+                          {line.substring(2)}
+                        </div>
+                      ) : (
+                        <span>{line}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           ))}
@@ -367,7 +384,9 @@ const ChatRoom = () => {
         {/* Message input */}
         <MediaInput 
           onSendMessage={sendMessage} 
-          isSending={false} 
+          isSending={false}
+          quotedMessage={quotedMessage}
+          onClearQuote={() => setQuotedMessage(null)}
         />
       </div>
 
