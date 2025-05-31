@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -14,6 +13,8 @@ interface Notification {
   is_read: boolean;
   created_at: string;
   data: any;
+  post_content?: string;
+  comment_content?: string;
 }
 
 const Notifications = () => {
@@ -43,18 +44,55 @@ const Notifications = () => {
         return;
       }
 
-      // Type cast the data to match our Notification interface
-      const typedNotifications: Notification[] = (data || []).map(item => ({
-        id: item.id,
-        type: item.type as 'like' | 'comment' | 'follow' | 'message',
-        title: item.title,
-        message: item.message,
-        is_read: item.is_read,
-        created_at: item.created_at,
-        data: item.data
-      }));
+      // جلب تفاصيل المنشورات والتعليقات للتنبيهات
+      const enrichedNotifications = await Promise.all(
+        (data || []).map(async (notif) => {
+          let enrichedNotif = { ...notif };
 
-      setNotifications(typedNotifications);
+          // إذا كان التنبيه عن تعليق، جلب تفاصيل المنشور والتعليق
+          if (notif.type === 'comment' && notif.data?.post_id && notif.data?.comment_id) {
+            try {
+              // جلب تفاصيل المنشور
+              const { data: postData } = await supabase
+                .from('hashtag_posts')
+                .select('content')
+                .eq('id', notif.data.post_id)
+                .single();
+
+              // جلب تفاصيل التعليق
+              const { data: commentData } = await supabase
+                .from('hashtag_comments')
+                .select('content')
+                .eq('id', notif.data.comment_id)
+                .single();
+
+              enrichedNotif.post_content = postData?.content;
+              enrichedNotif.comment_content = commentData?.content;
+            } catch (error) {
+              console.error('Error fetching post/comment details:', error);
+            }
+          }
+
+          // إذا كان التنبيه عن إعجاب، جلب تفاصيل المنشور
+          if (notif.type === 'like' && notif.data?.post_id) {
+            try {
+              const { data: postData } = await supabase
+                .from('hashtag_posts')
+                .select('content')
+                .eq('id', notif.data.post_id)
+                .single();
+
+              enrichedNotif.post_content = postData?.content;
+            } catch (error) {
+              console.error('Error fetching post details:', error);
+            }
+          }
+
+          return enrichedNotif;
+        })
+      );
+
+      setNotifications(enrichedNotifications);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -124,6 +162,11 @@ const Notifications = () => {
     if (diffMins < 60) return `${diffMins}م`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}س`;
     return `${Math.floor(diffMins / 1440)}ي`;
+  };
+
+  const truncateText = (text: string, maxLength: number = 100) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
   };
 
   const handleNotificationClick = async (notification: Notification) => {
@@ -220,9 +263,29 @@ const Notifications = () => {
                         </span>
                       </div>
                       
-                      <p className="text-gray-300 text-sm leading-relaxed">
+                      <p className="text-gray-300 text-sm leading-relaxed mb-2">
                         {notification.message}
                       </p>
+
+                      {/* عرض تفاصيل المنشور إذا كان متوفر */}
+                      {notification.post_content && (
+                        <div className="bg-gray-900/50 rounded-lg p-3 mb-2 border border-gray-700/30">
+                          <p className="text-xs text-gray-400 mb-1">المنشور:</p>
+                          <p className="text-gray-300 text-sm">
+                            {truncateText(notification.post_content)}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* عرض تفاصيل التعليق إذا كان متوفر */}
+                      {notification.comment_content && (
+                        <div className="bg-blue-900/30 rounded-lg p-3 mb-2 border border-blue-700/30">
+                          <p className="text-xs text-blue-400 mb-1">التعليق:</p>
+                          <p className="text-gray-300 text-sm">
+                            {truncateText(notification.comment_content)}
+                          </p>
+                        </div>
+                      )}
                       
                       {!notification.is_read && (
                         <div className="mt-2">
