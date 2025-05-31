@@ -1,20 +1,105 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import { Settings, Edit, Users, Hash, MessageSquare, LogOut } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
   const { t, isRTL, language, setLanguage } = useLanguage();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
+  const [userStats, setUserStats] = useState({
+    followers_count: 0,
+    following_count: 0,
+    posts_count: 0
+  });
 
-  const stats = [
-    { label: t('followers'), value: user?.followers_count || 0, icon: Users },
-    { label: t('following'), value: user?.following_count || 0, icon: Users },
-    { label: t('posts'), value: 0, icon: Hash }
-  ];
+  useEffect(() => {
+    if (user) {
+      fetchUserStats();
+    }
+  }, [user]);
+
+  const fetchUserStats = async () => {
+    if (!user) return;
+
+    try {
+      // Get user profile with counts
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('followers_count, following_count')
+        .eq('id', user.id)
+        .single();
+
+      // Get posts count
+      const { count: postsCount } = await supabase
+        .from('hashtag_posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      setUserStats({
+        followers_count: profile?.followers_count || 0,
+        following_count: profile?.following_count || 0,
+        posts_count: postsCount || 0
+      });
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+    }
+  };
+
+  const fetchFollowers = async () => {
+    if (!user) return;
+
+    try {
+      const { data } = await supabase
+        .from('follows')
+        .select(`
+          follower_id,
+          profiles:follower_id (
+            id,
+            username,
+            avatar_url
+          )
+        `)
+        .eq('following_id', user.id);
+
+      setFollowers(data || []);
+      setShowFollowers(true);
+    } catch (error) {
+      console.error('Error fetching followers:', error);
+    }
+  };
+
+  const fetchFollowing = async () => {
+    if (!user) return;
+
+    try {
+      const { data } = await supabase
+        .from('follows')
+        .select(`
+          following_id,
+          profiles:following_id (
+            id,
+            username,
+            avatar_url
+          )
+        `)
+        .eq('follower_id', user.id);
+
+      setFollowing(data || []);
+      setShowFollowing(true);
+    } catch (error) {
+      console.error('Error fetching following:', error);
+    }
+  };
 
   const handleLanguageToggle = () => {
     setLanguage(language === 'ar' ? 'en' : 'ar');
@@ -23,6 +108,27 @@ const Profile = () => {
   const handleLogout = async () => {
     await logout();
   };
+
+  const stats = [
+    { 
+      label: t('followers'), 
+      value: userStats.followers_count, 
+      icon: Users,
+      onClick: fetchFollowers
+    },
+    { 
+      label: t('following'), 
+      value: userStats.following_count, 
+      icon: Users,
+      onClick: fetchFollowing
+    },
+    { 
+      label: t('posts'), 
+      value: userStats.posts_count, 
+      icon: Hash,
+      onClick: () => navigate('/hashtags')
+    }
+  ];
 
   return (
     <Layout>
@@ -44,19 +150,14 @@ const Profile = () => {
             {/* Avatar */}
             <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
               <span className="text-2xl font-bold text-white">
-                {user?.username?.charAt(0).toUpperCase() || 'U'}
+                {user?.email?.charAt(0).toUpperCase() || 'U'}
               </span>
             </div>
             
             {/* User Info */}
             <div className="flex-1">
-              <h2 className="text-xl font-bold text-white">{user?.username}</h2>
+              <h2 className="text-xl font-bold text-white">{user?.email}</h2>
               <p className="text-zinc-400">{user?.email}</p>
-              {user?.favorite_team && (
-                <p className="text-blue-400 text-sm mt-1">
-                  ⚽ {user.favorite_team}
-                </p>
-              )}
             </div>
             
             {/* Edit Button */}
@@ -67,30 +168,40 @@ const Profile = () => {
 
           {/* Bio */}
           <p className="text-zinc-300 mb-4">
-            {user?.bio || (isRTL ? 'مشجع رياضي عاشق للكرة' : 'Sports enthusiast and football lover')}
+            {isRTL ? 'مشجع رياضي عاشق للكرة' : 'Sports enthusiast and football lover'}
           </p>
 
           {/* Stats */}
           <div className="flex justify-around py-4 border-t border-zinc-700">
             {stats.map((stat, index) => (
-              <div key={index} className="text-center">
+              <button
+                key={index}
+                onClick={stat.onClick}
+                className="text-center hover:bg-zinc-700 p-2 rounded-lg transition-colors"
+              >
                 <div className="text-xl font-bold text-white">{stat.value}</div>
                 <div className="text-sm text-zinc-400">{stat.label}</div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <button className="bg-zinc-800 rounded-lg p-4 hover:bg-zinc-700 transition-colors">
+          <button 
+            onClick={() => navigate('/hashtags')}
+            className="bg-zinc-800 rounded-lg p-4 hover:bg-zinc-700 transition-colors"
+          >
             <Hash size={24} className="text-blue-400 mx-auto mb-2" />
             <p className="text-white font-medium">
               {isRTL ? 'منشوراتي' : 'My Posts'}
             </p>
           </button>
           
-          <button className="bg-zinc-800 rounded-lg p-4 hover:bg-zinc-700 transition-colors">
+          <button 
+            onClick={() => navigate('/chat-rooms')}
+            className="bg-zinc-800 rounded-lg p-4 hover:bg-zinc-700 transition-colors"
+          >
             <MessageSquare size={24} className="text-green-400 mx-auto mb-2" />
             <p className="text-white font-medium">
               {isRTL ? 'غرفي' : 'My Rooms'}
@@ -145,6 +256,68 @@ const Profile = () => {
                   {t('cancel')}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Followers Modal */}
+        {showFollowers && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-zinc-800 rounded-lg p-6 w-full max-w-md max-h-96">
+              <h2 className="text-xl font-bold text-white mb-6">المتابعون</h2>
+              <div className="overflow-y-auto space-y-3">
+                {followers.length === 0 ? (
+                  <p className="text-zinc-400 text-center">لا يوجد متابعون</p>
+                ) : (
+                  followers.map((follower: any) => (
+                    <div key={follower.follower_id} className="flex items-center space-x-3 p-2 hover:bg-zinc-700 rounded-lg">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">
+                          {follower.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                      <span className="text-white">{follower.profiles?.username || 'مستخدم مجهول'}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <button
+                onClick={() => setShowFollowers(false)}
+                className="w-full mt-4 px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors"
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Following Modal */}
+        {showFollowing && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-zinc-800 rounded-lg p-6 w-full max-w-md max-h-96">
+              <h2 className="text-xl font-bold text-white mb-6">المتابَعون</h2>
+              <div className="overflow-y-auto space-y-3">
+                {following.length === 0 ? (
+                  <p className="text-zinc-400 text-center">لا تتابع أحد</p>
+                ) : (
+                  following.map((follow: any) => (
+                    <div key={follow.following_id} className="flex items-center space-x-3 p-2 hover:bg-zinc-700 rounded-lg">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">
+                          {follow.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                      <span className="text-white">{follow.profiles?.username || 'مستخدم مجهول'}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <button
+                onClick={() => setShowFollowing(false)}
+                className="w-full mt-4 px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors"
+              >
+                إغلاق
+              </button>
             </div>
           </div>
         )}

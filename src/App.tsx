@@ -10,7 +10,10 @@ import AuthGuard from "./components/AuthGuard";
 import Matches from "./pages/Matches";
 import MatchDetails from "./pages/MatchDetails";
 import Hashtags from "./pages/Hashtags";
+import CreateHashtagPost from "./pages/CreateHashtagPost";
 import ChatRooms from "./pages/ChatRooms";
+import CreateChatRoom from "./pages/CreateChatRoom";
+import ChatRoom from "./pages/ChatRoom";
 import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
 import ApiSettings from "./pages/ApiSettings";
@@ -26,7 +29,10 @@ const AuthenticatedApp = () => (
       <Route path="/matches" element={<Matches />} />
       <Route path="/match/:matchId" element={<MatchDetails />} />
       <Route path="/hashtags" element={<Hashtags />} />
+      <Route path="/create-hashtag-post" element={<CreateHashtagPost />} />
       <Route path="/chat-rooms" element={<ChatRooms />} />
+      <Route path="/create-chat-room" element={<CreateChatRoom />} />
+      <Route path="/chat-room/:roomId" element={<ChatRoom />} />
       <Route path="/messages" element={<Messages />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/api-settings" element={<ApiSettings />} />

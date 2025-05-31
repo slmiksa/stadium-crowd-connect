@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import { Users, Search, Plus, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface ChatRoomWithDetails {
   id: string;
@@ -28,6 +29,7 @@ interface ChatRoomWithDetails {
 const ChatRooms = () => {
   const { t, isRTL } = useLanguage();
   const { user, isInitialized } = useAuth();
+  const navigate = useNavigate();
   const [rooms, setRooms] = useState<ChatRoomWithDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -82,6 +84,41 @@ const ChatRooms = () => {
     setIsRefreshing(false);
   };
 
+  const joinRoom = async (roomId: string) => {
+    if (!user) return;
+
+    try {
+      // Check if user is already a member
+      const { data: existingMember } = await supabase
+        .from('room_members')
+        .select('id')
+        .eq('room_id', roomId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!existingMember) {
+        // Add user as member
+        const { error } = await supabase
+          .from('room_members')
+          .insert({
+            room_id: roomId,
+            user_id: user.id,
+            role: 'member'
+          });
+
+        if (error) {
+          console.error('Error joining room:', error);
+          return;
+        }
+      }
+
+      // Navigate to the room
+      navigate(`/chat-room/${roomId}`);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   const filteredRooms = rooms.filter(room =>
     room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     room.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -93,9 +130,9 @@ const ChatRooms = () => {
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     
-    if (diffMins < 60) return `${diffMins}m`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h`;
-    return `${Math.floor(diffMins / 1440)}d`;
+    if (diffMins < 60) return `${diffMins}م`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}س`;
+    return `${Math.floor(diffMins / 1440)}ي`;
   };
 
   if (!isInitialized || isLoading) {
@@ -149,7 +186,11 @@ const ChatRooms = () => {
             </div>
           ) : (
             filteredRooms.map((room) => (
-              <div key={room.id} className="bg-zinc-800 rounded-lg p-4 hover:bg-zinc-750 transition-colors cursor-pointer">
+              <div 
+                key={room.id} 
+                onClick={() => joinRoom(room.id)}
+                className="bg-zinc-800 rounded-lg p-4 hover:bg-zinc-750 transition-colors cursor-pointer"
+              >
                 <div className="flex items-center space-x-3">
                   {/* Room Avatar */}
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -195,7 +236,10 @@ const ChatRooms = () => {
         </div>
 
         {/* Floating Action Button */}
-        <button className="fixed bottom-24 right-4 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors">
+        <button 
+          onClick={() => navigate('/create-chat-room')}
+          className="fixed bottom-24 right-4 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors"
+        >
           <Plus size={24} className="text-white" />
         </button>
       </div>

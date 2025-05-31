@@ -53,13 +53,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
     
     setIsLiking(true);
     
-    // Optimistic update
-    const newIsLiked = !localIsLiked;
-    const newLikesCount = newIsLiked ? localLikesCount + 1 : localLikesCount - 1;
-    
-    setLocalIsLiked(newIsLiked);
-    setLocalLikesCount(newLikesCount);
-    
     try {
       if (localIsLiked) {
         // Unlike
@@ -70,11 +63,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
           .eq('user_id', user.id);
           
         if (error) {
-          // Revert optimistic update on error
-          setLocalIsLiked(!newIsLiked);
-          setLocalLikesCount(localLikesCount);
-          throw error;
+          console.error('Error unliking post:', error);
+          return;
         }
+        
+        setLocalIsLiked(false);
+        setLocalLikesCount(prev => prev - 1);
       } else {
         // Like
         const { error } = await supabase
@@ -85,11 +79,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
           });
           
         if (error) {
-          // Revert optimistic update on error
-          setLocalIsLiked(!newIsLiked);
-          setLocalLikesCount(localLikesCount);
-          throw error;
+          console.error('Error liking post:', error);
+          return;
         }
+        
+        setLocalIsLiked(true);
+        setLocalLikesCount(prev => prev + 1);
       }
       
       // Call onLikeChange to update the parent component
@@ -115,7 +110,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
         <div className="flex items-center mb-3">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0">
             <span className="text-sm font-bold text-white">
-              {post.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+              {post.profiles?.username?.charAt(0).toUpperCase() || post.user_id?.charAt(0).toUpperCase() || 'U'}
             </span>
           </div>
           <div className="ml-3 flex-1">

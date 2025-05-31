@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,6 +7,7 @@ import HashtagPost from '@/components/HashtagPost';
 import HashtagTabs from '@/components/HashtagTabs';
 import { Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface HashtagPostWithProfile {
   id: string;
@@ -29,6 +31,7 @@ interface HashtagPostWithProfile {
 const Hashtags = () => {
   const { t, isRTL } = useLanguage();
   const { user, isInitialized } = useAuth();
+  const navigate = useNavigate();
   const [allPosts, setAllPosts] = useState<HashtagPostWithProfile[]>([]);
   const [popularPosts, setPopularPosts] = useState<HashtagPostWithProfile[]>([]);
   const [trendingPosts, setTrendingPosts] = useState<HashtagPostWithProfile[]>([]);
@@ -71,13 +74,13 @@ const Hashtags = () => {
       const posts = data || [];
       setAllPosts(posts);
       
-      // تقسيم المنشورات - الشائعة هي كل المنشورات
+      // الشائعة هي كل المنشورات
       setPopularPosts(posts);
       
-      // الترند هي المنشورات التي لديها 25 لايك أو أكثر، مرتبة حسب اللايكات
+      // الترند هي المنشورات التي لديها 35 تعليق أو أكثر، مرتبة حسب التعليقات
       const trending = posts
-        .filter(post => post.likes_count >= 25)
-        .sort((a, b) => b.likes_count - a.likes_count);
+        .filter(post => post.comments_count >= 35)
+        .sort((a, b) => b.comments_count - a.comments_count);
       setTrendingPosts(trending);
       
     } catch (error) {
@@ -149,7 +152,10 @@ const Hashtags = () => {
         />
 
         {/* Floating Action Button */}
-        <button className="fixed bottom-24 right-4 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors">
+        <button 
+          onClick={() => navigate('/create-hashtag-post')}
+          className="fixed bottom-24 right-4 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors"
+        >
           <Plus size={24} className="text-white" />
         </button>
       </div>
