@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -53,6 +52,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     }
   }, [user, post.hashtag_likes]);
 
+  // Update likes count when post prop changes
+  useEffect(() => {
+    setLikesCount(post.likes_count || 0);
+  }, [post.likes_count]);
+
   // Real-time updates for comments
   useEffect(() => {
     const channel = supabase
@@ -83,52 +87,28 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     };
   }, [post.id]);
 
-  // Real-time updates for likes - simplified approach
+  // Real-time updates for likes - improved approach
   useEffect(() => {
     const channel = supabase
       .channel(`post-${post.id}-likes`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'hashtag_likes',
           filter: `post_id=eq.${post.id}`
         },
-        async (payload) => {
-          console.log('Like added:', payload.new);
-          // Fetch fresh data to ensure accuracy
+        async () => {
+          console.log('Like change detected, refreshing data...');
+          // Fetch fresh data from database to ensure accuracy
           const { data: likesData, error } = await supabase
             .from('hashtag_likes')
             .select('user_id')
             .eq('post_id', post.id);
 
           if (!error && likesData) {
-            setLikesCount(likesData.length);
-            if (user) {
-              const userLike = likesData.find(like => like.user_id === user.id);
-              setIsLiked(!!userLike);
-            }
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'hashtag_likes',
-          filter: `post_id=eq.${post.id}`
-        },
-        async (payload) => {
-          console.log('Like removed:', payload.old);
-          // Fetch fresh data to ensure accuracy
-          const { data: likesData, error } = await supabase
-            .from('hashtag_likes')
-            .select('user_id')
-            .eq('post_id', post.id);
-
-          if (!error && likesData) {
+            console.log('Fresh likes data:', likesData.length);
             setLikesCount(likesData.length);
             if (user) {
               const userLike = likesData.find(like => like.user_id === user.id);
@@ -159,14 +139,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     if (!user || isProcessing) return;
 
     setIsProcessing(true);
+    console.log('Starting like operation, current state:', { isLiked, likesCount });
     
     try {
       if (!isLiked) {
-        // Optimistically update UI first
-        setIsLiked(true);
-        setLikesCount(prev => prev + 1);
-        
-        // Add like to database
+        console.log('Adding like...');
+        // Add like to database first
         const { error } = await supabase
           .from('hashtag_likes')
           .insert({
@@ -176,25 +154,34 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         
         if (error) {
           console.error('Error adding like:', error);
-          // Revert optimistic update on error
-          setIsLiked(false);
-          setLikesCount(prev => prev - 1);
           
           // Handle specific error for duplicate likes
           if (error.code === '23505') {
             toast.error('لقد أعجبت بهذا المنشور من قبل');
+            // Check current state from database
+            const { data: currentLikes } = await supabase
+              .from('hashtag_likes')
+              .select('user_id')
+              .eq('post_id', post.id);
+            
+            if (currentLikes) {
+              setLikesCount(currentLikes.length);
+              const userLike = currentLikes.find(like => like.user_id === user.id);
+              setIsLiked(!!userLike);
+            }
           } else {
             toast.error('حدث خطأ في إضافة الإعجاب');
           }
         } else {
+          console.log('Like added successfully');
+          // Update UI optimistically after successful database operation
+          setIsLiked(true);
+          setLikesCount(prev => prev + 1);
           toast.success('تم إضافة الإعجاب');
         }
       } else {
-        // Optimistically update UI first
-        setIsLiked(false);
-        setLikesCount(prev => Math.max(0, prev - 1));
-        
-        // Remove like from database
+        console.log('Removing like...');
+        // Remove like from database first
         const { error } = await supabase
           .from('hashtag_likes')
           .delete()
@@ -203,11 +190,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         
         if (error) {
           console.error('Error removing like:', error);
-          // Revert optimistic update on error
-          setIsLiked(true);
-          setLikesCount(prev => prev + 1);
           toast.error('حدث خطأ في إزالة الإعجاب');
         } else {
+          console.log('Like removed successfully');
+          // Update UI optimistically after successful database operation
+          setIsLiked(false);
+          setLikesCount(prev => Math.max(0, prev - 1));
           toast.success('تم إزالة الإعجاب');
         }
       }
@@ -217,13 +205,21 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      // Revert any optimistic updates
-      if (user && post.hashtag_likes && Array.isArray(post.hashtag_likes)) {
-        const userLike = post.hashtag_likes.find(like => like.user_id === user.id);
-        setIsLiked(!!userLike);
-        setLikesCount(post.likes_count || 0);
-      }
       toast.error('حدث خطأ غير متوقع');
+      
+      // Refresh data from database in case of error
+      const { data: currentLikes } = await supabase
+        .from('hashtag_likes')
+        .select('user_id')
+        .eq('post_id', post.id);
+      
+      if (currentLikes) {
+        setLikesCount(currentLikes.length);
+        if (user) {
+          const userLike = currentLikes.find(like => like.user_id === user.id);
+          setIsLiked(!!userLike);
+        }
+      }
     } finally {
       setIsProcessing(false);
     }
