@@ -19,8 +19,14 @@ const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (!containerRef.current) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
     setIsDragging(true);
-    setDragStart({ x: e.clientX - cropArea.x, y: e.clientY - cropArea.y });
+    setDragStart({ 
+      x: e.clientX - rect.left - cropArea.x, 
+      y: e.clientY - rect.top - cropArea.y 
+    });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -39,15 +45,21 @@ const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
 
   // Touch event handlers for mobile support
   const handleTouchStart = (e: React.TouchEvent) => {
-    e.preventDefault(); // Prevent scrolling
+    e.preventDefault();
+    if (!containerRef.current) return;
+    
     const touch = e.touches[0];
+    const rect = containerRef.current.getBoundingClientRect();
     setIsDragging(true);
-    setDragStart({ x: touch.clientX - cropArea.x, y: touch.clientY - cropArea.y });
+    setDragStart({ 
+      x: touch.clientX - rect.left - cropArea.x, 
+      y: touch.clientY - rect.top - cropArea.y 
+    });
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || !containerRef.current) return;
-    e.preventDefault(); // Prevent scrolling
+    e.preventDefault();
     
     const touch = e.touches[0];
     const rect = containerRef.current.getBoundingClientRect();
@@ -111,7 +123,7 @@ const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
             onMouseLeave={handleMouseUp}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            style={{ touchAction: 'none' }} // Prevent default touch behaviors
+            style={{ touchAction: 'none' }}
           >
             <img
               ref={imageRef}
