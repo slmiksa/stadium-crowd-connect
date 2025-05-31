@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,12 +87,12 @@ const HashtagPage = () => {
         console.error('Error fetching hashtag posts:', postsError);
       }
 
-      // Fetch comments with proper join
+      // Fetch comments with proper join - use single profile object
       const { data: commentsData, error: commentsError } = await supabase
         .from('hashtag_comments')
         .select(`
           *,
-          profiles!hashtag_comments_user_id_fkey (
+          profiles:user_id (
             id,
             username,
             avatar_url
@@ -120,8 +119,12 @@ const HashtagPage = () => {
 
       if (commentsData) {
         commentsData.forEach(comment => {
+          // Handle the case where profiles might be an array (from the join)
+          const profileData = Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles;
+          
           allContent.push({
             ...comment,
+            profiles: profileData,
             type: 'comment' as const
           });
         });
