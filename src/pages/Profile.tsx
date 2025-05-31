@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -24,7 +25,12 @@ interface Follow {
   id: string;
   follower_id: string;
   following_id: string;
-  profiles: {
+  follower_profile?: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+  };
+  following_profile?: {
     id: string;
     username: string;
     avatar_url?: string;
@@ -110,7 +116,7 @@ const Profile = () => {
         .from('follows')
         .select(`
           *,
-          profiles:follower_id (
+          follower_profile:profiles!follows_follower_id_fkey (
             id,
             username,
             avatar_url
@@ -137,7 +143,7 @@ const Profile = () => {
         .from('follows')
         .select(`
           *,
-          profiles:following_id (
+          following_profile:profiles!follows_following_id_fkey (
             id,
             username,
             avatar_url
@@ -300,18 +306,18 @@ const Profile = () => {
                   <div key={follow.id} className="flex items-center space-x-3 p-2 hover:bg-zinc-700 rounded transition-colors">
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
                       <span className="text-sm font-bold text-white">
-                        {follow.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                        {follow.follower_profile?.username?.charAt(0).toUpperCase() || 'U'}
                       </span>
                     </div>
                     <button
                       onClick={() => {
                         setShowFollowers(false);
-                        navigate(`/user/${follow.profiles?.id}`);
+                        navigate(`/user/${follow.follower_profile?.id}`);
                       }}
                       className="flex-1 text-right"
                     >
                       <p className="text-white font-medium hover:text-blue-400 transition-colors">
-                        {follow.profiles?.username || 'مستخدم مجهول'}
+                        {follow.follower_profile?.username || 'مستخدم مجهول'}
                       </p>
                     </button>
                   </div>
@@ -335,18 +341,18 @@ const Profile = () => {
                   <div key={follow.id} className="flex items-center space-x-3 p-2 hover:bg-zinc-700 rounded transition-colors">
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
                       <span className="text-sm font-bold text-white">
-                        {follow.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                        {follow.following_profile?.username?.charAt(0).toUpperCase() || 'U'}
                       </span>
                     </div>
                     <button
                       onClick={() => {
                         setShowFollowing(false);
-                        navigate(`/user/${follow.profiles?.id}`);
+                        navigate(`/user/${follow.following_profile?.id}`);
                       }}
                       className="flex-1 text-right"
                     >
                       <p className="text-white font-medium hover:text-blue-400 transition-colors">
-                        {follow.profiles?.username || 'مستخدم مجهول'}
+                        {follow.following_profile?.username || 'مستخدم مجهول'}
                       </p>
                     </button>
                   </div>

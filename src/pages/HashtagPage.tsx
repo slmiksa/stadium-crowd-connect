@@ -28,18 +28,11 @@ interface HashtagPostWithProfile {
   }>;
 }
 
-interface HashtagDetails {
-  hashtag: string;
-  posts_count: number;
-  is_trending: boolean;
-}
-
 const HashtagPage = () => {
   const { hashtag } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<HashtagPostWithProfile[]>([]);
-  const [hashtagDetails, setHashtagDetails] = useState<HashtagDetails | null>(null);
   const [content, setContent] = useState(`#${hashtag} `);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +40,6 @@ const HashtagPage = () => {
   useEffect(() => {
     if (hashtag) {
       fetchHashtagPosts();
-      fetchHashtagDetails();
     }
   }, [hashtag]);
 
@@ -82,25 +74,6 @@ const HashtagPage = () => {
     }
   };
 
-  const fetchHashtagDetails = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('hashtag_details')
-        .select('*')
-        .eq('hashtag', hashtag)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching hashtag details:', error);
-        return;
-      }
-
-      setHashtagDetails(data);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
   const extractHashtags = (text: string) => {
     const hashtagRegex = /#[\u0600-\u06FF\w]+/g;
     const matches = text.match(hashtagRegex);
@@ -130,7 +103,6 @@ const HashtagPage = () => {
 
       setContent(`#${hashtag} `);
       fetchHashtagPosts();
-      fetchHashtagDetails();
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -141,6 +113,8 @@ const HashtagPage = () => {
   const handlePostLikeChange = () => {
     fetchHashtagPosts();
   };
+
+  const isTrending = posts.filter(post => post.comments_count >= 35).length > 0;
 
   if (isLoading) {
     return (
@@ -167,7 +141,7 @@ const HashtagPage = () => {
             <div className="flex items-center space-x-2">
               <Hash size={24} className="text-blue-400" />
               <h1 className="text-xl font-bold text-white">{hashtag}</h1>
-              {hashtagDetails?.is_trending && (
+              {isTrending && (
                 <TrendingUp size={20} className="text-orange-400" />
               )}
             </div>
@@ -175,22 +149,20 @@ const HashtagPage = () => {
         </div>
 
         {/* Hashtag Stats */}
-        {hashtagDetails && (
-          <div className="bg-zinc-800 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-400">عدد المنشورات</p>
-                <p className="text-lg font-bold text-white">{hashtagDetails.posts_count}</p>
-              </div>
-              {hashtagDetails.is_trending && (
-                <div className="flex items-center space-x-2 bg-orange-500/20 px-3 py-1 rounded-full">
-                  <TrendingUp size={16} className="text-orange-400" />
-                  <span className="text-sm text-orange-400 font-medium">ترند</span>
-                </div>
-              )}
+        <div className="bg-zinc-800 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-zinc-400">عدد المنشورات</p>
+              <p className="text-lg font-bold text-white">{posts.length}</p>
             </div>
+            {isTrending && (
+              <div className="flex items-center space-x-2 bg-orange-500/20 px-3 py-1 rounded-full">
+                <TrendingUp size={16} className="text-orange-400" />
+                <span className="text-sm text-orange-400 font-medium">ترند</span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Create Post */}
         {user && (
