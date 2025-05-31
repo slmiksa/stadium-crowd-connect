@@ -4,10 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import MediaInput from '@/components/MediaInput';
 import OwnerBadge from '@/components/OwnerBadge';
-import { ArrowLeft, Users, Settings } from 'lucide-react';
+import RoomMembersModal from '@/components/RoomMembersModal';
+import { ArrowLeft, Users, Settings, Quote } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 interface Message {
   id: string;
@@ -40,6 +40,7 @@ const ChatRoom = () => {
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
+  const [showMembersModal, setShowMembersModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -216,6 +217,12 @@ const ChatRoom = () => {
     });
   };
 
+  const quoteMessage = (message: Message) => {
+    const quotedText = `"${message.content}" - ${message.profiles?.username || 'مستخدم مجهول'}`;
+    // يمكن إضافة منطق لوضع النص المقتبس في حقل الإدخال
+    console.log('Quoted message:', quotedText);
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -267,7 +274,7 @@ const ChatRoom = () => {
   }
 
   return (
-    <Layout>
+    <Layout showBottomNav={false}>
       <div className="flex flex-col h-screen">
         {/* Header */}
         <div className="bg-zinc-800 border-b border-zinc-700 p-4">
@@ -287,16 +294,25 @@ const ChatRoom = () => {
                 </div>
               </div>
             </div>
-            <button className="p-2 hover:bg-zinc-700 rounded-lg transition-colors">
-              <Settings size={20} className="text-white" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => setShowMembersModal(true)}
+                className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
+                title="عرض الأعضاء"
+              >
+                <Users size={20} className="text-white" />
+              </button>
+              <button className="p-2 hover:bg-zinc-700 rounded-lg transition-colors">
+                <Settings size={20} className="text-white" />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((message) => (
-            <div key={message.id} className="flex items-start space-x-3">
+            <div key={message.id} className="flex items-start space-x-3 group">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                 <span className="text-sm font-bold text-white">
                   {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
@@ -311,6 +327,13 @@ const ChatRoom = () => {
                   <span className="text-xs text-zinc-500">
                     {formatTimestamp(message.created_at)}
                   </span>
+                  <button
+                    onClick={() => quoteMessage(message)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
+                    title="اقتباس الرسالة"
+                  >
+                    <Quote size={14} className="text-zinc-400" />
+                  </button>
                 </div>
                 
                 {message.media_url ? (
@@ -347,6 +370,14 @@ const ChatRoom = () => {
           isSending={false} 
         />
       </div>
+
+      {/* Room Members Modal */}
+      <RoomMembersModal 
+        isOpen={showMembersModal}
+        onClose={() => setShowMembersModal(false)}
+        roomId={roomId || ''}
+        isOwner={user?.id === roomInfo?.owner_id}
+      />
     </Layout>
   );
 };

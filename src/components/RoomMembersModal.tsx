@@ -1,0 +1,187 @@
+
+import React, { useState, useEffect } from 'react';
+import { X, Crown, UserMinus } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+
+interface Member {
+  id: string;
+  user_id: string;
+  joined_at: string;
+  profiles: {
+    username: string;
+    avatar_url?: string;
+  };
+}
+
+interface RoomMembersModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  roomId: string;
+  isOwner: boolean;
+}
+
+const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
+  isOpen,
+  onClose,
+  roomId,
+  isOwner
+}) => {
+  const [members, setMembers] = useState<Member[]>([]);
+  const [roomOwner, setRoomOwner] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && roomId) {
+      fetchMembers();
+      fetchRoomOwner();
+    }
+  }, [isOpen, roomId]);
+
+  const fetchRoomOwner = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_rooms')
+        .select('owner_id')
+        .eq('id', roomId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching room owner:', error);
+        return;
+      }
+
+      setRoomOwner(data.owner_id);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const fetchMembers = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('room_members')
+        .select(`
+          *,
+          profiles (username, avatar_url)
+        `)
+        .eq('room_id', roomId)
+        .order('joined_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching members:', error);
+        return;
+      }
+
+      setMembers(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const removeMember = async (userId: string) => {
+    if (!isOwner || userId === roomOwner) return;
+
+    try {
+      const { error } = await supabase
+        .from('room_members')
+        .delete()
+        .eq('room_id', roomId)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error removing member:', error);
+        return;
+      }
+
+      fetchMembers();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const formatJoinDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('ar-SA', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-zinc-900 rounded-lg max-w-md w-full max-h-96">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-zinc-700">
+          <h2 className="text-lg font-bold text-white">أعضاء الغرفة</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
+          >
+            <X size={20} className="text-white" />
+          </button>
+        </div>
+
+        {/* Members List */}
+        <div className="p-4 overflow-y-auto max-h-80">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {members.map((member) => (
+                <div key={member.id} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-bold text-white">
+                        {member.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium text-white">
+                          {member.profiles?.username || 'مستخدم مجهول'}
+                        </span>
+                        {member.user_id === roomOwner && (
+                          <Crown size={16} className="text-yellow-500" />
+                        )}
+                      </div>
+                      <span className="text-xs text-zinc-500">
+                        انضم في {formatJoinDate(member.joined_at)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {isOwner && member.user_id !== roomOwner && (
+                    <button
+                      onClick={() => removeMember(member.user_id)}
+                      className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
+                      title="إزالة العضو"
+                    >
+                      <UserMinus size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              
+              {members.length === 0 && (
+                <div className="text-center text-zinc-500 py-8">
+                  لا يوجد أعضاء في الغرفة
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default RoomMembersModal;
