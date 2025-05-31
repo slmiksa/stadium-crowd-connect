@@ -84,10 +84,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
 
   const handleShare = async () => {
     try {
+      // تحديث الرابط ليوجه إلى صفحة المنشور مباشرة
+      const postUrl = `${window.location.origin}/post/${post.id}`;
+      
       const shareData = {
         title: 'منشور من تطبيق الهاشتاقات',
         text: post.content,
-        url: window.location.href
+        url: postUrl
       };
 
       if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
@@ -95,14 +98,15 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         toast.success('تم مشاركة المنشور');
       } else {
         // Fallback to clipboard
-        await navigator.clipboard.writeText(`${post.content}\n\n${window.location.href}`);
+        await navigator.clipboard.writeText(`${post.content}\n\n${postUrl}`);
         toast.success('تم نسخ المنشور للحافظة');
       }
     } catch (error) {
       console.error('Error sharing:', error);
       // Fallback to clipboard if sharing fails
       try {
-        await navigator.clipboard.writeText(`${post.content}\n\n${window.location.href}`);
+        const postUrl = `${window.location.origin}/post/${post.id}`;
+        await navigator.clipboard.writeText(`${post.content}\n\n${postUrl}`);
         toast.success('تم نسخ المنشور للحافظة');
       } catch (clipboardError) {
         console.error('Clipboard error:', clipboardError);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import { ArrowLeft, Bell, Heart, MessageCircle, User, CheckCheck } from 'lucide-react';
+import { ArrowLeft, Bell, Heart, MessageCircle, User, CheckCheck, FileText, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,11 +14,12 @@ interface NotificationData {
   like_id?: string;
   liker_id?: string;
   commenter_id?: string;
+  author_id?: string;
 }
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'message';
+  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment';
   title: string;
   message: string;
   is_read: boolean;
@@ -66,7 +67,7 @@ const Notifications = () => {
           
           const enrichedNotif: Notification = {
             id: notif.id,
-            type: notif.type as 'like' | 'comment' | 'follow' | 'message',
+            type: notif.type as 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment',
             title: notif.title,
             message: notif.message,
             is_read: notif.is_read ?? false,
@@ -75,7 +76,7 @@ const Notifications = () => {
           };
 
           // إذا كان التنبيه عن تعليق، جلب تفاصيل المنشور والتعليق
-          if (notif.type === 'comment' && notificationData.post_id && notificationData.comment_id) {
+          if ((notif.type === 'comment' || notif.type === 'follower_comment') && notificationData.post_id && notificationData.comment_id) {
             try {
               // جلب تفاصيل المنشور
               const { data: postData } = await supabase
@@ -98,8 +99,8 @@ const Notifications = () => {
             }
           }
 
-          // إذا كان التنبيه عن إعجاب، جلب تفاصيل المنشور
-          if (notif.type === 'like' && notificationData.post_id) {
+          // إذا كان التنبيه عن إعجاب أو منشور جديد، جلب تفاصيل المنشور
+          if ((notif.type === 'like' || notif.type === 'post') && notificationData.post_id) {
             try {
               const { data: postData } = await supabase
                 .from('hashtag_posts')
@@ -173,6 +174,10 @@ const Notifications = () => {
         return <User size={20} className="text-green-400" />;
       case 'message':
         return <Bell size={20} className="text-purple-400" />;
+      case 'post':
+        return <FileText size={20} className="text-yellow-400" />;
+      case 'follower_comment':
+        return <Users size={20} className="text-cyan-400" />;
       default:
         return <Bell size={20} className="text-gray-400" />;
     }
@@ -203,8 +208,8 @@ const Notifications = () => {
       await markAsRead(notification.id);
     }
 
-    // الذهاب إلى المنشور للتعليقات والإعجابات
-    if (notification.type === 'comment' || notification.type === 'like') {
+    // الذهاب إلى المنشور للتعليقات والإعجابات والمنشورات الجديدة
+    if (notification.type === 'comment' || notification.type === 'like' || notification.type === 'post' || notification.type === 'follower_comment') {
       if (notification.data?.post_id) {
         console.log('Navigating to post:', notification.data.post_id);
         navigate(`/post/${notification.data.post_id}`);
