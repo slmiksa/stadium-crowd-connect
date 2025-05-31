@@ -212,6 +212,44 @@ const Messages = () => {
     }
   };
 
+  const handleMarkAllNotificationsAsRead = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
+        toast({
+          title: "خطأ",
+          description: "حدث خطأ أثناء تعليم التنبيهات كمقروءة",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setNotifications(prev => 
+        prev.map(notif => ({ ...notif, is_read: true }))
+      );
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم تعليم جميع التنبيهات كمقروءة",
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تعليم التنبيهات كمقروءة",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleNotificationClick = async (notification: Notification) => {
     await markNotificationAsRead(notification.id);
 
