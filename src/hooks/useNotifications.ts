@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,6 +56,21 @@ export const useNotifications = () => {
 
       console.log('Fetched notifications:', data);
 
+      // تلقائياً تعليم تنبيهات غرف الدردشة كمقروءة
+      const chatRoomNotifications = (data || []).filter(notif => 
+        notif.type === 'chat_room' && !notif.is_read
+      );
+
+      if (chatRoomNotifications.length > 0) {
+        const chatRoomIds = chatRoomNotifications.map(notif => notif.id);
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .in('id', chatRoomIds);
+        
+        console.log('Auto-marked chat room notifications as read:', chatRoomIds);
+      }
+
       // جلب تفاصيل المنشورات والتعليقات للتنبيهات
       const enrichedNotifications = await Promise.all(
         (data || []).map(async (notif) => {
@@ -67,7 +81,7 @@ export const useNotifications = () => {
             type: notif.type as 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room',
             title: notif.title,
             message: notif.message,
-            is_read: notif.is_read ?? false,
+            is_read: notif.type === 'chat_room' ? true : (notif.is_read ?? false), // تعليم تنبيهات غرف الدردشة كمقروءة
             created_at: notif.created_at || '',
             data: notificationData
           };
