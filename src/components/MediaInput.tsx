@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Video, Image, Send, X, Mic } from 'lucide-react';
+import { Camera, Send, X, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { supabase } from '@/integrations/supabase/client';
 import VoiceRecorder from './VoiceRecorder';
 
 interface Message {
@@ -56,45 +55,24 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
   };
 
   const handleVoiceRecorded = async (audioBlob: Blob, duration: number) => {
+    console.log('MediaInput received voice:', audioBlob.size, 'bytes, duration:', duration);
+    
     try {
-      console.log('MediaInput: Voice recorded callback received');
-      console.log('MediaInput: Audio blob details:', {
-        size: audioBlob.size,
-        type: audioBlob.type,
-        duration: duration
-      });
-      
       if (!audioBlob || audioBlob.size === 0) {
-        throw new Error('الملف الصوتي فارغ أو غير صالح');
+        throw new Error('الملف الصوتي فارغ');
       }
 
-      if (!duration || duration === 0) {
-        throw new Error('مدة التسجيل غير صحيحة');
-      }
-
-      // إنشاء ملف صوتي مع اسم فريد
-      const fileName = `voice_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
-      const audioFile = new File([audioBlob], fileName, {
-        type: audioBlob.type || 'audio/webm'
+      const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, {
+        type: 'audio/webm'
       });
 
-      console.log('MediaInput: Created audio file:', {
-        name: audioFile.name,
-        size: audioFile.size,
-        type: audioFile.type,
-        duration: duration
-      });
-
-      console.log('MediaInput: Calling onSendMessage...');
+      console.log('Created audio file:', audioFile.name, audioFile.size);
       
-      // إرسال الرسالة الصوتية
       await onSendMessage('رسالة صوتية', undefined, undefined, audioFile, duration);
-      
-      console.log('MediaInput: onSendMessage completed successfully');
       setShowVoiceRecorder(false);
       
     } catch (error) {
-      console.error('MediaInput: Error in handleVoiceRecorded:', error);
+      console.error('Error handling voice:', error);
       alert('فشل في إرسال الرسالة الصوتية: ' + error.message);
       setShowVoiceRecorder(false);
     }
@@ -134,10 +112,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     return (
       <VoiceRecorder
         onVoiceRecorded={handleVoiceRecorded}
-        onCancel={() => {
-          console.log('MediaInput: Voice recorder cancelled');
-          setShowVoiceRecorder(false);
-        }}
+        onCancel={() => setShowVoiceRecorder(false)}
       />
     );
   }
@@ -191,7 +166,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         {/* Voice Record Button */}
         <Button
           type="button"
-          onClick={handleVoiceButtonClick}
+          onClick={() => setShowVoiceRecorder(true)}
           disabled={isSending}
           className="p-2 bg-zinc-700 hover:bg-zinc-600 transition-colors flex-shrink-0 h-10 w-10"
           variant="secondary"

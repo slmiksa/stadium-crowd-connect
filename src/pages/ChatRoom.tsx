@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -189,6 +188,8 @@ const ChatRoom = () => {
     if (!user) return;
 
     try {
+      console.log('ChatRoom sendMessage called with:', { content, voiceFile: !!voiceFile, voiceDuration });
+      
       let mediaUrl = null;
       let voiceUrl = null;
       
@@ -213,49 +214,27 @@ const ChatRoom = () => {
       }
 
       if (voiceFile) {
-        console.log('ChatRoom: Uploading voice file to storage...');
-        console.log('ChatRoom: Voice file details:', {
-          size: voiceFile.size,
-          type: voiceFile.type,
-          name: voiceFile.name,
-          duration: voiceDuration
-        });
+        console.log('Uploading voice file:', voiceFile.name, voiceFile.size, 'bytes');
         
-        if (voiceFile.size === 0) {
-          throw new Error('الملف الصوتي فارغ');
-        }
+        const fileName = `voice_${user.id}_${Date.now()}.webm`;
 
-        if (!voiceDuration || voiceDuration === 0) {
-          throw new Error('مدة التسجيل غير صحيحة');
-        }
-        
-        // إنشاء اسم ملف فريد
-        const fileName = `voice_${user.id}_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
-
-        const { data, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('voice-messages')
           .upload(fileName, voiceFile, {
-            contentType: voiceFile.type || 'audio/webm',
-            upsert: false
+            contentType: 'audio/webm'
           });
 
         if (uploadError) {
-          console.error('ChatRoom: Error uploading voice message:', uploadError);
-          throw new Error('فشل في رفع الملف الصوتي: ' + uploadError.message);
+          console.error('Voice upload error:', uploadError);
+          throw new Error('فشل في رفع الملف الصوتي');
         }
-
-        console.log('ChatRoom: Voice file uploaded successfully:', data);
 
         const { data: { publicUrl } } = supabase.storage
           .from('voice-messages')
           .getPublicUrl(fileName);
 
-        if (!publicUrl) {
-          throw new Error('فشل في إنشاء رابط الملف الصوتي');
-        }
-
         voiceUrl = publicUrl;
-        console.log('ChatRoom: Voice public URL generated:', voiceUrl);
+        console.log('Voice uploaded successfully:', voiceUrl);
       }
 
       let finalContent = content || (voiceFile ? 'رسالة صوتية' : '');
@@ -273,36 +252,23 @@ const ChatRoom = () => {
         voice_duration: voiceDuration ? Math.round(voiceDuration) : null
       };
 
-      console.log('ChatRoom: Inserting message with data:', messageData);
+      console.log('Inserting message:', messageData);
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('room_messages')
         .insert(messageData);
 
       if (error) {
-        console.error('ChatRoom: Error sending message:', error);
-        
-        // محاولة حذف الملف المرفوع في حالة فشل إدراج الرسالة
-        if (voiceUrl) {
-          const fileName = voiceUrl.split('/').pop();
-          if (fileName) {
-            await supabase.storage
-              .from('voice-messages')
-              .remove([fileName]);
-          }
-        }
-        
-        throw new Error('فشل في إرسال الرسالة: ' + error.message);
+        console.error('Message insert error:', error);
+        throw new Error('فشل في إرسال الرسالة');
       }
 
-      console.log('ChatRoom: Message sent successfully:', data);
+      console.log('Message sent successfully');
       setQuotedMessage(null);
-      
-      // إعادة جلب الرسائل للتأكد من الحصول على أحدث البيانات
       await fetchMessages();
       
     } catch (error) {
-      console.error('ChatRoom: Error in sendMessage:', error);
+      console.error('Error in sendMessage:', error);
       alert(error.message || 'فشل في إرسال الرسالة');
     }
   };

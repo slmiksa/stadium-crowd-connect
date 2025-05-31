@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, Square, Play, Pause, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -50,128 +49,72 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
 
   const startRecording = async () => {
     try {
-      console.log('VoiceRecorder: Starting recording process...');
+      console.log('Starting recording...');
       
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 44100,
-          channelCount: 1
+          autoGainControl: true
         }
       });
 
-      console.log('VoiceRecorder: Microphone access granted');
       streamRef.current = stream;
-
-      let mimeType = 'audio/webm;codecs=opus';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'audio/webm';
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = 'audio/mp4';
-          if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = '';
-          }
-        }
-      }
-
-      console.log('VoiceRecorder: Using MIME type:', mimeType);
-
-      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        console.log('VoiceRecorder: Data available, size:', event.data.size);
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
-      mediaRecorder.onstop = async () => {
-        console.log('VoiceRecorder: Recording stopped, creating blob...');
-        console.log('VoiceRecorder: Number of chunks:', audioChunksRef.current.length);
+      mediaRecorder.onstop = () => {
+        console.log('Recording stopped, creating blob...');
         
         if (audioChunksRef.current.length === 0) {
-          console.error('VoiceRecorder: No audio chunks recorded');
-          alert('لم يتم تسجيل أي صوت. يرجى المحاولة مرة أخرى.');
+          alert('لم يتم تسجيل أي صوت');
           return;
         }
 
-        const finalMimeType = mediaRecorder.mimeType || 'audio/webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: finalMimeType });
-        console.log('VoiceRecorder: Blob created:', {
-          size: audioBlob.size,
-          type: finalMimeType,
-          duration: duration
-        });
-        
-        if (audioBlob.size === 0) {
-          console.error('VoiceRecorder: Empty blob created');
-          alert('فشل في إنشاء ملف صوتي صالح. يرجى المحاولة مرة أخرى.');
-          return;
-        }
-        
-        // Clean up old audio URL
-        if (audioUrl) {
-          URL.revokeObjectURL(audioUrl);
-        }
-        
-        const newAudioUrl = URL.createObjectURL(audioBlob);
-        console.log('VoiceRecorder: Audio URL created:', newAudioUrl);
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log('Created blob:', audioBlob.size, 'bytes');
         
         setRecordedBlob(audioBlob);
+        
+        const newAudioUrl = URL.createObjectURL(audioBlob);
         setAudioUrl(newAudioUrl);
         
-        // Stop all tracks
         if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => {
-            track.stop();
-            console.log('VoiceRecorder: Track stopped:', track.kind);
-          });
+          streamRef.current.getTracks().forEach(track => track.stop());
         }
       };
 
       mediaRecorder.onstart = () => {
-        console.log('VoiceRecorder: Recording started');
         setIsRecording(true);
         setDuration(0);
-
         intervalRef.current = window.setInterval(() => {
-          setDuration(prev => {
-            const newDuration = prev + 1;
-            console.log('VoiceRecorder: Duration updated:', newDuration);
-            return newDuration;
-          });
+          setDuration(prev => prev + 1);
         }, 1000);
       };
 
-      mediaRecorder.onerror = (event) => {
-        console.error('VoiceRecorder: MediaRecorder error:', event);
-        alert('حدث خطأ أثناء التسجيل');
-      };
-
-      console.log('VoiceRecorder: Starting MediaRecorder...');
-      mediaRecorder.start(100);
+      mediaRecorder.start();
 
     } catch (error) {
-      console.error('VoiceRecorder: Error accessing microphone:', error);
-      alert('لا يمكن الوصول إلى الميكروفون. يرجى التأكد من الصلاحيات.');
+      console.error('Error accessing microphone:', error);
+      alert('لا يمكن الوصول إلى الميكروفون');
     }
   };
 
   const stopRecording = () => {
-    console.log('VoiceRecorder: Stop recording button clicked');
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      console.log('VoiceRecorder: Stopping MediaRecorder...');
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
-        console.log('VoiceRecorder: Timer cleared');
       }
     }
   };
@@ -195,7 +138,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
         setCurrentTime(0);
       };
       audio.onerror = (e) => {
-        console.error('VoiceRecorder: Audio playback error:', e);
+        console.error('Audio playback error:', e);
         setIsPlaying(false);
         alert('خطأ في تشغيل الصوت');
       };
@@ -204,7 +147,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
       setIsPlaying(true);
       
     } catch (error) {
-      console.error('VoiceRecorder: Error playing audio:', error);
+      console.error('Error playing audio:', error);
       setIsPlaying(false);
       alert('لا يمكن تشغيل الصوت: ' + error.message);
     }
@@ -218,45 +161,28 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
   };
 
   const handleSend = () => {
-    console.log('VoiceRecorder: Send button clicked');
-    console.log('VoiceRecorder: Recorded blob:', recordedBlob);
-    console.log('VoiceRecorder: Duration:', duration);
+    console.log('Send clicked, blob:', recordedBlob, 'duration:', duration);
     
-    if (!recordedBlob) {
-      console.error('VoiceRecorder: No recorded blob available');
-      alert('لا يوجد تسجيل صوتي لإرساله');
+    if (!recordedBlob || recordedBlob.size === 0) {
+      alert('لا يوجد تسجيل صوتي');
       return;
     }
     
     if (duration === 0) {
-      console.error('VoiceRecorder: Duration is 0');
-      alert('مدة التسجيل غير صحيحة');
+      alert('مدة التسجيل قصيرة جداً');
       return;
     }
 
-    if (recordedBlob.size === 0) {
-      console.error('VoiceRecorder: Blob size is 0');
-      alert('الملف الصوتي فارغ');
-      return;
-    }
-
-    console.log('VoiceRecorder: Calling onVoiceRecorded with:', {
-      blobSize: recordedBlob.size,
-      blobType: recordedBlob.type,
-      duration: duration
-    });
-    
     try {
+      console.log('Calling onVoiceRecorded...');
       onVoiceRecorded(recordedBlob, duration);
-      console.log('VoiceRecorder: onVoiceRecorded called successfully');
     } catch (error) {
-      console.error('VoiceRecorder: Error calling onVoiceRecorded:', error);
-      alert('فشل في إرسال الرسالة الصوتية: ' + error.message);
+      console.error('Error calling onVoiceRecorded:', error);
+      alert('خطأ في إرسال الرسالة: ' + error.message);
     }
   };
 
   const handleDelete = () => {
-    console.log('VoiceRecorder: Deleting recording');
     setRecordedBlob(null);
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
@@ -287,7 +213,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
       {!recordedBlob ? (
         <div className="flex flex-col items-center space-y-4">
           <div className="text-center">
-            <div className="text-2xl text-white mb-2">{formatTime(duration)}</div>
+            <div className="text-2xl text-white mb-2">{Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}</div>
             <div className="text-zinc-400 text-sm">
               {isRecording ? 'جاري التسجيل...' : 'اضغط للبدء في التسجيل'}
             </div>
@@ -314,23 +240,8 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
       ) : (
         <div className="flex flex-col space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Button
-                onClick={isPlaying ? pausePlayback : playRecording}
-                className="bg-blue-500 hover:bg-blue-600 rounded-full w-10 h-10"
-                disabled={!audioUrl}
-              >
-                {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-              </Button>
-              <div>
-                <div className="text-white text-sm">{formatTime(currentTime)} / {formatTime(duration)}</div>
-                <div className="w-32 bg-zinc-600 rounded-full h-1 mt-1">
-                  <div 
-                    className="bg-blue-500 h-1 rounded-full transition-all duration-300"
-                    style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-                  />
-                </div>
-              </div>
+            <div className="text-white text-sm">
+              مدة التسجيل: {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}
             </div>
             <Button
               onClick={handleDelete}
@@ -353,7 +264,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
               className="bg-blue-500 hover:bg-blue-600 flex-1"
               disabled={!recordedBlob || duration === 0}
             >
-              إرسال
+              إرسال ({recordedBlob ? (recordedBlob.size / 1024).toFixed(1) + 'KB' : '0KB'})
             </Button>
           </div>
         </div>

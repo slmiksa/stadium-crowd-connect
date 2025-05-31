@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -171,84 +170,47 @@ const PrivateChat = () => {
 
     setIsSending(true);
     try {
-      console.log('PrivateChat: Voice recorded, duration:', duration, 'blob size:', audioBlob.size);
+      console.log('PrivateChat handleVoiceRecorded:', audioBlob.size, 'bytes, duration:', duration);
       
-      if (audioBlob.size === 0) {
-        throw new Error('الملف الصوتي فارغ');
-      }
+      const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, {
+        type: 'audio/webm'
+      });
+      
+      const fileName = `voice_${user.id}_${Date.now()}.webm`;
 
-      if (duration === 0) {
-        throw new Error('مدة التسجيل غير صحيحة');
-      }
-      
-      // إنشاء اسم ملف فريد
-      const fileName = `voice_${user.id}_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
-      
-      console.log('PrivateChat: Uploading voice file to storage with name:', fileName);
-
-      // رفع الملف إلى Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('voice-messages')
-        .upload(fileName, audioBlob, {
-          contentType: audioBlob.type || 'audio/webm',
-          upsert: false
-        });
+        .upload(fileName, audioFile);
 
       if (uploadError) {
-        console.error('PrivateChat: Upload error:', uploadError);
-        throw new Error('فشل في رفع الملف الصوتي: ' + uploadError.message);
+        throw new Error('فشل في رفع الملف الصوتي');
       }
 
-      console.log('PrivateChat: Voice file uploaded successfully:', uploadData);
-
-      // الحصول على الرابط العام
-      const { data: urlData } = supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from('voice-messages')
         .getPublicUrl(fileName);
 
-      if (!urlData.publicUrl) {
-        throw new Error('فشل في إنشاء رابط الملف الصوتي');
-      }
-
-      const voiceUrl = urlData.publicUrl;
-      console.log('PrivateChat: Voice public URL:', voiceUrl);
-
-      // إدراج الرسالة مع بيانات الصوت
-      const messageData = {
-        sender_id: user.id,
-        receiver_id: userId,
-        content: 'رسالة صوتية',
-        voice_url: voiceUrl,
-        voice_duration: Math.round(duration),
-        is_read: false
-      };
-
-      console.log('PrivateChat: Inserting voice message:', messageData);
-
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('private_messages')
-        .insert(messageData);
+        .insert({
+          sender_id: user.id,
+          receiver_id: userId,
+          content: 'رسالة صوتية',
+          voice_url: publicUrl,
+          voice_duration: Math.round(duration),
+          is_read: false
+        });
 
       if (error) {
-        console.error('PrivateChat: Error sending voice message:', error);
-        
-        // محاولة حذف الملف المرفوع في حالة فشل إدراج الرسالة
-        await supabase.storage
-          .from('voice-messages')
-          .remove([fileName]);
-          
-        throw new Error('فشل في إرسال الرسالة الصوتية: ' + error.message);
+        throw new Error('فشل في إرسال الرسالة الصوتية');
       }
 
-      console.log('PrivateChat: Voice message inserted successfully:', data);
       setShowVoiceRecorder(false);
-      
-      // إعادة جلب الرسائل للتأكد من الحصول على أحدث البيانات
       await fetchMessages();
       
     } catch (error) {
-      console.error('PrivateChat: Error handling voice recording:', error);
-      alert(error.message || 'فشل في إرسال الرسالة الصوتية');
+      console.error('Error:', error);
+      alert(error.message);
       setShowVoiceRecorder(false);
     } finally {
       setIsSending(false);
