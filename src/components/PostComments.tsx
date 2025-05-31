@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import CommentInput from './CommentInput';
 import CommentItem from './CommentItem';
 
@@ -34,6 +35,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
   onCommentAdded 
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -186,6 +188,11 @@ const PostComments: React.FC<PostCommentsProps> = ({
     setReplyTo(null);
   };
 
+  const handleProfileClick = (userId: string) => {
+    navigate(`/user/${userId}`);
+    onClose();
+  };
+
   // Organize comments into thread structure
   const organizeComments = (comments: Comment[]) => {
     const topLevel = comments.filter(c => !c.parent_id);
@@ -202,39 +209,35 @@ const PostComments: React.FC<PostCommentsProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-zinc-900 w-full max-w-md h-[80vh] rounded-lg flex flex-col">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
+      <div className="bg-gray-900/95 backdrop-blur-md w-full sm:max-w-lg h-[85vh] sm:h-[80vh] rounded-t-3xl sm:rounded-3xl border border-gray-700/50 shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-zinc-700 flex-shrink-0">
-          <h3 className="text-lg font-semibold text-white">التعليقات</h3>
+        <div className="flex items-center justify-between p-6 border-b border-gray-700/50 bg-gray-800/50">
+          <h3 className="text-xl font-bold text-white">التعليقات</h3>
           <button
             onClick={onClose}
-            className="text-zinc-400 hover:text-white transition-colors"
+            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-xl transition-all duration-200"
           >
-            <X size={20} />
+            <X size={24} />
           </button>
-        </div>
-
-        {/* Comment Input */}
-        <div className="p-4 border-b border-zinc-700 flex-shrink-0">
-          <CommentInput
-            onSubmit={handleSubmitComment}
-            isSubmitting={isSubmitting}
-            placeholder="اكتب تعليقاً..."
-            replyTo={replyTo}
-            onCancelReply={handleCancelReply}
-          />
         </div>
 
         {/* Comments List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex justify-center py-12">
+              <div className="relative">
+                <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-8 h-8 border-4 border-transparent border-r-purple-500 rounded-full animate-spin animation-delay-150"></div>
+              </div>
             </div>
           ) : organizedComments.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-zinc-400">لا توجد تعليقات بعد</p>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gradient-to-r from-gray-700 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">💬</span>
+              </div>
+              <p className="text-gray-400 text-lg">لا توجد تعليقات بعد</p>
+              <p className="text-gray-500 text-sm mt-2">كن أول من يعلق!</p>
             </div>
           ) : (
             organizedComments.map((comment) => (
@@ -243,9 +246,21 @@ const PostComments: React.FC<PostCommentsProps> = ({
                 comment={comment}
                 replies={comment.replies}
                 onReply={handleReply}
+                onProfileClick={handleProfileClick}
               />
             ))
           )}
+        </div>
+
+        {/* Comment Input */}
+        <div className="p-4 border-t border-gray-700/50 bg-gray-800/30">
+          <CommentInput
+            onSubmit={handleSubmitComment}
+            isSubmitting={isSubmitting}
+            placeholder="اكتب تعليقاً..."
+            replyTo={replyTo}
+            onCancelReply={handleCancelReply}
+          />
         </div>
       </div>
     </div>

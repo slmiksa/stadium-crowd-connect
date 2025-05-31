@@ -154,11 +154,14 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
       <div className="group bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:bg-gray-800/60 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10">
         {/* Post Header */}
         <div className="flex items-center mb-4">
-          <div className={`w-12 h-12 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg`}>
+          <button
+            onClick={handleUsernameClick}
+            className={`w-12 h-12 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg hover:scale-105 transition-transform duration-200`}
+          >
             <span className="text-sm font-bold text-white">
               {post.profiles?.username?.charAt(0).toUpperCase() || post.user_id?.charAt(0).toUpperCase() || 'U'}
             </span>
-          </div>
+          </button>
           <div className="ml-4 flex-1">
             <div className="flex items-center space-x-2">
               <button
