@@ -89,6 +89,9 @@ const Hashtags = () => {
             id,
             username,
             avatar_url
+          ),
+          hashtag_likes (
+            user_id
           )
         `)
         .order('created_at', { ascending: false });
@@ -245,6 +248,9 @@ const Hashtags = () => {
             id,
             username,
             avatar_url
+          ),
+          hashtag_likes (
+            user_id
           )
         `)
         .or(`content.ilike.%${searchQuery}%,hashtags.cs.{${searchQuery}}`)

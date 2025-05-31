@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import { ArrowLeft, Bell, Heart, MessageCircle, User, CheckCheck, FileText, Users } from 'lucide-react';
+import { ArrowLeft, Bell, Heart, MessageCircle, User, CheckCheck, FileText, Users, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -16,11 +17,17 @@ interface NotificationData {
   liker_id?: string;
   commenter_id?: string;
   author_id?: string;
+  room_id?: string;
+  room_name?: string;
+  room_description?: string;
+  room_is_private?: boolean;
+  creator_id?: string;
+  avatar_url?: string;
 }
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment';
+  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room';
   title: string;
   message: string;
   is_read: boolean;
@@ -39,6 +46,28 @@ const Notifications = () => {
   useEffect(() => {
     if (user) {
       fetchNotifications();
+      
+      // Subscribe to real-time notifications
+      const channel = supabase
+        .channel('notifications-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            console.log('New notification received, refreshing...');
+            fetchNotifications();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 
@@ -68,7 +97,7 @@ const Notifications = () => {
           
           const enrichedNotif: Notification = {
             id: notif.id,
-            type: notif.type as 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment',
+            type: notif.type as 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room',
             title: notif.title,
             message: notif.message,
             is_read: notif.is_read ?? false,
@@ -179,6 +208,8 @@ const Notifications = () => {
         return <FileText size={20} className="text-yellow-400" />;
       case 'follower_comment':
         return <Users size={20} className="text-cyan-400" />;
+      case 'chat_room':
+        return <MessageSquare size={20} className="text-orange-400" />;
       default:
         return <Bell size={20} className="text-gray-400" />;
     }
@@ -216,6 +247,8 @@ const Notifications = () => {
       userId = notification.data?.commenter_id;
     } else if (notification.type === 'post') {
       userId = notification.data?.author_id;
+    } else if (notification.type === 'chat_room') {
+      userId = notification.data?.creator_id;
     }
 
     if (userId) {
@@ -236,6 +269,18 @@ const Notifications = () => {
 
     if (notification.data?.post_id) {
       navigate(`/post/${notification.data.post_id}`);
+    }
+  };
+
+  const handleRoomClick = (notification: Notification, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!notification.is_read) {
+      markAsRead(notification.id);
+    }
+
+    if (notification.data?.room_id) {
+      navigate(`/chat-room/${notification.data.room_id}`);
     }
   };
 
@@ -268,6 +313,14 @@ const Notifications = () => {
     } else if (notification.type === 'message') {
       console.log('Navigating to messages');
       navigate('/messages');
+    } else if (notification.type === 'chat_room') {
+      if (notification.data?.room_id) {
+        console.log('Navigating to chat room:', notification.data.room_id);
+        navigate(`/chat-room/${notification.data.room_id}`);
+      } else {
+        console.log('No room_id found, going to chat rooms');
+        navigate('/chat-rooms');
+      }
     } else {
       console.log('Fallback navigation to hashtags');
       navigate('/hashtags');
@@ -374,64 +427,72 @@ const Notifications = () => {
                         </div>
                       )}
 
-                      {/* أزرار التفاعل للمنشورات الجديدة */}
-                      {notification.type === 'post' && (
-                        <div className="flex items-center gap-2 mt-3">
-                          {/* زر الذهاب إلى البروفايل */}
+                      {/* أزرار التفاعل لغرف الدردشة */}
+                      {notification.type === 'chat_room' && (
+                        <div className="bg-orange-900/30 rounded-lg p-3 mb-2 border border-orange-700/30">
+                          <p className="text-xs text-orange-400 mb-1">غرفة الدردشة:</p>
+                          <p className="text-white font-medium text-sm">
+                            {notification.data?.room_name}
+                          </p>
+                          {notification.data?.room_description && (
+                            <p className="text-gray-300 text-xs mt-1">
+                              {truncateText(notification.data.room_description, 80)}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              notification.data?.room_is_private 
+                                ? 'bg-red-600/20 text-red-400 border border-red-500/30' 
+                                : 'bg-green-600/20 text-green-400 border border-green-500/30'
+                            }`}>
+                              {notification.data?.room_is_private ? 'خاصة' : 'عامة'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* أزرار التفاعل */}
+                      <div className="flex items-center gap-2 mt-3">
+                        {/* زر البروفايل */}
+                        {(notification.type === 'follow' || notification.type === 'like' || 
+                          notification.type === 'comment' || notification.type === 'follower_comment' ||
+                          notification.type === 'post' || notification.type === 'chat_room') && (
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={(e) => handleProfileClick(notification, e)}
                             className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
                           >
-                            الذهاب إلى البروفايل
+                            البروفايل
                           </Button>
+                        )}
 
-                          {/* زر الذهاب إلى المنشور */}
-                          {notification.data?.post_id && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => handlePostClick(notification, e)}
-                              className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
-                            >
-                              الذهاب إلى المنشور
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                        {/* زر المنشور */}
+                        {(notification.type === 'like' || notification.type === 'comment' || 
+                          notification.type === 'follower_comment' || notification.type === 'post') && 
+                          notification.data?.post_id && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => handlePostClick(notification, e)}
+                            className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
+                          >
+                            المنشور
+                          </Button>
+                        )}
 
-                      {/* أزرار التفاعل للتنبيهات الأخرى */}
-                      {notification.type !== 'post' && (
-                        <div className="flex items-center gap-2 mt-3">
-                          {/* زر البروفايل */}
-                          {(notification.type === 'follow' || notification.type === 'like' || 
-                            notification.type === 'comment' || notification.type === 'follower_comment') && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => handleProfileClick(notification, e)}
-                              className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
-                            >
-                              البروفايل
-                            </Button>
-                          )}
-
-                          {/* زر المنشور */}
-                          {(notification.type === 'like' || notification.type === 'comment' || 
-                            notification.type === 'follower_comment') && 
-                            notification.data?.post_id && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => handlePostClick(notification, e)}
-                              className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
-                            >
-                              المنشور
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                        {/* زر الدخول للغرفة */}
+                        {notification.type === 'chat_room' && notification.data?.room_id && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => handleRoomClick(notification, e)}
+                            className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
+                          >
+                            دخول الغرفة
+                          </Button>
+                        )}
+                      </div>
                       
                       {!notification.is_read && (
                         <div className="mt-2">
