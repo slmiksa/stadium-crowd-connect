@@ -46,6 +46,8 @@ const Profile = () => {
 
   const fetchProfile = async () => {
     try {
+      console.log('Fetching profile for user:', user?.id);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -57,12 +59,52 @@ const Profile = () => {
         return;
       }
 
-      setProfile(data);
+      console.log('Profile data:', data);
+
+      // جلب عدد المتابعين والمتابعين بشكل منفصل للتأكد من الدقة
+      const [followersResult, followingResult] = await Promise.all([
+        supabase
+          .from('follows')
+          .select('id')
+          .eq('following_id', user?.id),
+        supabase
+          .from('follows')
+          .select('id')
+          .eq('follower_id', user?.id)
+      ]);
+
+      const actualFollowersCount = followersResult.data?.length || 0;
+      const actualFollowingCount = followingResult.data?.length || 0;
+
+      console.log('Actual followers count:', actualFollowersCount);
+      console.log('Actual following count:', actualFollowingCount);
+
+      // تحديث البيانات مع العدد الصحيح
+      const updatedProfile = {
+        ...data,
+        followers_count: actualFollowersCount,
+        following_count: actualFollowingCount
+      };
+
+      setProfile(updatedProfile);
       setEditForm({
         username: data?.username || '',
         bio: data?.bio || '',
         favorite_team: data?.favorite_team || ''
       });
+
+      // تحديث قاعدة البيانات بالعدد الصحيح إذا كان مختلف
+      if (data.followers_count !== actualFollowersCount || data.following_count !== actualFollowingCount) {
+        console.log('Updating profile with correct counts...');
+        await supabase
+          .from('profiles')
+          .update({
+            followers_count: actualFollowersCount,
+            following_count: actualFollowingCount
+          })
+          .eq('id', user?.id);
+      }
+
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -204,7 +246,7 @@ const Profile = () => {
           <div className="flex justify-center mb-4">
             <div className="relative">
               <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center border-4 border-white shadow-xl overflow-hidden">
-                {profile.avatar_url ? (
+                {profile?.avatar_url ? (
                   <img 
                     src={profile.avatar_url} 
                     alt="Profile" 
@@ -212,7 +254,7 @@ const Profile = () => {
                   />
                 ) : (
                   <span className="text-4xl font-bold text-white">
-                    {profile.username?.charAt(0).toUpperCase() || 'U'}
+                    {profile?.username?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 )}
               </div>
@@ -231,7 +273,7 @@ const Profile = () => {
           {/* Profile info */}
           <div className="text-center mb-6">
             <div className="flex items-center justify-center space-x-2 mb-2">
-              <h1 className="text-2xl font-bold text-white">{profile.username}</h1>
+              <h1 className="text-2xl font-bold text-white">{profile?.username}</h1>
               <button
                 onClick={() => setIsEditing(!isEditing)}
                 className="p-1 hover:bg-zinc-700 rounded-lg transition-colors"
@@ -240,22 +282,24 @@ const Profile = () => {
               </button>
             </div>
             
-            <p className="text-zinc-400 text-sm mb-2">{profile.email}</p>
+            <p className="text-zinc-400 text-sm mb-2">{profile?.email}</p>
             
-            {profile.bio && (
+            {profile?.bio && (
               <p className="text-zinc-300 max-w-md mx-auto mb-4">{profile.bio}</p>
             )}
             
-            {profile.favorite_team && (
+            {profile?.favorite_team && (
               <div className="inline-flex items-center space-x-2 bg-zinc-800 px-3 py-1 rounded-full mb-4">
                 <span className="text-sm text-zinc-300">الفريق المفضل:</span>
                 <span className="text-sm font-medium text-blue-400">{profile.favorite_team}</span>
               </div>
             )}
 
-            <p className="text-xs text-zinc-500">
-              انضم في {formatDate(profile.created_at)}
-            </p>
+            {profile?.created_at && (
+              <p className="text-xs text-zinc-500">
+                انضم في {formatDate(profile.created_at)}
+              </p>
+            )}
           </div>
 
           {/* Stats */}
@@ -266,7 +310,7 @@ const Profile = () => {
             >
               <div className="flex items-center justify-center space-x-2 mb-2">
                 <Users size={16} className="text-blue-400" />
-                <span className="text-lg font-bold text-white">{profile.followers_count}</span>
+                <span className="text-lg font-bold text-white">{profile?.followers_count || 0}</span>
               </div>
               <p className="text-sm text-zinc-400">متابعين</p>
             </button>
@@ -277,7 +321,7 @@ const Profile = () => {
             >
               <div className="flex items-center justify-center space-x-2 mb-2">
                 <Users size={16} className="text-green-400" />
-                <span className="text-lg font-bold text-white">{profile.following_count}</span>
+                <span className="text-lg font-bold text-white">{profile?.following_count || 0}</span>
               </div>
               <p className="text-sm text-zinc-400">يتابع</p>
             </button>
