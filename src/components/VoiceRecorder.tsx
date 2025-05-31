@@ -57,7 +57,9 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
       console.log('Microphone access granted, stream:', stream);
       streamRef.current = stream;
 
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+      });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -68,19 +70,29 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
         }
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         console.log('Recording stopped, creating blob...');
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        console.log('Blob created, size:', audioBlob.size);
+        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        console.log('Blob created, size:', audioBlob.size, 'type:', mimeType);
         
         // Clean up old audio URL
         if (audioUrl) {
           URL.revokeObjectURL(audioUrl);
         }
         
-        // Create new audio URL
+        // Create new audio URL and test it
         const newAudioUrl = URL.createObjectURL(audioBlob);
         console.log('Audio URL created:', newAudioUrl);
+        
+        // Test the audio immediately
+        const testAudio = new Audio(newAudioUrl);
+        testAudio.oncanplay = () => {
+          console.log('Audio can be played, duration:', testAudio.duration);
+        };
+        testAudio.onerror = (e) => {
+          console.error('Audio test failed:', e);
+        };
         
         setRecordedBlob(audioBlob);
         setAudioUrl(newAudioUrl);
@@ -139,18 +151,35 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
   };
 
   const playRecording = async () => {
-    if (audioUrl && !isPlaying) {
+    console.log('Play button clicked');
+    console.log('Current state - audioUrl:', audioUrl, 'isPlaying:', isPlaying);
+    console.log('RecordedBlob exists:', !!recordedBlob);
+    
+    if (!audioUrl) {
+      console.error('No audio URL available');
+      alert('لا يوجد ملف صوتي للتشغيل');
+      return;
+    }
+
+    if (isPlaying) {
+      console.log('Already playing, ignoring click');
+      return;
+    }
+
+    try {
       console.log('Starting playback with URL:', audioUrl);
       
       // Clean up previous audio instance
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.currentTime = 0;
         audioRef.current = null;
       }
       
-      const audio = new Audio(audioUrl);
+      const audio = new Audio();
       audioRef.current = audio;
       
+      // Set up event listeners first
       audio.ontimeupdate = () => {
         setCurrentTime(audio.currentTime);
       };
@@ -171,14 +200,25 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
         console.log('Audio metadata loaded, duration:', audio.duration);
       };
 
-      try {
-        await audio.play();
-        setIsPlaying(true);
-        console.log('Playback started successfully');
-      } catch (error) {
-        console.error('Error playing audio:', error);
-        alert('لا يمكن تشغيل الصوت');
-      }
+      audio.oncanplay = () => {
+        console.log('Audio can play');
+      };
+
+      // Set the source and load
+      audio.src = audioUrl;
+      audio.load();
+
+      // Wait a bit then try to play
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      await audio.play();
+      setIsPlaying(true);
+      console.log('Playback started successfully');
+      
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      setIsPlaying(false);
+      alert('لا يمكن تشغيل الصوت: ' + error.message);
     }
   };
 
@@ -266,6 +306,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
               <Button
                 onClick={isPlaying ? pausePlayback : playRecording}
                 className="bg-blue-500 hover:bg-blue-600 rounded-full w-10 h-10"
+                disabled={!audioUrl}
               >
                 {isPlaying ? <Pause size={16} /> : <Play size={16} />}
               </Button>
