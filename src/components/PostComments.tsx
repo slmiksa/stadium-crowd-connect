@@ -13,6 +13,8 @@ interface Comment {
   created_at: string;
   user_id: string;
   image_url?: string;
+  media_url?: string;
+  media_type?: string;
   parent_id?: string;
   profiles: {
     id: string;
@@ -53,7 +55,6 @@ const PostComments: React.FC<PostCommentsProps> = ({
       
       console.log('Fetching comments for post:', postId);
       
-      // Get comments
       const { data: commentsData, error: commentsError } = await supabase
         .from('hashtag_comments')
         .select('*')
@@ -108,48 +109,54 @@ const PostComments: React.FC<PostCommentsProps> = ({
     }
   };
 
-  const handleSubmitComment = async (content: string, imageFile?: File, parentId?: string) => {
+  const uploadMedia = async (file: File, type: string) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `comment-media/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('hashtag-images')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error('Error uploading media:', uploadError);
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from('hashtag-images')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
+  const handleSubmitComment = async (content: string, mediaFile?: File, parentId?: string, mediaType?: string) => {
     if (!user) {
       console.log('No user found');
       return;
     }
 
-    if (!content.trim() && !imageFile) {
-      console.log('No content or image');
+    if (!content.trim() && !mediaFile) {
+      console.log('No content or media');
       return;
     }
 
-    console.log('Submitting comment:', { content, hasImage: !!imageFile, parentId });
+    console.log('Submitting comment:', { content, hasMedia: !!mediaFile, parentId, mediaType });
     setIsSubmitting(true);
     
     try {
-      let imageUrl = null;
+      let mediaUrl = null;
 
-      // Upload image if provided
-      if (imageFile) {
-        console.log('Uploading image...');
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `comment-images/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('hashtag-images')
-          .upload(filePath, imageFile);
-
-        if (uploadError) {
-          console.error('Error uploading image:', uploadError);
-          throw uploadError;
+      if (mediaFile && mediaType) {
+        console.log('Uploading media...');
+        mediaUrl = await uploadMedia(mediaFile, mediaType);
+        
+        if (!mediaUrl) {
+          throw new Error('Failed to upload media');
         }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('hashtag-images')
-          .getPublicUrl(filePath);
-
-        imageUrl = publicUrl;
-        console.log('Image uploaded successfully:', imageUrl);
+        console.log('Media uploaded successfully:', mediaUrl);
       }
 
-      // Insert the comment
       console.log('Inserting comment into database...');
       const { data: insertData, error: insertError } = await supabase
         .from('hashtag_comments')
@@ -157,7 +164,8 @@ const PostComments: React.FC<PostCommentsProps> = ({
           post_id: postId,
           user_id: user.id,
           content: content.trim() || '',
-          image_url: imageUrl,
+          media_url: mediaUrl,
+          media_type: mediaType || null,
           parent_id: parentId || null
         })
         .select();
@@ -169,12 +177,12 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
       console.log('Comment inserted successfully:', insertData);
 
-      // Refresh comments and notify parent
       await fetchComments();
       onCommentAdded();
       
     } catch (error) {
       console.error('Error in handleSubmitComment:', error);
+      alert('حدث خطأ أثناء إضافة التعليق');
     } finally {
       setIsSubmitting(false);
     }
@@ -193,7 +201,6 @@ const PostComments: React.FC<PostCommentsProps> = ({
     onClose();
   };
 
-  // Organize comments into thread structure
   const organizeComments = (comments: Comment[]) => {
     const topLevel = comments.filter(c => !c.parent_id);
     const replies = comments.filter(c => c.parent_id);

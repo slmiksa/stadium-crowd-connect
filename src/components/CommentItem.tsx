@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { Reply, MoreVertical, Clock, X } from 'lucide-react';
+import { Reply, MoreVertical, Clock, X, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface CommentItemProps {
   comment: {
@@ -10,6 +11,8 @@ interface CommentItemProps {
     created_at: string;
     user_id: string;
     image_url?: string;
+    media_url?: string;
+    media_type?: string;
     parent_id?: string;
     profiles: {
       id: string;
@@ -31,8 +34,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
   level = 0 
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showReplies, setShowReplies] = useState(true);
-  const [showImageModal, setShowImageModal] = useState(false);
+  const [showMediaModal, setShowMediaModal] = useState(false);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -43,6 +47,33 @@ const CommentItem: React.FC<CommentItemProps> = ({
     if (diffMins < 60) return `${diffMins}م`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}س`;
     return `${Math.floor(diffMins / 1440)}ي`;
+  };
+
+  const renderContentWithHashtags = (content: string) => {
+    const hashtagRegex = /#[\u0600-\u06FF\w]+/g;
+    const parts = content.split(hashtagRegex);
+    const hashtags = content.match(hashtagRegex) || [];
+    
+    const result = [];
+    for (let i = 0; i < parts.length; i++) {
+      result.push(<span key={`text-${i}`}>{parts[i]}</span>);
+      if (hashtags[i]) {
+        const hashtag = hashtags[i].slice(1);
+        result.push(
+          <span
+            key={`hashtag-${i}`}
+            className="text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/hashtag/${hashtag}`);
+            }}
+          >
+            {hashtags[i]}
+          </span>
+        );
+      }
+    }
+    return result;
   };
 
   const getAvatarGradient = () => {
@@ -67,6 +98,10 @@ const CommentItem: React.FC<CommentItemProps> = ({
   const maxLevel = 3;
   const shouldNest = level < maxLevel;
   const marginClass = shouldNest ? `mr-${Math.min(level * 3, 9)}` : '';
+
+  // Use the media_url if available, otherwise fallback to image_url for backward compatibility
+  const mediaUrl = comment.media_url || comment.image_url;
+  const mediaType = comment.media_type || (comment.image_url ? 'image' : null);
 
   return (
     <>
@@ -101,17 +136,30 @@ const CommentItem: React.FC<CommentItemProps> = ({
               </div>
               
               {comment.content && (
-                <p className="text-sm text-gray-300 whitespace-pre-wrap mb-3 leading-relaxed">{comment.content}</p>
+                <div className="text-sm text-gray-300 whitespace-pre-wrap mb-3 leading-relaxed">
+                  {renderContentWithHashtags(comment.content)}
+                </div>
               )}
               
-              {comment.image_url && (
+              {mediaUrl && (
                 <div className="mb-3 rounded-xl overflow-hidden">
-                  <img 
-                    src={comment.image_url} 
-                    alt="Comment attachment" 
-                    className="max-w-full h-auto rounded-xl hover:scale-105 transition-transform duration-300 cursor-pointer"
-                    onClick={() => setShowImageModal(true)}
-                  />
+                  {mediaType === 'video' ? (
+                    <div className="relative">
+                      <video 
+                        src={mediaUrl} 
+                        className="max-w-full h-auto rounded-xl cursor-pointer"
+                        controls
+                        preload="metadata"
+                      />
+                    </div>
+                  ) : (
+                    <img 
+                      src={mediaUrl} 
+                      alt="Comment attachment" 
+                      className="max-w-full h-auto rounded-xl hover:scale-105 transition-transform duration-300 cursor-pointer"
+                      onClick={() => setShowMediaModal(true)}
+                    />
+                  )}
                 </div>
               )}
               
@@ -153,25 +201,25 @@ const CommentItem: React.FC<CommentItemProps> = ({
         </div>
       </div>
 
-      {/* Image Modal */}
-      {showImageModal && comment.image_url && (
+      {/* Media Modal */}
+      {showMediaModal && mediaUrl && mediaType === 'image' && (
         <div 
           className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
-              setShowImageModal(false);
+              setShowMediaModal(false);
             }
           }}
         >
           <div className="relative max-w-full max-h-full">
             <button
-              onClick={() => setShowImageModal(false)}
+              onClick={() => setShowMediaModal(false)}
               className="absolute top-4 right-4 p-2 bg-gray-800/80 hover:bg-gray-700 rounded-full text-white transition-colors z-10"
             >
               <X size={20} />
             </button>
             <img 
-              src={comment.image_url} 
+              src={mediaUrl} 
               alt="Comment attachment" 
               className="max-w-full max-h-[90vh] rounded-xl shadow-2xl"
             />
