@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -427,19 +426,19 @@ const Notifications = () => {
                         </div>
                       )}
 
-                      {/* أزرار التفاعل لغرف الدردشة */}
+                      {/* عرض تفاصيل غرفة الدردشة */}
                       {notification.type === 'chat_room' && (
-                        <div className="bg-orange-900/30 rounded-lg p-3 mb-2 border border-orange-700/30">
+                        <div className="bg-orange-900/30 rounded-lg p-3 mb-3 border border-orange-700/30">
                           <p className="text-xs text-orange-400 mb-1">غرفة الدردشة:</p>
-                          <p className="text-white font-medium text-sm">
+                          <p className="text-white font-medium text-sm mb-1">
                             {notification.data?.room_name}
                           </p>
                           {notification.data?.room_description && (
-                            <p className="text-gray-300 text-xs mt-1">
+                            <p className="text-gray-300 text-xs mb-2">
                               {truncateText(notification.data.room_description, 80)}
                             </p>
                           )}
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center gap-2">
                             <span className={`text-xs px-2 py-1 rounded-full ${
                               notification.data?.room_is_private 
                                 ? 'bg-red-600/20 text-red-400 border border-red-500/30' 
@@ -453,7 +452,7 @@ const Notifications = () => {
 
                       {/* أزرار التفاعل */}
                       <div className="flex items-center gap-2 mt-3">
-                        {/* زر البروفايل */}
+                        {/* زر البروفايل لجميع أنواع التنبيهات */}
                         {(notification.type === 'follow' || notification.type === 'like' || 
                           notification.type === 'comment' || notification.type === 'follower_comment' ||
                           notification.type === 'post' || notification.type === 'chat_room') && (
@@ -463,11 +462,12 @@ const Notifications = () => {
                             onClick={(e) => handleProfileClick(notification, e)}
                             className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
                           >
+                            <User size={14} className="ml-1" />
                             البروفايل
                           </Button>
                         )}
 
-                        {/* زر المنشور */}
+                        {/* زر المنشور للتنبيهات المتعلقة بالمنشورات */}
                         {(notification.type === 'like' || notification.type === 'comment' || 
                           notification.type === 'follower_comment' || notification.type === 'post') && 
                           notification.data?.post_id && (
@@ -477,11 +477,12 @@ const Notifications = () => {
                             onClick={(e) => handlePostClick(notification, e)}
                             className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
                           >
+                            <FileText size={14} className="ml-1" />
                             المنشور
                           </Button>
                         )}
 
-                        {/* زر الدخول للغرفة */}
+                        {/* زر دخول الغرفة لتنبيهات غرف الدردشة */}
                         {notification.type === 'chat_room' && notification.data?.room_id && (
                           <Button
                             size="sm"
@@ -489,6 +490,7 @@ const Notifications = () => {
                             onClick={(e) => handleRoomClick(notification, e)}
                             className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
                           >
+                            <MessageSquare size={14} className="ml-1" />
                             دخول الغرفة
                           </Button>
                         )}
