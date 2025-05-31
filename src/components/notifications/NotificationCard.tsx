@@ -137,13 +137,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
           {/* أزرار التفاعل */}
           <div className="flex items-center gap-2 mt-3">
-            {/* Debug: Show what type we're checking */}
-            {console.log('Rendering buttons for type:', notification.type)}
-            
-            {/* Chat room buttons - should render first */}
             {notification.type === 'chat_room' ? (
               <>
-                {console.log('Rendering chat room buttons...')}
                 <Button
                   size="sm"
                   variant="outline"
