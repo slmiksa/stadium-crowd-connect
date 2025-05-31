@@ -135,40 +135,6 @@ const PrivateChat = () => {
     }
   };
 
-  const uploadVoiceToStorage = async (audioBlob: Blob): Promise<string> => {
-    try {
-      const fileName = `${user?.id}/${Date.now()}_voice.webm`;
-      
-      console.log('Uploading voice file:', fileName);
-      console.log('Blob size:', audioBlob.size, 'type:', audioBlob.type);
-
-      const { data, error } = await supabase.storage
-        .from('voice-messages')
-        .upload(fileName, audioBlob, {
-          contentType: 'audio/webm',
-          upsert: false
-        });
-
-      if (error) {
-        console.error('Upload error:', error);
-        throw error;
-      }
-
-      console.log('Upload successful:', data);
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('voice-messages')
-        .getPublicUrl(fileName);
-
-      console.log('Public URL:', urlData.publicUrl);
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error('Error uploading voice file:', error);
-      throw new Error('فشل في رفع الملف الصوتي');
-    }
-  };
-
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user || !userId || isSending) return;
@@ -204,10 +170,37 @@ const PrivateChat = () => {
 
     setIsSending(true);
     try {
-      console.log('Voice recorded, uploading to storage...');
-      const voiceUrl = await uploadVoiceToStorage(audioBlob);
-      console.log('Voice uploaded successfully:', voiceUrl);
+      console.log('Voice recorded, duration:', duration, 'blob size:', audioBlob.size);
+      
+      // Create unique filename
+      const fileName = `${user.id}_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
+      
+      console.log('Uploading voice file to storage with name:', fileName);
 
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('voice-messages')
+        .upload(fileName, audioBlob, {
+          contentType: 'audio/webm',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error('فشل في رفع الملف الصوتي: ' + uploadError.message);
+      }
+
+      console.log('Voice file uploaded successfully:', uploadData);
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('voice-messages')
+        .getPublicUrl(fileName);
+
+      const voiceUrl = urlData.publicUrl;
+      console.log('Voice public URL:', voiceUrl);
+
+      // Insert message with voice data
       const messageData = {
         sender_id: user.id,
         receiver_id: userId,
@@ -221,15 +214,11 @@ const PrivateChat = () => {
 
       const { data, error } = await supabase
         .from('private_messages')
-        .insert(messageData)
-        .select(`
-          *,
-          sender_profile:profiles!private_messages_sender_id_fkey(username, avatar_url)
-        `);
+        .insert(messageData);
 
       if (error) {
         console.error('Error sending voice message:', error);
-        throw error;
+        throw new Error('فشل في إرسال الرسالة الصوتية: ' + error.message);
       }
 
       console.log('Voice message inserted successfully:', data);
@@ -239,7 +228,7 @@ const PrivateChat = () => {
       await fetchMessages();
     } catch (error) {
       console.error('Error handling voice recording:', error);
-      alert('فشل في إرسال الرسالة الصوتية');
+      alert(error.message || 'فشل في إرسال الرسالة الصوتية');
       setShowVoiceRecorder(false);
     } finally {
       setIsSending(false);

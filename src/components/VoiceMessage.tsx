@@ -78,40 +78,51 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
       const audio = new Audio();
       audioRef.current = audio;
 
-      // Set up event listeners
-      audio.addEventListener('timeupdate', () => {
+      // Set up event listeners before setting src
+      const handleTimeUpdate = () => {
         setCurrentTime(audio.currentTime);
-      });
+      };
 
-      audio.addEventListener('ended', () => {
+      const handleEnded = () => {
         console.log('VoiceMessage: Audio ended');
         setIsPlaying(false);
         setCurrentTime(0);
-      });
+      };
 
-      audio.addEventListener('error', (e) => {
+      const handleError = (e: Event) => {
         console.error('VoiceMessage: Audio error:', e);
         setIsLoading(false);
         setHasError(true);
         setIsPlaying(false);
-      });
+      };
 
-      audio.addEventListener('canplay', () => {
+      const handleCanPlay = () => {
         console.log('VoiceMessage: Audio can play');
         setIsLoading(false);
-      });
+      };
 
-      // Set crossOrigin for public URLs
+      const handleLoadStart = () => {
+        console.log('VoiceMessage: Audio load started');
+        setIsLoading(true);
+      };
+
+      // Add event listeners
+      audio.addEventListener('timeupdate', handleTimeUpdate);
+      audio.addEventListener('ended', handleEnded);
+      audio.addEventListener('error', handleError);
+      audio.addEventListener('canplay', handleCanPlay);
+      audio.addEventListener('loadstart', handleLoadStart);
+
+      // Set audio properties
       audio.crossOrigin = 'anonymous';
       audio.preload = 'auto';
       
-      // Set the source
+      // Set the source and load
       audio.src = voiceUrl;
-      
-      // Load and play
       audio.load();
       
-      // Wait for audio to be ready then play
+      // Try to play
+      console.log('VoiceMessage: Attempting to play audio');
       const playPromise = audio.play();
       
       if (playPromise !== undefined) {

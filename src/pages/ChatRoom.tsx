@@ -216,7 +216,8 @@ const ChatRoom = () => {
         console.log('ChatRoom: Voice file size:', voiceFile.size);
         console.log('ChatRoom: Voice file type:', voiceFile.type);
         
-        const fileName = `voice_${user.id}_${Date.now()}.webm`;
+        // Create unique filename
+        const fileName = `${user.id}_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
 
         const { data, error: uploadError } = await supabase.storage
           .from('voice-messages')
@@ -227,7 +228,7 @@ const ChatRoom = () => {
 
         if (uploadError) {
           console.error('ChatRoom: Error uploading voice message:', uploadError);
-          alert('فشل في رفع الملف الصوتي');
+          alert('فشل في رفع الملف الصوتي: ' + uploadError.message);
           return;
         }
 
@@ -260,15 +261,11 @@ const ChatRoom = () => {
 
       const { data, error } = await supabase
         .from('room_messages')
-        .insert(messageData)
-        .select(`
-          *,
-          profiles (username, avatar_url)
-        `);
+        .insert(messageData);
 
       if (error) {
         console.error('ChatRoom: Error sending message:', error);
-        return;
+        throw new Error('فشل في إرسال الرسالة: ' + error.message);
       }
 
       console.log('ChatRoom: Message sent successfully:', data);
@@ -278,6 +275,7 @@ const ChatRoom = () => {
       await fetchMessages();
     } catch (error) {
       console.error('ChatRoom: Error in sendMessage:', error);
+      alert(error.message || 'فشل في إرسال الرسالة');
     }
   };
 

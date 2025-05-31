@@ -308,6 +308,8 @@ export type Database = {
           is_read: boolean | null
           receiver_id: string
           sender_id: string
+          voice_duration: number | null
+          voice_url: string | null
         }
         Insert: {
           content: string
@@ -316,6 +318,8 @@ export type Database = {
           is_read?: boolean | null
           receiver_id: string
           sender_id: string
+          voice_duration?: number | null
+          voice_url?: string | null
         }
         Update: {
           content?: string
@@ -324,6 +328,8 @@ export type Database = {
           is_read?: boolean | null
           receiver_id?: string
           sender_id?: string
+          voice_duration?: number | null
+          voice_url?: string | null
         }
         Relationships: [
           {
