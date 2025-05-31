@@ -439,7 +439,16 @@ const Hashtags = () => {
               </div>
               
               {/* Action Buttons */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-2">
+                {/* Create Post Button */}
+                <Button
+                  onClick={() => navigate('/create-hashtag-post')}
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-4 py-2 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
+                >
+                  <Plus size={20} className="ml-2" />
+                  منشور جديد
+                </Button>
+                
                 {/* Refresh Button */}
                 <Button
                   onClick={handleRefresh}
@@ -452,15 +461,6 @@ const Hashtags = () => {
                     className={`${isRefreshing ? 'animate-spin' : ''} transition-transform`} 
                   />
                   {isRefreshing ? 'جاري التحديث...' : 'تحديث'}
-                </Button>
-                
-                {/* Create Post Button */}
-                <Button
-                  onClick={() => navigate('/create-hashtag-post')}
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-4 py-2 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
-                >
-                  <Plus size={20} className="ml-2" />
-                  منشور جديد
                 </Button>
               </div>
             </div>
