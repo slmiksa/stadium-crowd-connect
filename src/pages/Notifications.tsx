@@ -452,6 +452,15 @@ const Notifications = () => {
 
                       {/* أزرار التفاعل - تظهر تحت جميع التنبيهات */}
                       <div className="flex items-center gap-2 mt-3">
+                        {/* Add debugging for chat room notifications */}
+                        {notification.type === 'chat_room' && (
+                          <div className="text-xs text-red-400 mb-2">
+                            Debug: Chat Room Notification - Type: {notification.type}, Creator ID: {notification.data?.creator_id}, Room ID: {notification.data?.room_id}
+                          </div>
+                        )}
+                        
+                        {console.log('Notification type:', notification.type, 'Data:', notification.data)}
+                        
                         {/* زر البروفايل لجميع أنواع التنبيهات */}
                         {(notification.type === 'follow' || notification.type === 'like' || 
                           notification.type === 'comment' || notification.type === 'follower_comment' ||
@@ -482,17 +491,20 @@ const Notifications = () => {
                           </Button>
                         )}
 
-                        {/* زر دخول الغرفة لتنبيهات غرف الدردشة - يظهر دائماً */}
+                        {/* زر دخول الغرفة لتنبيهات غرف الدردشة - مع debugging */}
                         {notification.type === 'chat_room' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => handleRoomClick(notification, e)}
-                            className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
-                          >
-                            <MessageSquare size={14} className="ml-1" />
-                            دخول الغرفة
-                          </Button>
+                          <>
+                            {console.log('Rendering chat room button for notification:', notification.id)}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => handleRoomClick(notification, e)}
+                              className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
+                            >
+                              <MessageSquare size={14} className="ml-1" />
+                              دخول الغرفة
+                            </Button>
+                          </>
                         )}
                       </div>
                       
