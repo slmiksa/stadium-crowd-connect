@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import MediaInput from '@/components/MediaInput';
 import OwnerBadge from '@/components/OwnerBadge';
-import { ArrowLeft, Send, Users, Settings } from 'lucide-react';
+import { ArrowLeft, Users, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -162,45 +161,46 @@ const ChatRoom = () => {
     }
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !user) return;
-
-    try {
-      const { error } = await supabase
-        .from('room_messages')
-        .insert({
-          room_id: roomId,
-          user_id: user.id,
-          content: newMessage.trim()
-        });
-
-      if (error) {
-        console.error('Error sending message:', error);
-        return;
-      }
-
-      setNewMessage('');
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
-  const handleMediaUpload = async (mediaUrl: string, mediaType: string) => {
+  const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
+    if (!content.trim() && !mediaFile) return;
     if (!user) return;
 
     try {
+      let mediaUrl = null;
+      
+      // رفع الملف إذا كان موجود
+      if (mediaFile) {
+        const fileExt = mediaFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('chat-media')
+          .upload(fileName, mediaFile);
+
+        if (uploadError) {
+          console.error('Error uploading media:', uploadError);
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('chat-media')
+          .getPublicUrl(fileName);
+
+        mediaUrl = publicUrl;
+      }
+
       const { error } = await supabase
         .from('room_messages')
         .insert({
           room_id: roomId,
           user_id: user.id,
-          content: 'مرفق',
+          content: content || 'مرفق',
           media_url: mediaUrl,
           media_type: mediaType
         });
 
       if (error) {
-        console.error('Error sending media:', error);
+        console.error('Error sending message:', error);
         return;
       }
     } catch (error) {
@@ -342,25 +342,10 @@ const ChatRoom = () => {
         </div>
 
         {/* Message input */}
-        <div className="bg-zinc-800 border-t border-zinc-700 p-4">
-          <div className="flex items-center space-x-3">
-            <MediaInput onMediaUpload={handleMediaUpload} />
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="اكتب رسالة..."
-              className="flex-1 bg-zinc-700 border-zinc-600 text-white"
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={!newMessage.trim()}
-              className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50"
-            >
-              <Send size={18} />
-            </Button>
-          </div>
-        </div>
+        <MediaInput 
+          onSendMessage={sendMessage} 
+          isSending={false} 
+        />
       </div>
     </Layout>
   );
