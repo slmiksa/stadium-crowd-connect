@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +42,7 @@ const MyPosts = () => {
     if (!user) return;
 
     try {
+      // Get all posts by user, regardless of hashtags
       const { data, error } = await supabase
         .from('hashtag_posts')
         .select(`

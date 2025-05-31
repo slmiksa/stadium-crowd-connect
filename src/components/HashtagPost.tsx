@@ -35,13 +35,18 @@ interface HashtagPostProps {
 const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideCommentsButton = false }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [isLiked, setIsLiked] = useState(
-    post.hashtag_likes?.some(like => like.user_id === user?.id) || false
-  );
-  const [likesCount, setLikesCount] = useState(post.likes_count);
-  const [commentsCount, setCommentsCount] = useState(post.comments_count);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [showComments, setShowComments] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
+
+  // Check if user has liked the post
+  useEffect(() => {
+    if (user) {
+      checkUserLike();
+    }
+  }, [user, post.id]);
 
   // Set up real-time updates for comment count
   useEffect(() => {
@@ -74,7 +79,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     };
   }, [post.id]);
 
-  // Also set up real-time updates for likes
+  // Set up real-time updates for likes
   useEffect(() => {
     const channel = supabase
       .channel(`post-${post.id}-likes`)
@@ -99,14 +104,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
 
           // Check if current user has liked this post
           if (user) {
-            const { data: userLike } = await supabase
-              .from('hashtag_likes')
-              .select('id')
-              .eq('post_id', post.id)
-              .eq('user_id', user.id)
-              .maybeSingle();
-            
-            setIsLiked(!!userLike);
+            checkUserLike();
           }
         }
       )
@@ -116,6 +114,28 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
       supabase.removeChannel(channel);
     };
   }, [post.id, user?.id]);
+
+  const checkUserLike = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('hashtag_likes')
+        .select('id')
+        .eq('post_id', post.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking user like:', error);
+        return;
+      }
+
+      setIsLiked(!!data);
+    } catch (error) {
+      console.error('Error checking user like:', error);
+    }
+  };
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -149,6 +169,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         }
         
         console.log('Like removed successfully');
+        setIsLiked(false);
+        setLikesCount(prev => Math.max(0, prev - 1));
       } else {
         console.log('Adding like...');
         const { error } = await supabase
@@ -164,6 +186,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         }
         
         console.log('Like added successfully');
+        setIsLiked(true);
+        setLikesCount(prev => prev + 1);
       }
       
       if (onLikeChange) {
@@ -294,7 +318,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
               <div className="flex items-center space-x-6 space-x-reverse">
                 <button
                   onClick={handleLike}
-                  disabled={isLiking}
+                  disabled={isLiking || !user}
                   className={`flex items-center space-x-2 space-x-reverse transition-all duration-200 group disabled:opacity-70 ${
                     isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-400'
                   }`}

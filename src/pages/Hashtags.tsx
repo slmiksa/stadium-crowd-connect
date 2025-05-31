@@ -64,6 +64,8 @@ const Hashtags = () => {
             user_id
           )
         `)
+        .not('hashtags', 'eq', '{}')
+        .gt('hashtags', 'array_length', 0)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -72,15 +74,18 @@ const Hashtags = () => {
         return;
       }
 
-      const posts = data || [];
+      // Filter posts that actually contain hashtags
+      const postsWithHashtags = (data || []).filter(post => 
+        post.hashtags && post.hashtags.length > 0
+      );
       
       // Popular posts (most likes)
-      const popular = [...posts]
+      const popular = [...postsWithHashtags]
         .sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0))
         .slice(0, 20);
       
       // Trending posts (35+ comments)
-      const trending = posts.filter(post => (post.comments_count || 0) >= 35);
+      const trending = postsWithHashtags.filter(post => (post.comments_count || 0) >= 35);
       
       setPopularPosts(popular);
       setTrendingPosts(trending);
@@ -113,6 +118,7 @@ const Hashtags = () => {
           )
         `)
         .or(`content.ilike.%${searchQuery}%,hashtags.cs.{${searchQuery}}`)
+        .not('hashtags', 'eq', '{}')
         .order('created_at', { ascending: false })
         .limit(20);
 
