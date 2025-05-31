@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -65,6 +66,8 @@ const HashtagPage = () => {
 
   const fetchHashtagContent = async () => {
     try {
+      console.log('Fetching content for hashtag:', hashtag);
+      
       // Fetch posts
       const { data: postsData, error: postsError } = await supabase
         .from('hashtag_posts')
@@ -86,7 +89,7 @@ const HashtagPage = () => {
         console.error('Error fetching hashtag posts:', postsError);
       }
 
-      // Fetch comments with hashtags
+      // Fetch comments with hashtags - fixed query
       const { data: commentsData, error: commentsError } = await supabase
         .from('hashtag_comments')
         .select(`
@@ -97,7 +100,7 @@ const HashtagPage = () => {
             avatar_url
           )
         `)
-        .contains('hashtags', [hashtag])
+        .or(`hashtags.cs.{${hashtag}},content.ilike.%#${hashtag}%`)
         .order('created_at', { ascending: false });
 
       if (commentsError) {
