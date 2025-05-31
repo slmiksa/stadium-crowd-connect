@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageSquare, Hash, Users, Mail, User } from 'lucide-react';
+import { MessageSquare, Hash, Users, Bell, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const BottomNavigation = () => {
@@ -34,8 +35,8 @@ const BottomNavigation = () => {
     { 
       id: 'messages', 
       path: '/messages', 
-      icon: Mail, 
-      label: t('messages') 
+      icon: Bell, 
+      label: 'تنبيهاتي' 
     },
     { 
       id: 'profile', 
