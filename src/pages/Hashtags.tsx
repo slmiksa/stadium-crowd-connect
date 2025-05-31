@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -103,7 +102,10 @@ const Hashtags = () => {
   const renderPost = (post: HashtagPostWithProfile) => (
     <HashtagPost 
       key={post.id} 
-      post={post} 
+      post={{
+        ...post,
+        hashtag: post.hashtags?.[0] || ''
+      }} 
       onLikeChange={handlePostLikeChange}
     />
   );

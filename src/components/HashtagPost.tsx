@@ -25,7 +25,8 @@ interface HashtagPostProps {
   post: {
     id: string;
     content: string;
-    hashtag: string;
+    hashtags?: string[];
+    hashtag?: string;
     created_at: string;
     image_url?: string;
     video_url?: string;
@@ -39,10 +40,11 @@ interface HashtagPostProps {
     };
   };
   onLike?: (postId: string) => void;
+  onLikeChange?: () => void;
   isLiked?: boolean;
 }
 
-const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, isLiked = false }) => {
+const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, isLiked = false }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
@@ -50,6 +52,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, isLiked = false
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [localCommentsCount, setLocalCommentsCount] = useState(post.comments_count);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [localLikesCount, setLocalLikesCount] = useState(post.likes_count);
+  const [localIsLiked, setLocalIsLiked] = useState(isLiked);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -89,7 +93,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, isLiked = false
     setIsLoadingComments(true);
     try {
       const { data, error } = await supabase
-        .from('post_comments')
+        .from('hashtag_comments')
         .select(`
           *,
           profiles (
@@ -150,9 +154,51 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, isLiked = false
   };
 
   const handleReply = (commentId: string, username: string) => {
-    // This functionality can be implemented later
     console.log('Reply to comment:', commentId, 'by', username);
   };
+
+  const handleLike = async () => {
+    if (!user) return;
+
+    try {
+      if (localIsLiked) {
+        // Unlike
+        const { error } = await supabase
+          .from('hashtag_likes')
+          .delete()
+          .eq('post_id', post.id)
+          .eq('user_id', user.id);
+
+        if (!error) {
+          setLocalIsLiked(false);
+          setLocalLikesCount(prev => Math.max(0, prev - 1));
+          if (onLikeChange) onLikeChange();
+        }
+      } else {
+        // Like
+        const { error } = await supabase
+          .from('hashtag_likes')
+          .insert({
+            post_id: post.id,
+            user_id: user.id
+          });
+
+        if (!error) {
+          setLocalIsLiked(true);
+          setLocalLikesCount(prev => prev + 1);
+          if (onLikeChange) onLikeChange();
+        }
+      }
+    } catch (error) {
+      console.error('Error handling like:', error);
+    }
+
+    if (onLike) {
+      onLike(post.id);
+    }
+  };
+
+  const displayHashtag = post.hashtag || (post.hashtags && post.hashtags[0]) || '';
 
   return (
     <>
@@ -194,9 +240,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, isLiked = false
 
         {/* Post Content */}
         <div className="mb-4">
-          <span className="inline-block bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium mb-3 border border-blue-500/30">
-            #{post.hashtag}
-          </span>
+          {displayHashtag && (
+            <span className="inline-block bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium mb-3 border border-blue-500/30">
+              #{displayHashtag}
+            </span>
+          )}
           <p className="text-gray-200 leading-relaxed whitespace-pre-wrap">{post.content}</p>
         </div>
 
@@ -226,19 +274,19 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, isLiked = false
         <div className="flex items-center justify-between pt-4 border-t border-gray-700/50">
           <div className="flex items-center gap-6">
             <button 
-              onClick={() => onLike?.(post.id)}
+              onClick={handleLike}
               className={`flex items-center gap-2 transition-all duration-200 group ${
-                isLiked 
+                localIsLiked 
                   ? 'text-red-400 hover:text-red-300' 
                   : 'text-gray-400 hover:text-red-400'
               }`}
             >
               <Heart 
                 size={20} 
-                fill={isLiked ? 'currentColor' : 'none'} 
+                fill={localIsLiked ? 'currentColor' : 'none'} 
                 className="group-hover:scale-110 transition-transform" 
               />
-              <span className="font-medium">{post.likes_count}</span>
+              <span className="font-medium">{localLikesCount}</span>
             </button>
             <button 
               onClick={handleCommentsToggle}
@@ -258,18 +306,56 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, isLiked = false
           <div className="mt-6 pt-6 border-t border-gray-700/50">
             {user && (
               <CommentInput 
-                postId={post.id} 
-                onCommentAdded={handleCommentAdded}
+                onSubmit={async (content: string, imageFile?: File, parentId?: string) => {
+                  if (!user || (!content.trim() && !imageFile)) return;
+
+                  try {
+                    let imageUrl = null;
+
+                    if (imageFile) {
+                      const fileExt = imageFile.name.split('.').pop();
+                      const fileName = `${Math.random()}.${fileExt}`;
+                      const filePath = `comment-images/${fileName}`;
+
+                      const { error: uploadError } = await supabase.storage
+                        .from('hashtag-images')
+                        .upload(filePath, imageFile);
+
+                      if (!uploadError) {
+                        const { data: { publicUrl } } = supabase.storage
+                          .from('hashtag-images')
+                          .getPublicUrl(filePath);
+                        imageUrl = publicUrl;
+                      }
+                    }
+
+                    const { error } = await supabase
+                      .from('hashtag_comments')
+                      .insert({
+                        post_id: post.id,
+                        user_id: user.id,
+                        content: content.trim() || '',
+                        image_url: imageUrl,
+                        parent_id: parentId || null
+                      });
+
+                    if (!error) {
+                      handleCommentAdded();
+                    }
+                  } catch (error) {
+                    console.error('Error submitting comment:', error);
+                  }
+                }}
+                isSubmitting={false}
                 placeholder="اكتب تعليقك..."
               />
             )}
             
             <PostComments 
               postId={post.id}
-              comments={comments}
-              isLoading={isLoadingComments}
-              onReply={handleReply}
-              onProfileClick={handleCommentProfileClick}
+              isOpen={showComments}
+              onClose={() => setShowComments(false)}
+              onCommentAdded={handleCommentAdded}
             />
           </div>
         )}

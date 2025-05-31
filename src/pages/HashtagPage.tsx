@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -213,7 +212,10 @@ const HashtagPage = () => {
             posts.map((post) => (
               <HashtagPost 
                 key={post.id} 
-                post={post} 
+                post={{
+                  ...post,
+                  hashtag: hashtag || ''
+                }} 
                 onLikeChange={handlePostLikeChange}
               />
             ))
