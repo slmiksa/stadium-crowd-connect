@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +38,8 @@ interface HashtagCommentWithProfile {
   post_id: string;
   parent_id?: string;
   image_url?: string;
+  media_url?: string;
+  media_type?: string;
   type: 'comment';
   profiles: {
     id: string;
@@ -89,7 +90,7 @@ const HashtagPage = () => {
         console.error('Error fetching hashtag posts:', postsError);
       }
 
-      // Fetch comments with hashtags - fixed query
+      // Fetch comments with hashtags - improved query for Arabic hashtags
       const { data: commentsData, error: commentsError } = await supabase
         .from('hashtag_comments')
         .select(`
@@ -100,7 +101,7 @@ const HashtagPage = () => {
             avatar_url
           )
         `)
-        .or(`hashtags.cs.{${hashtag}},content.ilike.%#${hashtag}%`)
+        .or(`hashtags.cs.{${hashtag}},content.like.%#${hashtag}%`)
         .order('created_at', { ascending: false });
 
       if (commentsError) {
@@ -130,6 +131,8 @@ const HashtagPage = () => {
           allContent.push({
             ...comment,
             profiles: profileData,
+            media_url: comment.media_url || comment.image_url,
+            media_type: comment.media_type || (comment.image_url ? 'image' : undefined),
             type: 'comment' as const
           });
         });
@@ -331,8 +334,8 @@ const HashtagPage = () => {
                     <CommentItem
                       comment={{
                         ...comment,
-                        media_url: comment.image_url,
-                        media_type: comment.image_url ? 'image' : undefined
+                        media_url: comment.media_url || comment.image_url,
+                        media_type: comment.media_type || (comment.image_url ? 'image' : undefined)
                       }}
                       onReply={() => {}}
                       onProfileClick={handleProfileClick}
