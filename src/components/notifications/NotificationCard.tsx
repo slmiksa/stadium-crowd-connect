@@ -56,6 +56,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 }) => {
   console.log('NotificationCard - notification type:', notification.type);
   console.log('NotificationCard - notification data:', notification.data);
+  console.log('NotificationCard - Is chat_room?:', notification.type === 'chat_room');
 
   return (
     <div
@@ -131,7 +132,9 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
           {/* أزرار التفاعل */}
           <div className="flex items-center gap-2 mt-3">
-            {/* زر البروفايل لجميع أنواع التنبيهات */}
+            {console.log('Rendering buttons section for type:', notification.type)}
+            
+            {/* زر البروفايل للتنبيهات العادية (غير غرف الدردشة) */}
             {(notification.type === 'follow' || notification.type === 'like' || 
               notification.type === 'comment' || notification.type === 'follower_comment' ||
               notification.type === 'post') && (
@@ -146,13 +149,17 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
               </Button>
             )}
 
-            {/* أزرار خاصة بغرف الدردشة */}
+            {/* أزرار غرف الدردشة */}
             {notification.type === 'chat_room' && (
-              <>
+              <div className="flex items-center gap-2 w-full">
+                {console.log('Rendering chat room buttons')}
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={(e) => onProfileClick(notification, e)}
+                  onClick={(e) => {
+                    console.log('Profile button clicked for chat room');
+                    onProfileClick(notification, e);
+                  }}
                   className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
                 >
                   <User size={14} className="ml-1" />
@@ -162,13 +169,16 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={(e) => onRoomClick(notification, e)}
+                  onClick={(e) => {
+                    console.log('Room button clicked');
+                    onRoomClick(notification, e);
+                  }}
                   className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
                 >
                   <MessageSquare size={14} className="ml-1" />
                   الذهاب للغرفة
                 </Button>
-              </>
+              </div>
             )}
 
             {/* زر المنشور للتنبيهات المتعلقة بالمنشورات */}
