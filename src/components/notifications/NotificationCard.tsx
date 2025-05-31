@@ -228,8 +228,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
               </Button>
             )}
 
-            {/* Mark as read button for chat room notifications */}
-            {notification.type === 'chat_room' && !notification.is_read && (
+            {/* Mark as read button for unread notifications */}
+            {!notification.is_read && (
               <Button
                 size="sm"
                 variant="outline"
