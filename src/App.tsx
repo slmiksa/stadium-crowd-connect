@@ -44,8 +44,13 @@ const App = () => {
   }, []);
 
   const handleIntroComplete = () => {
-    localStorage.setItem('hasSeenIntro', 'true');
-    setShowIntro(false);
+    try {
+      localStorage.setItem('hasSeenIntro', 'true');
+      setShowIntro(false);
+    } catch (error) {
+      console.error('Error saving intro state:', error);
+      setShowIntro(false);
+    }
   };
 
   if (showIntro) {
