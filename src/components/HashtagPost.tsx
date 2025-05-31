@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,6 +43,80 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
   const [showComments, setShowComments] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
 
+  // Set up real-time updates for comment count
+  useEffect(() => {
+    const channel = supabase
+      .channel(`post-${post.id}-comments`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'hashtag_comments',
+          filter: `post_id=eq.${post.id}`
+        },
+        async () => {
+          // Refetch the actual comment count when comments change
+          const { count } = await supabase
+            .from('hashtag_comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          if (count !== null) {
+            setCommentsCount(count);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [post.id]);
+
+  // Also set up real-time updates for likes
+  useEffect(() => {
+    const channel = supabase
+      .channel(`post-${post.id}-likes`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'hashtag_likes',
+          filter: `post_id=eq.${post.id}`
+        },
+        async () => {
+          // Refetch the actual like count and user's like status
+          const { count } = await supabase
+            .from('hashtag_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          if (count !== null) {
+            setLikesCount(count);
+          }
+
+          // Check if current user has liked this post
+          if (user) {
+            const { data: userLike } = await supabase
+              .from('hashtag_likes')
+              .select('id')
+              .eq('post_id', post.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            
+            setIsLiked(!!userLike);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [post.id, user?.id]);
+
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -75,8 +149,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         }
         
         console.log('Like removed successfully');
-        setIsLiked(false);
-        setLikesCount(prev => prev - 1);
       } else {
         console.log('Adding like...');
         const { error } = await supabase
@@ -92,8 +164,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         }
         
         console.log('Like added successfully');
-        setIsLiked(true);
-        setLikesCount(prev => prev + 1);
       }
       
       if (onLikeChange) {
@@ -115,7 +185,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
   };
 
   const handleCommentAdded = () => {
-    setCommentsCount(prev => prev + 1);
+    // The real-time subscription will handle updating the count
     if (onLikeChange) {
       onLikeChange();
     }

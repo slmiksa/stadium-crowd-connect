@@ -68,7 +68,7 @@ const HashtagPage = () => {
     try {
       console.log('Fetching content for hashtag:', hashtag);
       
-      // Fetch posts with hashtag
+      // Fetch posts with hashtag and their actual comment counts
       const { data: postsData, error: postsError } = await supabase
         .from('hashtag_posts')
         .select(`
@@ -89,8 +89,25 @@ const HashtagPage = () => {
         console.error('Error fetching hashtag posts:', postsError);
       }
 
-      // Fetch comments with hashtag in array
-      const { data: hashtagArrayComments, error: arrayError } = await supabase
+      // Update comment counts for posts by counting actual comments
+      if (postsData) {
+        for (const post of postsData) {
+          const { count, error: countError } = await supabase
+            .from('hashtag_comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          if (!countError && count !== null) {
+            post.comments_count = count;
+          }
+        }
+      }
+
+      // Fetch comments that contain the hashtag
+      console.log('Searching for comments with hashtag:', hashtag);
+      
+      // First, try to get comments where hashtag is in the hashtags array
+      const { data: arrayComments, error: arrayError } = await supabase
         .from('hashtag_comments')
         .select(`
           *,
@@ -103,8 +120,8 @@ const HashtagPage = () => {
         .contains('hashtags', [hashtag])
         .order('created_at', { ascending: false });
 
-      // Fetch comments with hashtag in content (using ilike for case-insensitive search)
-      const { data: hashtagContentComments, error: contentError } = await supabase
+      // Also search for comments where hashtag appears in content
+      const { data: contentComments, error: contentError } = await supabase
         .from('hashtag_comments')
         .select(`
           *,
@@ -129,8 +146,9 @@ const HashtagPage = () => {
       const commentIds = new Set();
 
       // Add comments from hashtags array
-      if (hashtagArrayComments) {
-        hashtagArrayComments.forEach(comment => {
+      if (arrayComments && arrayComments.length > 0) {
+        console.log('Found comments in hashtags array:', arrayComments.length);
+        arrayComments.forEach(comment => {
           if (!commentIds.has(comment.id)) {
             allComments.push(comment);
             commentIds.add(comment.id);
@@ -139,8 +157,9 @@ const HashtagPage = () => {
       }
 
       // Add comments from content search (avoiding duplicates)
-      if (hashtagContentComments) {
-        hashtagContentComments.forEach(comment => {
+      if (contentComments && contentComments.length > 0) {
+        console.log('Found comments in content:', contentComments.length);
+        contentComments.forEach(comment => {
           if (!commentIds.has(comment.id)) {
             allComments.push(comment);
             commentIds.add(comment.id);
@@ -148,13 +167,13 @@ const HashtagPage = () => {
         });
       }
 
-      console.log('Posts data:', postsData);
-      console.log('All comments data:', allComments);
+      console.log('Posts data:', postsData?.length || 0, 'posts');
+      console.log('All comments data:', allComments.length, 'comments');
 
       // Combine and sort all content by creation date
       const allContent: HashtagContent[] = [];
       
-      if (postsData) {
+      if (postsData && postsData.length > 0) {
         postsData.forEach(post => {
           allContent.push({
             ...post,
@@ -175,7 +194,7 @@ const HashtagPage = () => {
       // Sort by creation date (newest first)
       allContent.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
-      console.log('All content combined:', allContent);
+      console.log('All content combined:', allContent.length, 'items');
       setContent(allContent);
     } catch (error) {
       console.error('Error:', error);
