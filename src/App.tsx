@@ -3,66 +3,67 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import { LanguageProvider } from "./contexts/LanguageContext";
-import AuthGuard from "./components/AuthGuard";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import AuthGuard from "@/components/AuthGuard";
+
+import Index from "./pages/Index";
+import Login from "./pages/Login";
+import Profile from "./pages/Profile";
+import UserProfile from "./pages/UserProfile";
+import FollowersFollowing from "./pages/FollowersFollowing";
+import Hashtags from "./pages/Hashtags";
+import HashtagPage from "./pages/HashtagPage";
+import CreateHashtagPost from "./pages/CreateHashtagPost";
+import MyPosts from "./pages/MyPosts";
 import Matches from "./pages/Matches";
 import MatchDetails from "./pages/MatchDetails";
-import Hashtags from "./pages/Hashtags";
-import CreateHashtagPost from "./pages/CreateHashtagPost";
-import HashtagPage from "./pages/HashtagPage";
+import Messages from "./pages/Messages";
+import PrivateChat from "./pages/PrivateChat";
 import ChatRooms from "./pages/ChatRooms";
 import CreateChatRoom from "./pages/CreateChatRoom";
 import ChatRoom from "./pages/ChatRoom";
-import Messages from "./pages/Messages";
-import PrivateChat from "./pages/PrivateChat";
-import Profile from "./pages/Profile";
-import UserProfile from "./pages/UserProfile";
-import MyPosts from "./pages/MyPosts";
 import ApiSettings from "./pages/ApiSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Separate component to handle authenticated routes
-const AuthenticatedApp = () => (
-  <AuthGuard>
-    <Routes>
-      <Route path="/" element={<Navigate to="/matches" replace />} />
-      <Route path="/matches" element={<Matches />} />
-      <Route path="/match/:matchId" element={<MatchDetails />} />
-      <Route path="/hashtags" element={<Hashtags />} />
-      <Route path="/create-hashtag-post" element={<CreateHashtagPost />} />
-      <Route path="/hashtag/:hashtag" element={<HashtagPage />} />
-      <Route path="/user/:userId" element={<UserProfile />} />
-      <Route path="/my-posts" element={<MyPosts />} />
-      <Route path="/chat-rooms" element={<ChatRooms />} />
-      <Route path="/create-chat-room" element={<CreateChatRoom />} />
-      <Route path="/chat-room/:roomId" element={<ChatRoom />} />
-      <Route path="/messages" element={<Messages />} />
-      <Route path="/private-chat/:userId" element={<PrivateChat />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/api-settings" element={<ApiSettings />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  </AuthGuard>
-);
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <LanguageProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <AuthenticatedApp />
-          </BrowserRouter>
-        </AuthProvider>
-      </LanguageProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
+                <Route path="/user-profile/:userId" element={<AuthGuard><UserProfile /></AuthGuard>} />
+                <Route path="/followers-following/:userId/:type" element={<AuthGuard><FollowersFollowing /></AuthGuard>} />
+                <Route path="/hashtags" element={<AuthGuard><Hashtags /></AuthGuard>} />
+                <Route path="/hashtag/:tag" element={<AuthGuard><HashtagPage /></AuthGuard>} />
+                <Route path="/create-hashtag-post" element={<AuthGuard><CreateHashtagPost /></AuthGuard>} />
+                <Route path="/my-posts" element={<AuthGuard><MyPosts /></AuthGuard>} />
+                <Route path="/matches" element={<AuthGuard><Matches /></AuthGuard>} />
+                <Route path="/match/:matchId" element={<AuthGuard><MatchDetails /></AuthGuard>} />
+                <Route path="/messages" element={<AuthGuard><Messages /></AuthGuard>} />
+                <Route path="/private-chat/:userId" element={<AuthGuard><PrivateChat /></AuthGuard>} />
+                <Route path="/chat-rooms" element={<AuthGuard><ChatRooms /></AuthGuard>} />
+                <Route path="/create-chat-room" element={<AuthGuard><CreateChatRoom /></AuthGuard>} />
+                <Route path="/chat-room/:roomId" element={<AuthGuard><ChatRoom /></AuthGuard>} />
+                <Route path="/api-settings" element={<AuthGuard><ApiSettings /></AuthGuard>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </AuthProvider>
+        </LanguageProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
