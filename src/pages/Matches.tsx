@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -59,7 +58,6 @@ const Matches = () => {
       console.log('Function response:', data);
       
       if (data && data.matches) {
-        // تأكد من أن المباريات المعروضة تطابق التبويب المحدد
         const filteredMatches = data.matches.filter((match: Match) => {
           if (status === 'live') {
             return match.status === 'live';
@@ -130,60 +128,68 @@ const Matches = () => {
 
   return (
     <Layout>
-      <div className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">المباريات</h1>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
+        {/* Header with improved styling */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-white">المباريات</h1>
           <button
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
-            className="p-2 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors disabled:opacity-50"
+            className="relative p-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 disabled:opacity-50 shadow-lg"
           >
-            <div className={`w-5 h-5 border-2 border-zinc-400 border-t-transparent rounded-full ${isRefreshing ? 'animate-spin' : ''}`}></div>
+            <div className={`w-5 h-5 border-2 border-white border-t-transparent rounded-full ${isRefreshing ? 'animate-spin' : ''}`}></div>
           </button>
         </div>
 
-        {/* API Status Indicator */}
+        {/* Enhanced API Status Indicator */}
         {apiStatus === 'error' && (
-          <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 mb-4">
+          <div className="bg-gradient-to-r from-red-900/30 to-red-800/30 border border-red-500/50 rounded-2xl p-5 mb-6 backdrop-blur-sm">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-              <p className="text-red-400">مشكلة في الاتصال بـ API. تحقق من إعدادات المفتاح.</p>
+              <div className="w-3 h-3 bg-red-500 rounded-full mr-3 animate-pulse"></div>
+              <p className="text-red-300 font-medium">مشكلة في الاتصال بـ API. تحقق من إعدادات المفتاح.</p>
             </div>
           </div>
         )}
 
         {apiStatus === 'working' && !isLoading && (
-          <div className="bg-green-900/20 border border-green-500 rounded-lg p-4 mb-4">
+          <div className="bg-gradient-to-r from-green-900/30 to-green-800/30 border border-green-500/50 rounded-2xl p-5 mb-6 backdrop-blur-sm">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-              <p className="text-green-400">API يعمل بشكل طبيعي</p>
+              <p className="text-green-300 font-medium">API يعمل بشكل طبيعي</p>
             </div>
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex bg-zinc-800 rounded-lg p-1 mb-6">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-zinc-700 text-white'
-                  : 'text-zinc-400 hover:text-zinc-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Enhanced Tabs */}
+        <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-2 mb-8 border border-gray-700/50">
+          <div className="flex">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex-1 py-4 px-6 rounded-xl text-sm font-semibold transition-all duration-300 relative overflow-hidden ${
+                  activeTab === tab.id
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg scale-105'
+                    : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+                }`}
+              >
+                {activeTab === tab.id && (
+                  <div className="absolute inset-0 bg-white/10 rounded-xl"></div>
+                )}
+                <span className="relative z-10">{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Loading State */}
+        {/* Enhanced Loading State */}
         {isLoading && (
-          <div className="text-center py-8">
-            <div className="w-8 h-8 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            <p className="text-zinc-400">
+          <div className="text-center py-16">
+            <div className="relative mx-auto mb-6">
+              <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto"></div>
+              <div className="w-12 h-12 border-4 border-blue-400/20 border-t-blue-400 rounded-full animate-spin mx-auto absolute top-2 left-1/2 transform -translate-x-1/2"></div>
+            </div>
+            <p className="text-gray-300 text-lg font-medium">
               {activeTab === 'live' && 'جاري تحميل المباريات المباشرة...'}
               {activeTab === 'upcoming' && 'جاري تحميل المباريات القادمة...'}
               {activeTab === 'finished' && 'جاري تحميل المباريات المنتهية...'}
@@ -191,19 +197,19 @@ const Matches = () => {
           </div>
         )}
 
-        {/* Matches List */}
+        {/* Enhanced Matches List */}
         {!isLoading && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {matches.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="bg-zinc-800 rounded-lg p-6">
-                  <div className="text-4xl mb-4">⚽</div>
-                  <p className="text-zinc-400 text-lg mb-2">
+              <div className="text-center py-16">
+                <div className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 backdrop-blur-sm rounded-3xl p-12 border border-gray-700/50">
+                  <div className="text-6xl mb-6 opacity-60">⚽</div>
+                  <p className="text-gray-300 text-xl mb-4 font-semibold">
                     {activeTab === 'live' && 'لا توجد مباريات مباشرة حالياً'}
                     {activeTab === 'upcoming' && 'لا توجد مباريات قادمة'}
                     {activeTab === 'finished' && 'لا توجد مباريات منتهية'}
                   </p>
-                  <p className="text-zinc-500 text-sm">
+                  <p className="text-gray-500 text-base">
                     جرب تحديث الصفحة أو العودة لاحقاً
                   </p>
                 </div>
@@ -213,55 +219,57 @@ const Matches = () => {
                 <div 
                   key={match.id} 
                   onClick={() => handleMatchClick(match.id)}
-                  className="bg-zinc-800 rounded-lg p-4 relative overflow-hidden hover:bg-zinc-750 transition-colors cursor-pointer"
+                  className="group bg-gradient-to-r from-gray-800/80 to-gray-900/80 backdrop-blur-sm rounded-2xl p-6 relative overflow-hidden hover:from-gray-700/80 hover:to-gray-800/80 transition-all duration-300 cursor-pointer border border-gray-700/50 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/10 transform hover:-translate-y-1"
                 >
                   {/* League Flag Background */}
                   {match.leagueFlag && (
-                    <div className="absolute top-2 right-2 opacity-10">
-                      <img src={match.leagueFlag} alt="" className="w-8 h-6 object-cover" />
+                    <div className="absolute top-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <img src={match.leagueFlag} alt="" className="w-10 h-8 object-cover" />
                     </div>
                   )}
                   
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-blue-400">{match.competition}</span>
+                  {/* Competition Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-base font-bold text-blue-400 bg-blue-500/10 px-3 py-1 rounded-lg">{match.competition}</span>
                       {match.leagueFlag && (
-                        <img src={match.leagueFlag} alt="" className="w-5 h-4 object-cover rounded" />
+                        <img src={match.leagueFlag} alt="" className="w-6 h-5 object-cover rounded border border-gray-600" />
                       )}
                     </div>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-sm text-gray-400 font-medium">
                       {formatDate(match.date)} • {formatTime(match.date)}
                     </span>
                   </div>
                   
+                  {/* Match Details */}
                   <div className="flex items-center justify-between">
                     {/* Home Team */}
                     <div className="flex-1 flex items-center text-right">
                       {match.homeLogo && (
-                        <img src={match.homeLogo} alt={match.homeTeam} className="w-8 h-8 object-contain ml-2" />
+                        <img src={match.homeLogo} alt={match.homeTeam} className="w-12 h-12 object-contain ml-4 drop-shadow-lg" />
                       )}
-                      <p className="font-medium text-white text-sm truncate">{match.homeTeam}</p>
+                      <p className="font-bold text-white text-lg truncate group-hover:text-blue-100 transition-colors">{match.homeTeam}</p>
                     </div>
                     
                     {/* Score/Status */}
-                    <div className="mx-4 text-center min-w-[80px]">
+                    <div className="mx-8 text-center min-w-[120px]">
                       {match.status === 'live' && (
-                        <div className="flex items-center justify-center mb-1">
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse ml-1"></div>
-                          <span className="text-red-400 text-xs font-medium">مباشر</span>
+                        <div className="flex items-center justify-center mb-2">
+                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse ml-2"></div>
+                          <span className="text-red-400 text-sm font-bold uppercase tracking-wider">مباشر</span>
                           {match.minute && (
-                            <span className="text-red-400 text-xs mr-1">{match.minute}'</span>
+                            <span className="text-red-400 text-sm font-bold mr-2">{match.minute}'</span>
                           )}
                         </div>
                       )}
                       
                       {match.homeScore !== null && match.homeScore !== undefined && 
                        match.awayScore !== null && match.awayScore !== undefined ? (
-                        <div className="text-xl font-bold text-white">
+                        <div className="text-3xl font-black text-white bg-gray-700/50 rounded-xl px-4 py-2 border border-gray-600/50">
                           {match.homeScore} - {match.awayScore}
                         </div>
                       ) : (
-                        <div className="text-zinc-400 text-sm">
+                        <div className="text-gray-300 text-lg font-semibold bg-gray-700/30 rounded-xl px-4 py-2">
                           {match.status === 'upcoming' ? formatTime(match.date) : 'vs'}
                         </div>
                       )}
@@ -269,12 +277,15 @@ const Matches = () => {
                     
                     {/* Away Team */}
                     <div className="flex-1 flex items-center flex-row-reverse text-left">
-                      <p className="font-medium text-white text-sm truncate">{match.awayTeam}</p>
+                      <p className="font-bold text-white text-lg truncate group-hover:text-blue-100 transition-colors">{match.awayTeam}</p>
                       {match.awayLogo && (
-                        <img src={match.awayLogo} alt={match.awayTeam} className="w-8 h-8 object-contain mr-2" />
+                        <img src={match.awayLogo} alt={match.awayTeam} className="w-12 h-12 object-contain mr-4 drop-shadow-lg" />
                       )}
                     </div>
                   </div>
+
+                  {/* Hover Effect Border */}
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/0 via-blue-500/0 to-blue-500/0 group-hover:from-blue-500/10 group-hover:via-transparent group-hover:to-blue-500/10 pointer-events-none transition-all duration-300"></div>
                 </div>
               ))
             )}
