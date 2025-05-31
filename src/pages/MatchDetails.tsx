@@ -219,7 +219,7 @@ const MatchDetails = () => {
           </div>
         </div>
 
-        <div className="p-4 space-y-6">
+        <div className="p-4 space-y-6 pb-20">
           {/* Competition Badge */}
           <div className="text-center">
             <div className="inline-flex items-center space-x-3 space-x-reverse bg-blue-600/15 border border-blue-500/25 rounded-2xl px-6 py-3">
@@ -358,7 +358,7 @@ const MatchDetails = () => {
           </div>
 
           {/* Tab Content */}
-          <div className="pb-6">
+          <div className="mb-8">
             {activeTab === 'overview' && (
               <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
                 <h3 className="text-white font-bold text-lg mb-4 flex items-center">
@@ -396,31 +396,41 @@ const MatchDetails = () => {
             )}
 
             {activeTab === 'events' && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* Goals */}
                 {match.goals && match.goals.length > 0 && (
-                  <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
-                    <h3 className="text-white font-bold text-lg mb-4 flex items-center">
-                      <Target size={20} className="ml-2" />
-                      الأهداف ({match.goals.length})
-                    </h3>
-                    <div className="space-y-3">
+                  <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-700/50 overflow-hidden">
+                    <div className="bg-green-600/10 border-b border-green-500/20 p-4">
+                      <h3 className="text-white font-bold text-lg flex items-center">
+                        <Target size={20} className="ml-2 text-green-400" />
+                        الأهداف ({match.goals.length})
+                      </h3>
+                    </div>
+                    <div className="p-4 space-y-3">
                       {match.goals.map((goal, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-700/40 rounded-xl p-4">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 rounded-full bg-green-600/20 border border-green-500/40 flex items-center justify-center ml-3">
-                              <span className="text-green-400 text-xs font-bold">⚽</span>
+                        <div key={index} className="bg-gray-700/30 rounded-xl p-4 border border-gray-600/30">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center flex-1">
+                              <div className="w-10 h-10 rounded-full bg-green-600/20 border border-green-500/40 flex items-center justify-center ml-4">
+                                <span className="text-green-400 text-sm font-bold">⚽</span>
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-white font-bold text-base mb-1">{goal.player.name}</div>
+                                {goal.assist && (
+                                  <div className="text-gray-400 text-sm flex items-center">
+                                    <span className="text-blue-400 ml-1">تمريرة:</span>
+                                    {goal.assist.name}
+                                  </div>
+                                )}
+                                <div className="text-gray-500 text-xs mt-1">{goal.type}</div>
+                              </div>
                             </div>
-                            <div>
-                              <div className="text-white font-medium">{goal.player.name}</div>
-                              {goal.assist && (
-                                <div className="text-gray-400 text-sm">تمريرة: {goal.assist.name}</div>
+                            <div className="text-left ml-4">
+                              <div className="text-white font-bold text-lg">{goal.time.elapsed}'</div>
+                              {goal.time.extra && (
+                                <div className="text-gray-400 text-sm">+{goal.time.extra}'</div>
                               )}
                             </div>
-                          </div>
-                          <div className="text-left">
-                            <div className="text-white font-bold">{goal.time.elapsed}'</div>
-                            <div className="text-gray-400 text-sm">{goal.type}</div>
                           </div>
                         </div>
                       ))}
@@ -430,26 +440,33 @@ const MatchDetails = () => {
 
                 {/* Cards */}
                 {match.cards && match.cards.length > 0 && (
-                  <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
-                    <h3 className="text-white font-bold text-lg mb-4 flex items-center">
-                      <CreditCard size={20} className="ml-2" />
-                      الكروت ({match.cards.length})
-                    </h3>
-                    <div className="space-y-3">
+                  <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl border border-gray-700/50 overflow-hidden">
+                    <div className="bg-yellow-600/10 border-b border-yellow-500/20 p-4">
+                      <h3 className="text-white font-bold text-lg flex items-center">
+                        <CreditCard size={20} className="ml-2 text-yellow-400" />
+                        الكروت ({match.cards.length})
+                      </h3>
+                    </div>
+                    <div className="p-4 space-y-3">
                       {match.cards.map((card, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-700/40 rounded-xl p-4">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 rounded-full bg-yellow-600/20 border border-yellow-500/40 flex items-center justify-center ml-3">
-                              <span className="text-xl">{getCardIcon(card.type)}</span>
+                        <div key={index} className="bg-gray-700/30 rounded-xl p-4 border border-gray-600/30">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center flex-1">
+                              <div className="w-10 h-10 rounded-xl bg-yellow-600/20 border border-yellow-500/40 flex items-center justify-center ml-4">
+                                <span className="text-2xl">{getCardIcon(card.type)}</span>
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-white font-bold text-base mb-1">{card.player.name}</div>
+                                <div className="text-gray-400 text-sm">{card.detail}</div>
+                                <div className="text-gray-500 text-xs mt-1">{card.type}</div>
+                              </div>
                             </div>
-                            <div>
-                              <div className="text-white font-medium">{card.player.name}</div>
-                              <div className="text-gray-400 text-sm">{card.detail}</div>
+                            <div className="text-left ml-4">
+                              <div className="text-white font-bold text-lg">{card.time.elapsed}'</div>
+                              {card.time.extra && (
+                                <div className="text-gray-400 text-sm">+{card.time.extra}'</div>
+                              )}
                             </div>
-                          </div>
-                          <div className="text-left">
-                            <div className="text-white font-bold">{card.time.elapsed}'</div>
-                            <div className="text-gray-400 text-sm">{card.type}</div>
                           </div>
                         </div>
                       ))}
@@ -459,8 +476,9 @@ const MatchDetails = () => {
 
                 {(!match.goals || match.goals.length === 0) && (!match.cards || match.cards.length === 0) && (
                   <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-12 border border-gray-700/50 text-center">
-                    <div className="text-4xl mb-4 opacity-50">📝</div>
-                    <p className="text-gray-400 text-lg">لا توجد أحداث مسجلة حتى الآن</p>
+                    <div className="text-6xl mb-6 opacity-50">📝</div>
+                    <p className="text-gray-400 text-xl font-medium mb-2">لا توجد أحداث مسجلة</p>
+                    <p className="text-gray-500 text-base">ستظهر الأحداث هنا عند حدوثها</p>
                   </div>
                 )}
               </div>
