@@ -105,14 +105,18 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
     }
   };
 
-  const handleMarkAsRead = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onMarkAsRead(notification.id);
+  const handleNotificationClick = () => {
+    // تعليم التنبيه كمقروء أولاً
+    if (!notification.is_read) {
+      onMarkAsRead(notification.id);
+    }
+    // ثم تنفيذ الإجراء الأصلي
+    onNotificationClick(notification);
   };
 
   return (
     <div
-      onClick={() => onNotificationClick(notification)}
+      onClick={handleNotificationClick}
       className={`relative p-4 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-lg ${
         !notification.is_read 
           ? `${getNotificationColor()} shadow-md` 
@@ -225,18 +229,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 className="bg-cyan-600/20 border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/30 hover:text-cyan-300 text-xs px-3 py-1 h-auto"
               >
                 الغرفة
-              </Button>
-            )}
-
-            {/* Mark as read button for unread notifications */}
-            {!notification.is_read && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleMarkAsRead}
-                className="bg-gray-600/20 border-gray-500/30 text-gray-400 hover:bg-gray-600/30 hover:text-gray-300 text-xs px-3 py-1 h-auto"
-              >
-                تعليم كمقروء
               </Button>
             )}
           </div>
