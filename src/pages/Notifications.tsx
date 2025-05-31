@@ -203,7 +203,7 @@ const Notifications = () => {
       await markAsRead(notification.id);
     }
 
-    // Navigate based on notification type - ALWAYS go to the post for likes and comments
+    // الذهاب إلى المنشور للتعليقات والإعجابات
     if (notification.type === 'comment' || notification.type === 'like') {
       if (notification.data?.post_id) {
         console.log('Navigating to post:', notification.data.post_id);
