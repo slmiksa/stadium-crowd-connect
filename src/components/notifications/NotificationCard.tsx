@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { User, FileText, MessageSquare } from 'lucide-react';
+import { Bell, MessageSquare, Users, Heart, UserPlus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { formatTimestamp, truncateText } from '@/utils/notificationUtils';
-import { getNotificationIcon } from '@/utils/notificationIcons';
+import { formatDistanceToNow } from 'date-fns';
+import { ar } from 'date-fns/locale';
 
 interface NotificationData {
   post_id?: string;
@@ -54,116 +54,156 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   onRoomClick,
   onNotificationClick
 }) => {
+  const getNotificationIcon = () => {
+    switch (notification.type) {
+      case 'like':
+        return <Heart size={18} className="text-red-400" />;
+      case 'comment':
+      case 'follower_comment':
+        return <MessageSquare size={18} className="text-blue-400" />;
+      case 'follow':
+        return <UserPlus size={18} className="text-green-400" />;
+      case 'message':
+        return <MessageSquare size={18} className="text-purple-400" />;
+      case 'post':
+        return <Plus size={18} className="text-yellow-400" />;
+      case 'chat_room':
+        return <Users size={18} className="text-cyan-400" />;
+      default:
+        return <Bell size={18} className="text-gray-400" />;
+    }
+  };
+
+  const getNotificationColor = () => {
+    switch (notification.type) {
+      case 'like':
+        return 'bg-red-500/20 border-red-500/30';
+      case 'comment':
+      case 'follower_comment':
+        return 'bg-blue-500/20 border-blue-500/30';
+      case 'follow':
+        return 'bg-green-500/20 border-green-500/30';
+      case 'message':
+        return 'bg-purple-500/20 border-purple-500/30';
+      case 'post':
+        return 'bg-yellow-500/20 border-yellow-500/30';
+      case 'chat_room':
+        return 'bg-cyan-500/20 border-cyan-500/30';
+      default:
+        return 'bg-gray-500/20 border-gray-500/30';
+    }
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      return formatDistanceToNow(new Date(timestamp), { 
+        addSuffix: true, 
+        locale: ar 
+      });
+    } catch (error) {
+      return 'منذ قليل';
+    }
+  };
+
+  const handleMarkAsRead = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onMarkAsRead(notification.id);
+  };
+
   return (
     <div
       onClick={() => onNotificationClick(notification)}
-      className={`bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border transition-all duration-300 cursor-pointer hover:bg-gray-700/50 ${
-        notification.is_read 
-          ? 'border-gray-700/50' 
-          : 'border-blue-500/50 bg-blue-950/20'
+      className={`relative p-4 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-lg ${
+        !notification.is_read 
+          ? `${getNotificationColor()} shadow-md` 
+          : 'bg-gray-800/30 border-gray-700/50 hover:bg-gray-800/50'
       }`}
     >
-      <div className="flex items-start gap-4">
-        <div className="flex-shrink-0 p-2 bg-gray-700/50 rounded-lg">
-          {getNotificationIcon(notification.type)}
+      {/* Unread indicator */}
+      {!notification.is_read && (
+        <div className="absolute top-3 right-3 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+      )}
+
+      <div className="flex items-start space-x-4 space-x-reverse">
+        {/* Icon */}
+        <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+          notification.type === 'like' ? 'bg-red-500/20' :
+          notification.type === 'comment' || notification.type === 'follower_comment' ? 'bg-blue-500/20' :
+          notification.type === 'follow' ? 'bg-green-500/20' :
+          notification.type === 'message' ? 'bg-purple-500/20' :
+          notification.type === 'post' ? 'bg-yellow-500/20' :
+          notification.type === 'chat_room' ? 'bg-cyan-500/20' : 'bg-gray-500/20'
+        }`}>
+          {getNotificationIcon()}
         </div>
-        
+
+        {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-white font-medium text-sm">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className={`font-semibold text-lg ${!notification.is_read ? 'text-white' : 'text-gray-300'}`}>
               {notification.title}
             </h3>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-500 flex-shrink-0">
               {formatTimestamp(notification.created_at)}
             </span>
           </div>
-          
-          <p className="text-gray-300 text-sm leading-relaxed mb-2">
+
+          <p className={`text-sm mb-3 leading-relaxed ${!notification.is_read ? 'text-gray-200' : 'text-gray-400'}`}>
             {notification.message}
           </p>
 
-          {/* عرض تفاصيل المنشور إذا كان متوفر */}
-          {notification.post_content && (
-            <div className="bg-gray-900/50 rounded-lg p-3 mb-2 border border-gray-700/30">
+          {/* Additional content based on notification type */}
+          {(notification.type === 'comment' || notification.type === 'follower_comment') && notification.post_content && (
+            <div className="bg-gray-700/50 rounded-lg p-3 mb-3">
               <p className="text-xs text-gray-400 mb-1">المنشور:</p>
-              <p className="text-gray-300 text-sm">
-                {truncateText(notification.post_content)}
-              </p>
-            </div>
-          )}
-
-          {/* عرض تفاصيل التعليق إذا كان متوفر */}
-          {notification.comment_content && (
-            <div className="bg-blue-900/30 rounded-lg p-3 mb-2 border border-blue-700/30">
-              <p className="text-xs text-blue-400 mb-1">التعليق:</p>
-              <p className="text-gray-300 text-sm">
-                {truncateText(notification.comment_content)}
-              </p>
-            </div>
-          )}
-
-          {/* عرض تفاصيل غرفة الدردشة */}
-          {notification.type === 'chat_room' && (
-            <div className="bg-orange-900/30 rounded-lg p-3 mb-3 border border-orange-700/30">
-              <p className="text-xs text-orange-400 mb-1">غرفة الدردشة:</p>
-              <p className="text-white font-medium text-sm mb-1">
-                {notification.data?.room_name || 'غرفة دردشة'}
-              </p>
-              {notification.data?.room_description && (
-                <p className="text-gray-300 text-xs mb-2">
-                  {truncateText(notification.data.room_description, 80)}
-                </p>
+              <p className="text-sm text-gray-300 line-clamp-2">{notification.post_content}</p>
+              {notification.comment_content && (
+                <>
+                  <p className="text-xs text-gray-400 mb-1 mt-2">التعليق:</p>
+                  <p className="text-sm text-gray-300 line-clamp-2">{notification.comment_content}</p>
+                </>
               )}
-              <div className="flex items-center gap-2">
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  notification.data?.room_is_private 
-                    ? 'bg-red-600/20 text-red-400 border border-red-500/30' 
-                    : 'bg-green-600/20 text-green-400 border border-green-500/30'
-                }`}>
-                  {notification.data?.room_is_private ? 'خاصة' : 'عامة'}
-                </span>
-              </div>
             </div>
           )}
 
-          {/* أزرار التفاعل */}
-          <div className="flex items-center gap-2 mt-3">
-            {/* زر الدردشات لتنبيهات غرف الدردشة */}
-            {notification.type === 'chat_room' && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!notification.is_read) {
-                    onMarkAsRead(notification.id);
-                  }
-                  window.location.href = '/chat-rooms';
-                }}
-                className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
-              >
-                <MessageSquare size={14} className="ml-1" />
-                الدردشات
-              </Button>
-            )}
+          {(notification.type === 'like' || notification.type === 'post') && notification.post_content && (
+            <div className="bg-gray-700/50 rounded-lg p-3 mb-3">
+              <p className="text-xs text-gray-400 mb-1">المنشور:</p>
+              <p className="text-sm text-gray-300 line-clamp-2">{notification.post_content}</p>
+            </div>
+          )}
 
-            {/* أزرار البروفايل للتنبيهات العادية */}
-            {notification.type !== 'chat_room' && (notification.type === 'follow' || notification.type === 'like' || 
-              notification.type === 'comment' || notification.type === 'follower_comment' ||
-              notification.type === 'post') && (
+          {notification.type === 'chat_room' && (
+            <div className="bg-gray-700/50 rounded-lg p-3 mb-3">
+              <p className="text-xs text-gray-400 mb-1">اسم الغرفة:</p>
+              <p className="text-sm text-cyan-300 font-medium">{notification.data.room_name}</p>
+              {notification.data.room_description && (
+                <>
+                  <p className="text-xs text-gray-400 mb-1 mt-2">الوصف:</p>
+                  <p className="text-sm text-gray-300">{notification.data.room_description}</p>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-2">
+            {/* Profile button for most notification types */}
+            {(notification.type === 'follow' || notification.type === 'like' || 
+              notification.type === 'comment' || notification.type === 'follower_comment' || 
+              notification.type === 'post' || notification.type === 'chat_room') && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={(e) => onProfileClick(notification, e)}
                 className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
               >
-                <User size={14} className="ml-1" />
                 البروفايل
               </Button>
             )}
 
-            {/* أزرار المنشور للتنبيهات المتعلقة بالمنشورات */}
-            {notification.type !== 'chat_room' && (notification.type === 'like' || notification.type === 'comment' || 
+            {/* Post button for post-related notifications */}
+            {(notification.type === 'like' || notification.type === 'comment' || 
               notification.type === 'follower_comment' || notification.type === 'post') && 
               notification.data?.post_id && (
               <Button
@@ -172,17 +212,34 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 onClick={(e) => onPostClick(notification, e)}
                 className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
               >
-                <FileText size={14} className="ml-1" />
                 المنشور
               </Button>
             )}
+
+            {/* Room button for chat room notifications */}
+            {notification.type === 'chat_room' && notification.data?.room_id && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => onRoomClick(notification, e)}
+                className="bg-cyan-600/20 border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/30 hover:text-cyan-300 text-xs px-3 py-1 h-auto"
+              >
+                الغرفة
+              </Button>
+            )}
+
+            {/* Mark as read button for chat room notifications */}
+            {notification.type === 'chat_room' && !notification.is_read && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleMarkAsRead}
+                className="bg-gray-600/20 border-gray-500/30 text-gray-400 hover:bg-gray-600/30 hover:text-gray-300 text-xs px-3 py-1 h-auto"
+              >
+                تعليم كمقروء
+              </Button>
+            )}
           </div>
-          
-          {!notification.is_read && (
-            <div className="mt-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            </div>
-          )}
         </div>
       </div>
     </div>
