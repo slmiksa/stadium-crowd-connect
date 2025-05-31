@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -130,6 +129,35 @@ const PostComments: React.FC<PostCommentsProps> = ({
     return data.publicUrl;
   };
 
+  const updateCommentsCount = async () => {
+    try {
+      // Get all comments for this post (including replies)
+      const { data: allComments, error } = await supabase
+        .from('hashtag_comments')
+        .select('id')
+        .eq('post_id', postId);
+
+      if (error) {
+        console.error('Error counting comments:', error);
+        return;
+      }
+
+      const totalCount = allComments?.length || 0;
+
+      // Update the post's comments count
+      const { error: updateError } = await supabase
+        .from('hashtag_posts')
+        .update({ comments_count: totalCount })
+        .eq('id', postId);
+
+      if (updateError) {
+        console.error('Error updating comments count:', updateError);
+      }
+    } catch (error) {
+      console.error('Error in updateCommentsCount:', error);
+    }
+  };
+
   const handleSubmitComment = async (content: string, mediaFile?: File, parentId?: string, mediaType?: string) => {
     if (!user) {
       console.log('No user found');
@@ -178,6 +206,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
       console.log('Comment inserted successfully:', insertData);
 
       await fetchComments();
+      await updateCommentsCount(); // Update the total count including nested replies
       onCommentAdded();
       
     } catch (error) {
