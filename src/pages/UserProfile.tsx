@@ -3,22 +3,21 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import HashtagPost from '@/components/HashtagPost';
-import { ArrowLeft, UserPlus, UserMinus, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Users, Heart, MessageSquare, UserPlus, UserMinus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
 
 interface UserProfileData {
   id: string;
   username: string;
   email: string;
   bio?: string;
+  favorite_team?: string;
   avatar_url?: string;
   followers_count: number;
   following_count: number;
 }
 
-interface HashtagPostWithProfile {
+interface HashtagPost {
   id: string;
   content: string;
   hashtags: string[];
@@ -26,29 +25,20 @@ interface HashtagPostWithProfile {
   comments_count: number;
   created_at: string;
   image_url?: string;
-  user_id: string;
-  profiles: {
-    id: string;
-    username: string;
-    avatar_url?: string;
-  };
-  hashtag_likes: Array<{
-    user_id: string;
-  }>;
 }
 
 const UserProfile = () => {
   const { userId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [profileData, setProfileData] = useState<UserProfileData | null>(null);
-  const [userPosts, setUserPosts] = useState<HashtagPostWithProfile[]>([]);
+  const [profile, setProfile] = useState<UserProfileData | null>(null);
+  const [posts, setPosts] = useState<HashtagPost[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [postsCount, setPostsCount] = useState(0);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
 
   useEffect(() => {
-    if (userId) {
+    if (userId && user) {
       fetchUserProfile();
       fetchUserPosts();
       checkFollowStatus();
@@ -64,11 +54,12 @@ const UserProfile = () => {
         .single();
 
       if (error) {
-        console.error('Error fetching user profile:', error);
+        console.error('Error fetching profile:', error);
+        navigate('/hashtags');
         return;
       }
 
-      setProfileData(data);
+      setProfile(data);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -78,61 +69,51 @@ const UserProfile = () => {
     try {
       const { data, error } = await supabase
         .from('hashtag_posts')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            username,
-            avatar_url
-          ),
-          hashtag_likes (
-            user_id
-          )
-        `)
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching user posts:', error);
+        console.error('Error fetching posts:', error);
         return;
       }
 
-      setUserPosts(data || []);
-      setPostsCount(data?.length || 0);
+      setPosts(data || []);
     } catch (error) {
       console.error('Error:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const checkFollowStatus = async () => {
-    if (!user || userId === user.id) return;
-
     try {
       const { data, error } = await supabase
         .from('follows')
         .select('id')
-        .eq('follower_id', user.id)
+        .eq('follower_id', user?.id)
         .eq('following_id', userId)
         .single();
 
       setIsFollowing(!!data);
     } catch (error) {
-      console.error('Error checking follow status:', error);
+      // No follow relationship exists
+      setIsFollowing(false);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleFollow = async () => {
-    if (!user || !profileData) return;
+    if (!user || !userId || isFollowLoading) return;
 
+    setIsFollowLoading(true);
     try {
       if (isFollowing) {
+        // Unfollow
         const { error } = await supabase
           .from('follows')
           .delete()
           .eq('follower_id', user.id)
-          .eq('following_id', profileData.id);
+          .eq('following_id', userId);
 
         if (error) {
           console.error('Error unfollowing:', error);
@@ -140,16 +121,13 @@ const UserProfile = () => {
         }
 
         setIsFollowing(false);
-        setProfileData(prev => prev ? {
-          ...prev,
-          followers_count: prev.followers_count - 1
-        } : null);
       } else {
+        // Follow
         const { error } = await supabase
           .from('follows')
           .insert({
             follower_id: user.id,
-            following_id: profileData.id
+            following_id: userId
           });
 
         if (error) {
@@ -158,18 +136,31 @@ const UserProfile = () => {
         }
 
         setIsFollowing(true);
-        setProfileData(prev => prev ? {
-          ...prev,
-          followers_count: prev.followers_count + 1
-        } : null);
       }
+
+      // Refresh profile to get updated counts
+      fetchUserProfile();
     } catch (error) {
       console.error('Error:', error);
+    } finally {
+      setIsFollowLoading(false);
     }
   };
 
-  const handlePostLikeChange = () => {
-    fetchUserPosts();
+  const handleSendMessage = () => {
+    if (!userId) return;
+    navigate(`/private-chat/${userId}`);
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 60) return `${diffMins}د`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}س`;
+    return `${Math.floor(diffMins / 1440)}ي`;
   };
 
   if (isLoading) {
@@ -182,17 +173,26 @@ const UserProfile = () => {
     );
   }
 
-  if (!profileData) {
+  if (!profile) {
     return (
       <Layout>
         <div className="p-4 text-center">
           <p className="text-zinc-400">المستخدم غير موجود</p>
-          <Button onClick={() => navigate(-1)} className="mt-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
             العودة
-          </Button>
+          </button>
         </div>
       </Layout>
     );
+  }
+
+  // Don't show this page if viewing own profile
+  if (user?.id === userId) {
+    navigate('/profile');
+    return null;
   }
 
   return (
@@ -207,83 +207,120 @@ const UserProfile = () => {
             >
               <ArrowLeft size={20} className="text-white" />
             </button>
-            <h1 className="text-xl font-bold text-white">الملف الشخصي</h1>
+            <h1 className="text-xl font-bold text-white">ملف المستخدم</h1>
           </div>
         </div>
 
-        {/* Profile Info */}
+        {/* Profile Header */}
         <div className="bg-zinc-800 rounded-lg p-6 mb-6">
-          <div className="flex items-start space-x-4">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
               <span className="text-2xl font-bold text-white">
-                {profileData.username.charAt(0).toUpperCase()}
+                {profile.username?.charAt(0).toUpperCase() || 'U'}
               </span>
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-bold text-white mb-1">
-                {profileData.username}
-              </h2>
-              {profileData.bio && (
-                <p className="text-zinc-300 mb-3">{profileData.bio}</p>
+              <h2 className="text-xl font-bold text-white">{profile.username}</h2>
+              {profile.bio && (
+                <p className="text-zinc-300 mt-1">{profile.bio}</p>
               )}
-              
-              {/* Stats */}
-              <div className="flex space-x-6 mb-4">
-                <div className="text-center">
-                  <div className="text-lg font-bold text-white">{postsCount}</div>
-                  <div className="text-sm text-zinc-400">منشور</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-white">{profileData.followers_count}</div>
-                  <div className="text-sm text-zinc-400">متابع</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-white">{profileData.following_count}</div>
-                  <div className="text-sm text-zinc-400">متابَع</div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              {user && userId !== user.id && (
-                <div className="flex space-x-3">
-                  <Button
-                    onClick={handleFollow}
-                    className={`flex items-center space-x-2 ${
-                      isFollowing 
-                        ? 'bg-zinc-600 hover:bg-zinc-700 text-white' 
-                        : 'bg-blue-500 hover:bg-blue-600 text-white'
-                    }`}
-                  >
-                    {isFollowing ? <UserMinus size={18} /> : <UserPlus size={18} />}
-                    <span>{isFollowing ? 'إلغاء المتابعة' : 'متابعة'}</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="flex items-center space-x-2 border-zinc-600 text-zinc-300 hover:bg-zinc-700"
-                  >
-                    <MessageCircle size={18} />
-                    <span>رسالة</span>
-                  </Button>
-                </div>
+              {profile.favorite_team && (
+                <p className="text-blue-400 mt-1">⚽ {profile.favorite_team}</p>
               )}
             </div>
           </div>
+
+          {/* Stats */}
+          <div className="flex space-x-6 mb-4">
+            <div className="flex items-center space-x-2 text-zinc-300">
+              <Users size={18} />
+              <span>{profile.followers_count || 0} متابِع</span>
+            </div>
+            <div className="flex items-center space-x-2 text-zinc-300">
+              <Heart size={18} />
+              <span>{profile.following_count || 0} متابَع</span>
+            </div>
+            <div className="flex items-center space-x-2 text-zinc-300">
+              <MessageSquare size={18} />
+              <span>{posts.length} منشور</span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex space-x-3">
+            <button
+              onClick={handleFollow}
+              disabled={isFollowLoading}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${
+                isFollowing 
+                  ? 'bg-zinc-600 hover:bg-zinc-700 text-white' 
+                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+              }`}
+            >
+              {isFollowing ? <UserMinus size={18} /> : <UserPlus size={18} />}
+              <span>{isFollowing ? 'إلغاء المتابعة' : 'متابعة'}</span>
+            </button>
+            
+            <button
+              onClick={handleSendMessage}
+              className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+            >
+              <MessageSquare size={18} />
+              <span>رسالة</span>
+            </button>
+          </div>
         </div>
 
-        {/* User Posts */}
+        {/* Posts */}
         <div className="space-y-4">
-          <h3 className="text-lg font-bold text-white">منشورات {profileData.username}</h3>
-          {userPosts.length === 0 ? (
+          <h3 className="text-lg font-bold text-white">المنشورات</h3>
+          {posts.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-zinc-400">لا توجد منشورات بعد</p>
+              <MessageSquare size={48} className="mx-auto text-zinc-600 mb-4" />
+              <p className="text-zinc-400">لا توجد منشورات</p>
             </div>
           ) : (
-            userPosts.map((post) => (
-              <HashtagPost 
-                key={post.id} 
-                post={post} 
-                onLikeChange={handlePostLikeChange}
-              />
+            posts.map((post) => (
+              <div key={post.id} className="bg-zinc-800 rounded-lg p-4">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-bold text-white">
+                      {profile.username?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-white">{profile.username}</span>
+                    <span className="text-zinc-400 text-sm ml-2">
+                      {formatTimestamp(post.created_at)}
+                    </span>
+                  </div>
+                </div>
+                
+                <p className="text-white mb-3">{post.content}</p>
+                
+                {post.hashtags && post.hashtags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {post.hashtags.map((hashtag, index) => (
+                      <span key={index} className="text-blue-400 text-sm">
+                        #{hashtag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
+                {post.image_url && (
+                  <img 
+                    src={post.image_url} 
+                    alt="Post image" 
+                    className="w-full rounded-lg mb-3 max-h-64 object-cover"
+                  />
+                )}
+                
+                <div className="flex items-center space-x-4 text-zinc-400 text-sm">
+                  <span>{post.likes_count} إعجاب</span>
+                  <span>{post.comments_count} تعليق</span>
+                </div>
+              </div>
             ))
           )}
         </div>

@@ -23,6 +23,8 @@ const CreateChatRoom = () => {
 
     setIsSubmitting(true);
     try {
+      console.log('Creating room with data:', { name: name.trim(), description: description.trim(), isPrivate, userId: user.id });
+      
       // إنشاء الغرفة
       const { data: room, error: roomError } = await supabase
         .from('chat_rooms')
@@ -38,8 +40,11 @@ const CreateChatRoom = () => {
 
       if (roomError) {
         console.error('Error creating room:', roomError);
+        alert('خطأ في إنشاء الغرفة: ' + roomError.message);
         return;
       }
+
+      console.log('Room created successfully:', room);
 
       // إضافة المنشئ كعضو في الغرفة
       const { error: memberError } = await supabase
@@ -52,13 +57,17 @@ const CreateChatRoom = () => {
 
       if (memberError) {
         console.error('Error adding owner as member:', memberError);
+        alert('خطأ في إضافة العضو: ' + memberError.message);
         return;
       }
 
+      console.log('Owner added as member successfully');
+      
       // الانتقال إلى الغرفة
       navigate(`/chat-room/${room.id}`);
     } catch (error) {
       console.error('Error:', error);
+      alert('حدث خطأ غير متوقع');
     } finally {
       setIsSubmitting(false);
     }
@@ -78,13 +87,6 @@ const CreateChatRoom = () => {
             </button>
             <h1 className="text-xl font-bold text-white">إنشاء غرفة دردشة</h1>
           </div>
-          <Button
-            onClick={handleSubmit}
-            disabled={!name.trim() || isSubmitting}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            {isSubmitting ? 'جاري الإنشاء...' : 'إنشاء'}
-          </Button>
         </div>
 
         {/* Form */}
@@ -100,6 +102,7 @@ const CreateChatRoom = () => {
               placeholder="أدخل اسم الغرفة"
               className="bg-zinc-900 border-zinc-700 text-white"
               maxLength={100}
+              required
             />
           </div>
 
@@ -157,6 +160,15 @@ const CreateChatRoom = () => {
               </button>
             </div>
           </div>
+
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            disabled={!name.trim() || isSubmitting}
+            className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50"
+          >
+            {isSubmitting ? 'جاري الإنشاء...' : 'إنشاء الغرفة'}
+          </Button>
         </form>
       </div>
     </Layout>

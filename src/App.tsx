@@ -16,6 +16,7 @@ import ChatRooms from "./pages/ChatRooms";
 import CreateChatRoom from "./pages/CreateChatRoom";
 import ChatRoom from "./pages/ChatRoom";
 import Messages from "./pages/Messages";
+import PrivateChat from "./pages/PrivateChat";
 import Profile from "./pages/Profile";
 import UserProfile from "./pages/UserProfile";
 import MyPosts from "./pages/MyPosts";
@@ -40,6 +41,7 @@ const AuthenticatedApp = () => (
       <Route path="/create-chat-room" element={<CreateChatRoom />} />
       <Route path="/chat-room/:roomId" element={<ChatRoom />} />
       <Route path="/messages" element={<Messages />} />
+      <Route path="/private-chat/:userId" element={<PrivateChat />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/api-settings" element={<ApiSettings />} />
       <Route path="*" element={<NotFound />} />
