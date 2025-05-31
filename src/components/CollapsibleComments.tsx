@@ -127,11 +127,13 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
   const handleSubmitComment = async (content: string, mediaFile?: File, mediaType?: string) => {
     if (!user) {
       console.log('No user found');
+      alert('يجب تسجيل الدخول أولاً');
       return;
     }
 
     if (!content.trim() && !mediaFile) {
       console.log('No content or media');
+      alert('يرجى كتابة تعليق أو إرفاق وسائط');
       return;
     }
 
@@ -140,7 +142,9 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
       hasMedia: !!mediaFile, 
       parentId: replyTo?.id, 
       mediaType,
-      replyTo 
+      replyTo,
+      postId,
+      userId: user.id
     });
     
     setIsSubmitting(true);
@@ -159,20 +163,36 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
       }
 
       console.log('Inserting comment into database...');
+      
+      // Prepare the comment data
+      const commentData = {
+        post_id: postId,
+        user_id: user.id,
+        content: content.trim() || '',
+        parent_id: replyTo?.id || null
+      };
+
+      // Only add media fields if we have media
+      if (mediaUrl && mediaType) {
+        commentData.media_url = mediaUrl;
+        commentData.media_type = mediaType;
+      }
+
+      console.log('Comment data to insert:', commentData);
+
       const { data: insertData, error: insertError } = await supabase
         .from('hashtag_comments')
-        .insert({
-          post_id: postId,
-          user_id: user.id,
-          content: content.trim() || '',
-          media_url: mediaUrl,
-          media_type: mediaType || null,
-          parent_id: replyTo?.id || null
-        })
+        .insert(commentData)
         .select();
 
       if (insertError) {
         console.error('Error inserting comment:', insertError);
+        console.error('Insert error details:', {
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+          code: insertError.code
+        });
         throw insertError;
       }
 
@@ -189,7 +209,19 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
       
     } catch (error) {
       console.error('Error in handleSubmitComment:', error);
-      alert('حدث خطأ أثناء إضافة التعليق');
+      
+      // More specific error messages
+      let errorMessage = 'حدث خطأ أثناء إضافة التعليق';
+      
+      if (error?.message?.includes('media_url')) {
+        errorMessage = 'خطأ في رفع الوسائط';
+      } else if (error?.message?.includes('user_id')) {
+        errorMessage = 'خطأ في المصادقة';
+      } else if (error?.message?.includes('post_id')) {
+        errorMessage = 'خطأ في ربط التعليق بالمنشور';
+      }
+      
+      alert(errorMessage + ': ' + (error?.message || 'خطأ غير معروف'));
     } finally {
       setIsSubmitting(false);
     }
