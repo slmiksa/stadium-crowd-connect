@@ -58,56 +58,16 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     }
   };
 
-  const uploadVoiceToStorage = async (audioBlob: Blob): Promise<string> => {
-    try {
-      const user = (await supabase.auth.getUser()).data.user;
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      const fileName = `${user.id}/${Date.now()}_voice.webm`;
-      
-      console.log('Uploading voice file:', fileName);
-      
-      const { data, error } = await supabase.storage
-        .from('voice-messages')
-        .upload(fileName, audioBlob, {
-          contentType: 'audio/webm',
-          upsert: false
-        });
-
-      if (error) {
-        console.error('Upload error:', error);
-        throw error;
-      }
-
-      console.log('Upload successful:', data);
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('voice-messages')
-        .getPublicUrl(fileName);
-
-      console.log('Public URL:', urlData.publicUrl);
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error('Error uploading voice file:', error);
-      throw new Error('فشل في رفع الملف الصوتي');
-    }
-  };
-
   const handleVoiceRecorded = async (audioBlob: Blob, duration: number) => {
     try {
-      console.log('Voice recorded, uploading to storage...');
-      const voiceUrl = await uploadVoiceToStorage(audioBlob);
-      console.log('Voice uploaded successfully:', voiceUrl);
+      console.log('Voice recorded in MediaInput, uploading...');
       
       // Create a File object for compatibility
       const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, {
         type: 'audio/webm'
       });
 
-      // Pass the storage URL instead of the file
+      // Send the voice message directly with the file
       onSendMessage('رسالة صوتية', undefined, undefined, audioFile, duration);
       setShowVoiceRecorder(false);
     } catch (error) {

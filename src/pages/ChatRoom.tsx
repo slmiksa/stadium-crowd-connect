@@ -208,22 +208,27 @@ const ChatRoom = () => {
       }
 
       if (voiceFile) {
+        console.log('Uploading voice file to storage...');
         const fileName = `${user.id}/${Date.now()}.webm`;
 
-        const { error: uploadError } = await supabase.storage
+        const { data, error: uploadError } = await supabase.storage
           .from('voice-messages')
           .upload(fileName, voiceFile);
 
         if (uploadError) {
           console.error('Error uploading voice message:', uploadError);
+          alert('فشل في رفع الملف الصوتي');
           return;
         }
+
+        console.log('Voice file uploaded successfully:', data);
 
         const { data: { publicUrl } } = supabase.storage
           .from('voice-messages')
           .getPublicUrl(fileName);
 
         voiceUrl = publicUrl;
+        console.log('Voice public URL:', voiceUrl);
       }
 
       let finalContent = content || 'مرفق';

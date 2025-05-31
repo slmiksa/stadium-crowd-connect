@@ -43,21 +43,32 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
 
     // Reset error state when user tries again
     setHasError(false);
-    setIsLoading(true);
 
     try {
-      // Clean up existing audio
-      if (audioRef.current) {
+      // If audio is currently playing, pause it
+      if (audioRef.current && isPlaying) {
+        console.log('VoiceMessage: Pausing audio');
         audioRef.current.pause();
-        audioRef.current.src = '';
-        audioRef.current = null;
+        setIsPlaying(false);
+        return;
+      }
+
+      // If audio exists but is paused, resume it
+      if (audioRef.current && !isPlaying) {
+        console.log('VoiceMessage: Resuming audio');
+        await audioRef.current.play();
+        setIsPlaying(true);
+        return;
       }
 
       // Create new audio element
+      setIsLoading(true);
+      console.log('VoiceMessage: Creating new audio element');
+      
       const audio = new Audio();
       audioRef.current = audio;
 
-      // Set up event listeners before setting src
+      // Set up event listeners
       audio.addEventListener('timeupdate', () => {
         setCurrentTime(audio.currentTime);
       });
@@ -85,46 +96,23 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
         setIsPlaying(false);
       });
 
-      // Set source and load
+      // Load the audio
       audio.src = voiceUrl;
-      audio.preload = 'auto';
-      
-      // Wait for audio to be ready
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Audio loading timeout'));
-        }, 15000); // Increased timeout
+      audio.load();
 
-        const onCanPlay = () => {
-          clearTimeout(timeout);
-          audio.removeEventListener('canplay', onCanPlay);
-          audio.removeEventListener('error', onError);
-          resolve(true);
-        };
-
-        const onError = (e: Event) => {
-          clearTimeout(timeout);
-          audio.removeEventListener('canplay', onCanPlay);
-          audio.removeEventListener('error', onError);
-          reject(new Error('Audio loading failed'));
-        };
-
-        audio.addEventListener('canplay', onCanPlay);
-        audio.addEventListener('error', onError);
-      });
-
-      // Now play or pause
-      if (isPlaying) {
-        console.log('VoiceMessage: Pausing audio');
-        audio.pause();
-        setIsPlaying(false);
-      } else {
-        console.log('VoiceMessage: Starting playback');
-        await audio.play();
-        setIsPlaying(true);
-      }
-
-      setIsLoading(false);
+      // Try to play after a short delay
+      setTimeout(async () => {
+        try {
+          await audio.play();
+          setIsPlaying(true);
+          setIsLoading(false);
+          console.log('VoiceMessage: Audio started playing');
+        } catch (error) {
+          console.error('VoiceMessage: Failed to play audio:', error);
+          setIsLoading(false);
+          setHasError(true);
+        }
+      }, 100);
 
     } catch (error) {
       console.error('VoiceMessage: Error during playback:', error);
