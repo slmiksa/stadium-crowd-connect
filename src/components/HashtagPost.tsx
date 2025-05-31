@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageSquare, Share2, MoreHorizontal, Clock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -201,12 +202,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
       </div>
 
       {/* Comments */}
-      {showComments && (
-        <PostComments 
-          postId={post.id} 
-          onCommentAdded={onLikeChange}
-        />
-      )}
+      <PostComments 
+        postId={post.id} 
+        isOpen={showComments}
+        onClose={() => setShowComments(false)}
+        onCommentAdded={onLikeChange || (() => {})}
+      />
     </div>
   );
 };
