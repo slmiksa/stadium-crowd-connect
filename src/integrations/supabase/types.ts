@@ -381,6 +381,7 @@ export type Database = {
       room_members: {
         Row: {
           id: string
+          is_banned: boolean | null
           joined_at: string | null
           role: string | null
           room_id: string
@@ -388,6 +389,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          is_banned?: boolean | null
           joined_at?: string | null
           role?: string | null
           room_id: string
@@ -395,6 +397,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          is_banned?: boolean | null
           joined_at?: string | null
           role?: string | null
           room_id?: string
