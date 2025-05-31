@@ -110,8 +110,16 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
     if (!notification.is_read) {
       onMarkAsRead(notification.id);
     }
-    // ثم تنفيذ الإجراء الأصلي
-    onNotificationClick(notification);
+    
+    // للتنبيهات الخاصة بغرف الدردشة، استخدم onRoomClick بدلاً من onNotificationClick
+    if (notification.type === 'chat_room') {
+      // إنشاء حدث وهمي لاستيفاء متطلبات onRoomClick
+      const fakeEvent = { stopPropagation: () => {} } as React.MouseEvent;
+      onRoomClick(notification, fakeEvent);
+    } else {
+      // للتنبيهات الأخرى، استخدم الوظيفة الأصلية
+      onNotificationClick(notification);
+    }
   };
 
   return (
