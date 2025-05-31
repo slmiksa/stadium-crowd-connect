@@ -14,13 +14,13 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onComplete }) => {
       setTimeout(() => {
         onComplete();
       }, 500); // Extra time for fade out animation
-    }, 3000); // 3 seconds
+    }, 5000); // Changed from 3000 to 5000 (5 seconds)
 
     return () => clearTimeout(timer);
   }, [onComplete]);
 
   if (!isVisible) {
-    return null; // Return nothing during fade out
+    return null;
   }
 
   return (
