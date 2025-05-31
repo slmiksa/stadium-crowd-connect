@@ -201,27 +201,40 @@ const Notifications = () => {
       await markAsRead(notification.id);
     }
 
+    // منع أي سلوك افتراضي للحدث
+    const navigateToPost = (postId: string) => {
+      console.log('Navigating to post:', postId);
+      window.location.href = `/post/${postId}`;
+    };
+
     // Navigate based on notification type
-    if (notification.type === 'comment' && notification.data?.post_id) {
-      console.log('Navigating to post page for comment:', notification.data.post_id);
-      navigate(`/post/${notification.data.post_id}`);
-    } else if (notification.type === 'like' && notification.data?.post_id) {
-      console.log('Navigating to post page for like:', notification.data.post_id);
-      navigate(`/post/${notification.data.post_id}`);
+    if (notification.type === 'comment') {
+      if (notification.data?.post_id) {
+        navigateToPost(notification.data.post_id);
+      } else {
+        console.log('No post_id found for comment notification');
+        navigate('/hashtags');
+      }
+    } else if (notification.type === 'like') {
+      if (notification.data?.post_id) {
+        navigateToPost(notification.data.post_id);
+      } else {
+        console.log('No post_id found for like notification');
+        navigate('/hashtags');
+      }
     } else if (notification.type === 'follow') {
       const userId = notification.data?.follower_id;
       if (userId) {
         console.log('Navigating to user profile:', userId);
         navigate(`/user-profile/${userId}`);
+      } else {
+        navigate('/hashtags');
       }
     } else if (notification.type === 'message') {
       console.log('Navigating to messages');
       navigate('/messages');
     } else {
       console.log('Fallback navigation to hashtags');
-      console.log('Notification type was:', notification.type);
-      console.log('Post ID was:', notification.data?.post_id);
-      // fallback للهاشتاقات في حالة عدم وجود post_id
       navigate('/hashtags');
     }
   };

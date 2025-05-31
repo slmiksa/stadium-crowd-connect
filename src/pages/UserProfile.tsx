@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -152,6 +151,11 @@ const UserProfile = () => {
     navigate(`/private-chat/${userId}`);
   };
 
+  const handlePostInteraction = () => {
+    // تحديث المنشورات عند حدوث تفاعل
+    fetchUserPosts();
+  };
+
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -281,45 +285,21 @@ const UserProfile = () => {
             </div>
           ) : (
             posts.map((post) => (
-              <div key={post.id} className="bg-zinc-800 rounded-lg p-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">
-                      {profile.username?.charAt(0).toUpperCase() || 'U'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-white">{profile.username}</span>
-                    <span className="text-zinc-400 text-sm ml-2">
-                      {formatTimestamp(post.created_at)}
-                    </span>
-                  </div>
-                </div>
-                
-                <p className="text-white mb-3">{post.content}</p>
-                
-                {post.hashtags && post.hashtags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {post.hashtags.map((hashtag, index) => (
-                      <span key={index} className="text-blue-400 text-sm">
-                        #{hashtag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                
-                {post.image_url && (
-                  <img 
-                    src={post.image_url} 
-                    alt="Post image" 
-                    className="w-full rounded-lg mb-3 max-h-64 object-cover"
-                  />
-                )}
-                
-                <div className="flex items-center space-x-4 text-zinc-400 text-sm">
-                  <span>{post.likes_count} إعجاب</span>
-                  <span>{post.comments_count} تعليق</span>
-                </div>
+              <div key={post.id} className="bg-zinc-800 rounded-lg overflow-hidden">
+                <HashtagPost
+                  post={{
+                    ...post,
+                    hashtag: post.hashtags?.[0] || '',
+                    profiles: {
+                      id: profile.id,
+                      username: profile.username,
+                      avatar_url: profile.avatar_url
+                    },
+                    hashtag_likes: []
+                  }}
+                  onLikeChange={handlePostInteraction}
+                  hideCommentsButton={false}
+                />
               </div>
             ))
           )}
