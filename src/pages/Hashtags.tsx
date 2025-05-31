@@ -89,9 +89,6 @@ const Hashtags = () => {
             id,
             username,
             avatar_url
-          ),
-          hashtag_likes (
-            user_id
           )
         `)
         .order('created_at', { ascending: false });
@@ -111,8 +108,23 @@ const Hashtags = () => {
         return;
       }
 
+      // Get real likes count for each post
+      const postsWithRealLikesCount = await Promise.all(
+        data.map(async (post) => {
+          const { count: realLikesCount } = await supabase
+            .from('hashtag_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+
+          return {
+            ...post,
+            likes_count: realLikesCount || 0
+          };
+        })
+      );
+
       // Log each post's hashtags in detail
-      data.forEach((post, index) => {
+      postsWithRealLikesCount.forEach((post, index) => {
         console.log(`Post ${index + 1} (ID: ${post.id}):`, {
           content: post.content.substring(0, 100),
           hashtags: post.hashtags,
@@ -125,7 +137,7 @@ const Hashtags = () => {
       });
 
       // Simple filter - just check if hashtags array exists and has content
-      const postsWithHashtags = data.filter(post => {
+      const postsWithHashtags = postsWithRealLikesCount.filter(post => {
         const hasHashtags = post.hashtags && 
                            Array.isArray(post.hashtags) && 
                            post.hashtags.length > 0;
@@ -233,9 +245,6 @@ const Hashtags = () => {
             id,
             username,
             avatar_url
-          ),
-          hashtag_likes (
-            user_id
           )
         `)
         .or(`content.ilike.%${searchQuery}%,hashtags.cs.{${searchQuery}}`)
@@ -244,6 +253,24 @@ const Hashtags = () => {
 
       if (postsError) {
         console.error('Error searching posts:', postsError);
+      }
+
+      // Get real likes count for search results
+      let postsWithRealLikesCount = [];
+      if (postsData) {
+        postsWithRealLikesCount = await Promise.all(
+          postsData.map(async (post) => {
+            const { count: realLikesCount } = await supabase
+              .from('hashtag_likes')
+              .select('*', { count: 'exact', head: true })
+              .eq('post_id', post.id);
+
+            return {
+              ...post,
+              likes_count: realLikesCount || 0
+            };
+          })
+        );
       }
 
       // Search comments for hashtags
@@ -260,7 +287,7 @@ const Hashtags = () => {
       const hashtagCounts = new Map<string, number>();
       
       // Count hashtags from posts - only from posts that have hashtags
-      postsData?.filter(post => post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0)
+      postsWithRealLikesCount?.filter(post => post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0)
         .forEach(post => {
           post.hashtags?.forEach(tag => {
             if (tag.toLowerCase().includes(searchQuery)) {
@@ -292,7 +319,7 @@ const Hashtags = () => {
         .map(([tag]) => tag);
 
       // Filter search results to only include posts with hashtags
-      const filteredPostsData = (postsData || []).filter(post => 
+      const filteredPostsData = (postsWithRealLikesCount || []).filter(post => 
         post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0
       );
 
@@ -308,7 +335,8 @@ const Hashtags = () => {
   };
 
   const handlePostLikeChange = () => {
-    console.log('Post like changed, keeping current view');
+    console.log('Post like changed, refreshing posts');
+    fetchPosts();
   };
 
   const renderPost = (post: HashtagPostWithProfile) => (

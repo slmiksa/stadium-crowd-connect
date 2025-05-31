@@ -34,53 +34,94 @@ const LikeButton: React.FC<LikeButtonProps> = ({
 
   const config = sizeConfig[size];
 
-  useEffect(() => {
-    if (user && (postId || commentId)) {
-      checkIfLiked();
+  // Fetch current like status and count
+  const fetchLikeData = async () => {
+    if (!postId && !commentId) return;
+
+    try {
+      if (postId) {
+        // Get current likes count
+        const { count: currentCount } = await supabase
+          .from('hashtag_likes')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', postId);
+
+        if (currentCount !== null) {
+          setLikesCount(currentCount);
+        }
+
+        // Check if user liked this post
+        if (user) {
+          const { data } = await supabase
+            .from('hashtag_likes')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('post_id', postId)
+            .single();
+
+          setIsLiked(!!data);
+        }
+      } else if (commentId) {
+        // Get current likes count for comment
+        const { count: currentCount } = await supabase
+          .from('hashtag_comment_likes')
+          .select('*', { count: 'exact', head: true })
+          .eq('comment_id', commentId);
+
+        if (currentCount !== null) {
+          setLikesCount(currentCount);
+        }
+
+        // Check if user liked this comment
+        if (user) {
+          const { data } = await supabase
+            .from('hashtag_comment_likes')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('comment_id', commentId)
+            .single();
+
+          setIsLiked(!!data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching like data:', error);
     }
+  };
+
+  useEffect(() => {
+    fetchLikeData();
   }, [user, postId, commentId]);
 
   useEffect(() => {
     setLikesCount(initialLikesCount);
   }, [initialLikesCount]);
 
-  const checkIfLiked = async () => {
-    if (!user) return;
+  // Real-time updates
+  useEffect(() => {
+    if (!postId && !commentId) return;
 
-    try {
-      if (postId) {
-        const { data, error } = await supabase
-          .from('hashtag_likes')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('post_id', postId)
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error checking like status:', error);
-          return;
+    const channel = supabase
+      .channel(`likes-${postId || commentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: postId ? 'hashtag_likes' : 'hashtag_comment_likes',
+          filter: postId ? `post_id=eq.${postId}` : `comment_id=eq.${commentId}`
+        },
+        () => {
+          // Refetch like data when changes occur
+          fetchLikeData();
         }
+      )
+      .subscribe();
 
-        setIsLiked(!!data);
-      } else if (commentId) {
-        const { data, error } = await supabase
-          .from('hashtag_comment_likes')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('comment_id', commentId)
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error checking like status:', error);
-          return;
-        }
-
-        setIsLiked(!!data);
-      }
-    } catch (error) {
-      console.error('Error in checkIfLiked:', error);
-    }
-  };
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [postId, commentId]);
 
   const handleLike = async () => {
     if (!user) {
@@ -111,8 +152,6 @@ const LikeButton: React.FC<LikeButtonProps> = ({
             return;
           }
 
-          setIsLiked(false);
-          setLikesCount(prev => Math.max(0, prev - 1));
           toast.success('تم إلغاء الإعجاب');
         } else {
           // Add like to post
@@ -129,8 +168,6 @@ const LikeButton: React.FC<LikeButtonProps> = ({
             return;
           }
 
-          setIsLiked(true);
-          setLikesCount(prev => prev + 1);
           toast.success('تم الإعجاب بنجاح');
         }
       } else if (commentId) {
@@ -148,8 +185,6 @@ const LikeButton: React.FC<LikeButtonProps> = ({
             return;
           }
 
-          setIsLiked(false);
-          setLikesCount(prev => Math.max(0, prev - 1));
           toast.success('تم إلغاء الإعجاب');
         } else {
           // Add like to comment
@@ -166,13 +201,12 @@ const LikeButton: React.FC<LikeButtonProps> = ({
             return;
           }
 
-          setIsLiked(true);
-          setLikesCount(prev => prev + 1);
           toast.success('تم الإعجاب بنجاح');
         }
       }
 
-      // Call parent callback
+      // Refresh data and notify parent
+      await fetchLikeData();
       if (onLikeChange) {
         onLikeChange();
       }
