@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock, User, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import CommentInput from './CommentInput';
 import PostComments from './PostComments';
 
@@ -46,6 +46,7 @@ interface HashtagPostProps {
 
 const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, isLiked = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -54,6 +55,9 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
   const [showImageModal, setShowImageModal] = useState(false);
   const [localLikesCount, setLocalLikesCount] = useState(post.likes_count);
   const [localIsLiked, setLocalIsLiked] = useState(isLiked);
+
+  // Check if we're on the hashtags page to determine comment display style
+  const isHashtagsPage = location.pathname === '/hashtags' || location.pathname.startsWith('/hashtag/');
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -301,11 +305,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
           </button>
         </div>
 
-        {/* Comments Section - Fixed position and scrolling */}
-        {showComments && (
-          <div className="mt-6 pt-6 border-t border-gray-700/50 relative">
+        {/* Comments Section - Inline dropdown for hashtags page */}
+        {showComments && isHashtagsPage && (
+          <div className="mt-6 pt-6 border-t border-gray-700/50">
             {user && (
-              <div className="sticky top-0 bg-gradient-to-br from-gray-800/95 to-gray-900/95 backdrop-blur-sm z-10 pb-4 mb-4">
+              <div className="mb-4">
                 <CommentInput 
                   onSubmit={async (content: string, imageFile?: File, parentId?: string) => {
                     if (!user || (!content.trim() && !imageFile)) return;
@@ -353,17 +357,64 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
               </div>
             )}
             
-            <div className="max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600">
-              <PostComments 
-                postId={post.id}
-                isOpen={showComments}
-                onClose={() => setShowComments(false)}
-                onCommentAdded={handleCommentAdded}
-              />
+            <div className="max-h-80 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600">
+              {isLoadingComments ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : comments.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">لا توجد تعليقات بعد</p>
+                  <p className="text-gray-500 text-sm">كن أول من يعلق!</p>
+                </div>
+              ) : (
+                comments.map((comment) => (
+                  <div key={comment.id} className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-white">
+                          {comment.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <button
+                            onClick={() => handleCommentProfileClick(comment.user_id)}
+                            className="font-medium text-gray-200 hover:text-blue-400 transition-colors text-sm"
+                          >
+                            {comment.profiles?.username || 'مستخدم مجهول'}
+                          </button>
+                          <span className="text-xs text-gray-500">
+                            {formatTimestamp(comment.created_at)}
+                          </span>
+                        </div>
+                        <p className="text-gray-300 text-sm">{comment.content}</p>
+                        {comment.image_url && (
+                          <img 
+                            src={comment.image_url} 
+                            alt="Comment image" 
+                            className="mt-2 max-w-full h-auto rounded-lg"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
       </div>
+
+      {/* Modal Comments for non-hashtags pages */}
+      {showComments && !isHashtagsPage && (
+        <PostComments 
+          postId={post.id}
+          isOpen={showComments}
+          onClose={() => setShowComments(false)}
+          onCommentAdded={handleCommentAdded}
+        />
+      )}
 
       {/* Image Modal */}
       {showImageModal && post.image_url && (
