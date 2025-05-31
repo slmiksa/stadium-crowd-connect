@@ -74,10 +74,10 @@ const CommentInput: React.FC<CommentInputProps> = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 bg-zinc-800/50 backdrop-blur-sm rounded-lg p-4 border border-zinc-700/50">
       {/* Reply indicator */}
       {replyTo && (
-        <div className="flex items-center gap-2 text-sm text-zinc-400 bg-zinc-800 p-2 rounded">
+        <div className="flex items-center gap-2 text-sm text-zinc-400 bg-zinc-700/50 p-2 rounded">
           <Reply size={14} />
           <span>رد على {replyTo.username}</span>
           {onCancelReply && (
@@ -94,16 +94,16 @@ const CommentInput: React.FC<CommentInputProps> = ({
 
       {/* Image Preview */}
       {imagePreview && (
-        <div className="relative">
+        <div className="relative inline-block">
           <img 
             src={imagePreview} 
             alt="Preview" 
-            className="w-20 h-20 object-cover rounded-lg"
+            className="w-20 h-20 object-cover rounded-lg border border-zinc-600"
           />
           <button
             type="button"
             onClick={removeImage}
-            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"
+            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
           >
             <X size={12} className="text-white" />
           </button>
@@ -111,14 +111,14 @@ const CommentInput: React.FC<CommentInputProps> = ({
       )}
 
       {/* Comment Input Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-2">
-        <div className="flex space-x-2 space-x-reverse">
+      <form onSubmit={handleSubmit} className="flex flex-col space-y-3">
+        <div className="flex space-x-2 space-x-reverse gap-2">
           <Textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={replyTo ? `رد على ${replyTo.username}...` : placeholder}
-            className="flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-400 resize-none min-h-[60px] max-h-[120px]"
+            className="flex-1 bg-zinc-700/50 border-zinc-600 text-white placeholder:text-zinc-400 resize-none min-h-[60px] max-h-[120px] focus:border-blue-500 focus:ring-blue-500/20"
             disabled={isSubmitting}
             rows={2}
           />
@@ -126,7 +126,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 bg-zinc-700 rounded-lg hover:bg-zinc-600 transition-colors"
+              className="p-2 bg-zinc-700/50 rounded-lg hover:bg-zinc-600 transition-colors border border-zinc-600 hover:border-zinc-500"
               disabled={isSubmitting}
             >
               <Image size={16} className="text-zinc-300" />
@@ -134,7 +134,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
             <Button
               type="submit"
               disabled={(!comment.trim() && !selectedImage) || isSubmitting}
-              className="p-2 bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-0"
               size="sm"
             >
               {isSubmitting ? (

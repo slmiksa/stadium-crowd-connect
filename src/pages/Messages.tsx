@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -48,9 +49,9 @@ const Messages = () => {
       fetchConversations();
       fetchNotifications();
       
-      // Subscribe to real-time updates for messages with better channel names
+      // Subscribe to real-time updates for messages
       const messagesChannel = supabase
-        .channel(`messages_${user.id}`)
+        .channel(`messages_realtime_${user.id}`)
         .on(
           'postgres_changes',
           {
@@ -60,14 +61,17 @@ const Messages = () => {
           },
           (payload) => {
             console.log('Message update:', payload);
-            fetchConversations();
+            // Only fetch if it's a message for or from this user
+            if (payload.new?.sender_id === user.id || payload.new?.receiver_id === user.id) {
+              fetchConversations();
+            }
           }
         )
         .subscribe();
 
       // Subscribe to real-time updates for notifications
       const notificationsChannel = supabase
-        .channel(`notifications_${user.id}`)
+        .channel(`notifications_realtime_${user.id}`)
         .on(
           'postgres_changes',
           {
@@ -153,6 +157,7 @@ const Messages = () => {
     if (!user) return;
 
     try {
+      console.log('Fetching notifications for user:', user.id);
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -164,6 +169,7 @@ const Messages = () => {
         return;
       }
 
+      console.log('Fetched notifications:', data);
       setNotifications(data || []);
     } catch (error) {
       console.error('Error:', error);
@@ -211,7 +217,7 @@ const Messages = () => {
     if (notification.type === 'follow' && notification.data?.follower_id) {
       navigate(`/user-profile/${notification.data.follower_id}`);
     } else if (notification.type === 'comment' && notification.data?.post_id) {
-      navigate(`/hashtag/${notification.data.post_id}`);
+      navigate(`/hashtags`);
     } else if (notification.type === 'message' && notification.data?.sender_id) {
       navigate(`/private-chat/${notification.data.sender_id}`);
     }

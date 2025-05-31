@@ -301,62 +301,66 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
           </button>
         </div>
 
-        {/* Comments Section */}
+        {/* Comments Section - Fixed position and scrolling */}
         {showComments && (
-          <div className="mt-6 pt-6 border-t border-gray-700/50">
+          <div className="mt-6 pt-6 border-t border-gray-700/50 relative">
             {user && (
-              <CommentInput 
-                onSubmit={async (content: string, imageFile?: File, parentId?: string) => {
-                  if (!user || (!content.trim() && !imageFile)) return;
+              <div className="sticky top-0 bg-gradient-to-br from-gray-800/95 to-gray-900/95 backdrop-blur-sm z-10 pb-4 mb-4">
+                <CommentInput 
+                  onSubmit={async (content: string, imageFile?: File, parentId?: string) => {
+                    if (!user || (!content.trim() && !imageFile)) return;
 
-                  try {
-                    let imageUrl = null;
+                    try {
+                      let imageUrl = null;
 
-                    if (imageFile) {
-                      const fileExt = imageFile.name.split('.').pop();
-                      const fileName = `${Math.random()}.${fileExt}`;
-                      const filePath = `comment-images/${fileName}`;
+                      if (imageFile) {
+                        const fileExt = imageFile.name.split('.').pop();
+                        const fileName = `${Math.random()}.${fileExt}`;
+                        const filePath = `comment-images/${fileName}`;
 
-                      const { error: uploadError } = await supabase.storage
-                        .from('hashtag-images')
-                        .upload(filePath, imageFile);
-
-                      if (!uploadError) {
-                        const { data: { publicUrl } } = supabase.storage
+                        const { error: uploadError } = await supabase.storage
                           .from('hashtag-images')
-                          .getPublicUrl(filePath);
-                        imageUrl = publicUrl;
+                          .upload(filePath, imageFile);
+
+                        if (!uploadError) {
+                          const { data: { publicUrl } } = supabase.storage
+                            .from('hashtag-images')
+                            .getPublicUrl(filePath);
+                          imageUrl = publicUrl;
+                        }
                       }
-                    }
 
-                    const { error } = await supabase
-                      .from('hashtag_comments')
-                      .insert({
-                        post_id: post.id,
-                        user_id: user.id,
-                        content: content.trim() || '',
-                        image_url: imageUrl,
-                        parent_id: parentId || null
-                      });
+                      const { error } = await supabase
+                        .from('hashtag_comments')
+                        .insert({
+                          post_id: post.id,
+                          user_id: user.id,
+                          content: content.trim() || '',
+                          image_url: imageUrl,
+                          parent_id: parentId || null
+                        });
 
-                    if (!error) {
-                      handleCommentAdded();
+                      if (!error) {
+                        handleCommentAdded();
+                      }
+                    } catch (error) {
+                      console.error('Error submitting comment:', error);
                     }
-                  } catch (error) {
-                    console.error('Error submitting comment:', error);
-                  }
-                }}
-                isSubmitting={false}
-                placeholder="اكتب تعليقك..."
-              />
+                  }}
+                  isSubmitting={false}
+                  placeholder="اكتب تعليقك..."
+                />
+              </div>
             )}
             
-            <PostComments 
-              postId={post.id}
-              isOpen={showComments}
-              onClose={() => setShowComments(false)}
-              onCommentAdded={handleCommentAdded}
-            />
+            <div className="max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600">
+              <PostComments 
+                postId={post.id}
+                isOpen={showComments}
+                onClose={() => setShowComments(false)}
+                onCommentAdded={handleCommentAdded}
+              />
+            </div>
           </div>
         )}
       </div>
