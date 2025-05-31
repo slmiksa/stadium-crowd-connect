@@ -92,6 +92,11 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     }
   };
 
+  const handleVoiceButtonClick = () => {
+    console.log('Voice button clicked');
+    setShowVoiceRecorder(true);
+  };
+
   if (showVoiceRecorder) {
     return (
       <VoiceRecorder
@@ -146,26 +151,28 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex items-end space-x-2">
+      <form onSubmit={handleSubmit} className="flex items-end gap-2">
         {/* Voice Record Button */}
-        <button
+        <Button
           type="button"
-          onClick={() => setShowVoiceRecorder(true)}
-          className="p-2 bg-zinc-700 rounded-lg hover:bg-zinc-600 transition-colors flex-shrink-0"
+          onClick={handleVoiceButtonClick}
           disabled={isSending}
+          className="p-2 bg-zinc-700 hover:bg-zinc-600 transition-colors flex-shrink-0 h-10 w-10"
+          variant="secondary"
         >
           <Mic size={20} className="text-zinc-300" />
-        </button>
+        </Button>
 
         {/* Media Button */}
-        <button
+        <Button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="p-2 bg-zinc-700 rounded-lg hover:bg-zinc-600 transition-colors flex-shrink-0"
           disabled={isSending}
+          className="p-2 bg-zinc-700 hover:bg-zinc-600 transition-colors flex-shrink-0 h-10 w-10"
+          variant="secondary"
         >
           <Camera size={20} className="text-zinc-300" />
-        </button>
+        </Button>
         
         <input
           ref={fileInputRef}
