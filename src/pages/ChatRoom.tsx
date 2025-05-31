@@ -209,7 +209,10 @@ const ChatRoom = () => {
 
       if (voiceFile) {
         console.log('ChatRoom: Uploading voice file to storage...');
-        const fileName = `${user.id}/${Date.now()}_voice.webm`;
+        console.log('ChatRoom: Voice file size:', voiceFile.size);
+        console.log('ChatRoom: Voice file type:', voiceFile.type);
+        
+        const fileName = `voice_${user.id}_${Date.now()}.webm`;
 
         const { data, error: uploadError } = await supabase.storage
           .from('voice-messages')
@@ -233,19 +236,29 @@ const ChatRoom = () => {
         voiceUrl = publicUrl;
         console.log('ChatRoom: Voice public URL generated:', voiceUrl);
         
-        // Test the URL immediately
+        // Test the URL immediately with proper headers
         try {
-          const testResponse = await fetch(voiceUrl, { method: 'HEAD' });
+          const testResponse = await fetch(voiceUrl, { 
+            method: 'HEAD',
+            mode: 'cors'
+          });
           console.log('ChatRoom: Voice URL test response status:', testResponse.status);
           if (!testResponse.ok) {
             console.error('ChatRoom: Voice URL not accessible:', testResponse.status);
+            // Try to get URL again in case of temporary issue
+            const { data: { publicUrl: retryUrl } } = supabase.storage
+              .from('voice-messages')
+              .getPublicUrl(fileName);
+            voiceUrl = retryUrl;
+            console.log('ChatRoom: Retry URL:', voiceUrl);
           }
         } catch (testError) {
           console.error('ChatRoom: Voice URL test failed:', testError);
+          // URL might still work, so continue
         }
       }
 
-      let finalContent = content || 'مرفق';
+      let finalContent = content || 'رسالة صوتية';
       if (quotedMessage) {
         finalContent = `> ${quotedMessage.profiles?.username || 'مستخدم مجهول'}: ${quotedMessage.content}\n\n${finalContent}`;
       }

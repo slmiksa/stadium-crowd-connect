@@ -60,18 +60,21 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
 
   const handleVoiceRecorded = async (audioBlob: Blob, duration: number) => {
     try {
-      console.log('Voice recorded in MediaInput, uploading...');
+      console.log('MediaInput: Voice recorded, blob size:', audioBlob.size);
+      console.log('MediaInput: Voice duration:', duration);
       
-      // Create a File object for compatibility
+      // Create a File object with proper naming and type
       const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, {
         type: 'audio/webm'
       });
 
+      console.log('MediaInput: Created audio file:', audioFile.name, audioFile.size, audioFile.type);
+
       // Send the voice message directly with the file
-      onSendMessage('رسالة صوتية', undefined, undefined, audioFile, duration);
+      await onSendMessage('رسالة صوتية', undefined, undefined, audioFile, Math.round(duration));
       setShowVoiceRecorder(false);
     } catch (error) {
-      console.error('Error handling voice recording:', error);
+      console.error('MediaInput: Error handling voice recording:', error);
       alert('فشل في إرسال الرسالة الصوتية');
       setShowVoiceRecorder(false);
     }

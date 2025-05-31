@@ -118,32 +118,58 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
         setIsLoading(false);
       });
 
+      // Try different URL variations
+      let finalUrl = voiceUrl;
+      
+      // If URL doesn't have proper protocol, try adding it
+      if (!voiceUrl.startsWith('http://') && !voiceUrl.startsWith('https://')) {
+        console.log('VoiceMessage: URL missing protocol, attempting to fix...');
+        if (voiceUrl.includes('supabase')) {
+          finalUrl = `https://${voiceUrl}`;
+        }
+      }
+
+      // Add timestamp to bypass cache if needed
+      if (finalUrl.indexOf('?') === -1) {
+        finalUrl += `?t=${Date.now()}`;
+      } else {
+        finalUrl += `&t=${Date.now()}`;
+      }
+
+      console.log('VoiceMessage: Final URL:', finalUrl);
+
       // Set crossOrigin to handle CORS issues
       audio.crossOrigin = 'anonymous';
       
       // Load the audio with error handling
-      audio.src = voiceUrl;
-      console.log('VoiceMessage: Audio src set to:', audio.src);
+      audio.src = finalUrl;
       
       // Try to load and play
       try {
         audio.load();
         
-        // Wait for the audio to be ready
+        // Wait for the audio to be ready with shorter timeout
         await new Promise((resolve, reject) => {
           const timeoutId = setTimeout(() => {
             reject(new Error('Audio loading timeout'));
-          }, 10000); // 10 second timeout
+          }, 5000); // 5 second timeout
 
-          audio.addEventListener('canplay', () => {
+          const onCanPlay = () => {
             clearTimeout(timeoutId);
+            audio.removeEventListener('canplay', onCanPlay);
+            audio.removeEventListener('error', onError);
             resolve(true);
-          }, { once: true });
+          };
 
-          audio.addEventListener('error', () => {
+          const onError = () => {
             clearTimeout(timeoutId);
+            audio.removeEventListener('canplay', onCanPlay);
+            audio.removeEventListener('error', onError);
             reject(audio.error || new Error('Audio loading failed'));
-          }, { once: true });
+          };
+
+          audio.addEventListener('canplay', onCanPlay);
+          audio.addEventListener('error', onError);
         });
 
         // Now try to play
