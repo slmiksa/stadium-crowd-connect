@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -29,9 +28,10 @@ interface HashtagPostProps {
     }>;
   };
   onLikeChange?: () => void;
+  hideCommentsButton?: boolean;
 }
 
-const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
+const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideCommentsButton = false }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(
@@ -100,6 +100,10 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
     }
   };
 
+  const handleCommentsClick = () => {
+    navigate(`/post/${post.id}`);
+  };
+
   const renderContentWithHashtags = (content: string) => {
     const hashtagRegex = /#[\u0600-\u06FF\w]+/g;
     const parts = content.split(hashtagRegex);
@@ -109,7 +113,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
     for (let i = 0; i < parts.length; i++) {
       result.push(<span key={`text-${i}`}>{parts[i]}</span>);
       if (hashtags[i]) {
-        const hashtag = hashtags[i].slice(1); // Remove the # symbol
+        const hashtag = hashtags[i].slice(1);
         result.push(
           <span
             key={`hashtag-${i}`}
@@ -210,14 +214,26 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
                   <span className="text-sm font-medium">{likesCount}</span>
                 </button>
                 
-                <Collapsible open={showComments} onOpenChange={setShowComments}>
-                  <CollapsibleTrigger asChild>
-                    <button className="flex items-center space-x-2 space-x-reverse text-gray-500 hover:text-blue-400 transition-all duration-200 group">
-                      <MessageCircle size={20} className="transition-transform group-hover:scale-110" />
-                      <span className="text-sm font-medium">{commentsCount}</span>
-                    </button>
-                  </CollapsibleTrigger>
-                </Collapsible>
+                {!hideCommentsButton && (
+                  <button 
+                    onClick={handleCommentsClick}
+                    className="flex items-center space-x-2 space-x-reverse text-gray-500 hover:text-blue-400 transition-all duration-200 group"
+                  >
+                    <MessageCircle size={20} className="transition-transform group-hover:scale-110" />
+                    <span className="text-sm font-medium">{commentsCount}</span>
+                  </button>
+                )}
+
+                {hideCommentsButton && (
+                  <Collapsible open={showComments} onOpenChange={setShowComments}>
+                    <CollapsibleTrigger asChild>
+                      <button className="flex items-center space-x-2 space-x-reverse text-gray-500 hover:text-blue-400 transition-all duration-200 group">
+                        <MessageCircle size={20} className="transition-transform group-hover:scale-110" />
+                        <span className="text-sm font-medium">{commentsCount}</span>
+                      </button>
+                    </CollapsibleTrigger>
+                  </Collapsible>
+                )}
                 
                 <button className="text-gray-500 hover:text-green-400 transition-colors">
                   <Share2 size={20} />
@@ -225,14 +241,16 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
               </div>
             </div>
             
-            <Collapsible open={showComments} onOpenChange={setShowComments}>
-              <CollapsibleContent className="space-y-0 overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                <CollapsibleComments
-                  postId={post.id}
-                  onCommentAdded={handleCommentAdded}
-                />
-              </CollapsibleContent>
-            </Collapsible>
+            {hideCommentsButton && (
+              <Collapsible open={showComments} onOpenChange={setShowComments}>
+                <CollapsibleContent className="space-y-0 overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                  <CollapsibleComments
+                    postId={post.id}
+                    onCommentAdded={handleCommentAdded}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </div>
         </div>
       </div>

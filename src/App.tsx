@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Hashtags from "./pages/Hashtags";
 import CreateHashtagPost from "./pages/CreateHashtagPost";
 import HashtagPage from "./pages/HashtagPage";
+import PostPage from "./pages/PostPage";
 import Matches from "./pages/Matches";
 import MatchDetails from "./pages/MatchDetails";
 import Profile from "./pages/Profile";
@@ -61,6 +62,14 @@ const App = () => (
                 element={
                   <AuthGuard>
                     <HashtagPage />
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/post/:postId"
+                element={
+                  <AuthGuard>
+                    <PostPage />
                   </AuthGuard>
                 }
               />
