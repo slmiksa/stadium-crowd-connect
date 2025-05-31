@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -65,7 +64,47 @@ const UserProfile = () => {
       }
 
       console.log('Profile data:', data);
-      setProfile(data);
+      
+      // Fetch actual follower and following counts from the database
+      const { data: followersData, error: followersError } = await supabase
+        .from('follows')
+        .select('id')
+        .eq('following_id', userId);
+
+      const { data: followingData, error: followingError } = await supabase
+        .from('follows')
+        .select('id')
+        .eq('follower_id', userId);
+
+      if (followersError) {
+        console.error('Error fetching followers count:', followersError);
+      }
+
+      if (followingError) {
+        console.error('Error fetching following count:', followingError);
+      }
+
+      // Update profile with actual counts
+      const updatedProfile = {
+        ...data,
+        followers_count: followersData?.length || 0,
+        following_count: followingData?.length || 0,
+      };
+
+      console.log('Updated profile with counts:', updatedProfile);
+      setProfile(updatedProfile);
+
+      // Update the profile counts in the database if they're different
+      if (data.followers_count !== (followersData?.length || 0) || 
+          data.following_count !== (followingData?.length || 0)) {
+        await supabase
+          .from('profiles')
+          .update({
+            followers_count: followersData?.length || 0,
+            following_count: followingData?.length || 0,
+          })
+          .eq('id', userId);
+      }
     } catch (error) {
       console.error('Error:', error);
     }
@@ -270,9 +309,9 @@ const UserProfile = () => {
                 <div className="flex items-start space-x-6 mb-8">
                   <div className="relative">
                     <Avatar className="w-24 h-24 border-4 border-gradient-to-br from-blue-400 via-purple-500 to-pink-500 shadow-xl">
-                      <AvatarImage src={profile.avatar_url} alt={profile.username} />
+                      <AvatarImage src={profile?.avatar_url} alt={profile?.username} />
                       <AvatarFallback className="bg-gradient-to-br from-blue-500 via-purple-600 to-pink-600 text-white text-2xl font-bold">
-                        {profile.username?.charAt(0).toUpperCase() || 'U'}
+                        {profile?.username?.charAt(0).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full border-4 border-zinc-800 flex items-center justify-center">
@@ -282,14 +321,14 @@ const UserProfile = () => {
                   
                   <div className="flex-1 min-w-0">
                     <h2 className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent mb-2">
-                      {profile.username}
+                      {profile?.username}
                     </h2>
-                    {profile.bio && (
+                    {profile?.bio && (
                       <p className="text-zinc-300 leading-relaxed mb-3 bg-zinc-800/30 p-3 rounded-lg border border-zinc-700/30">
                         {profile.bio}
                       </p>
                     )}
-                    {profile.favorite_team && (
+                    {profile?.favorite_team && (
                       <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 px-4 py-2 rounded-full border border-blue-400/30">
                         <span className="text-lg">⚽</span>
                         <span className="text-blue-300 font-medium">{profile.favorite_team}</span>
@@ -307,7 +346,7 @@ const UserProfile = () => {
                     <div className="flex items-center justify-center mb-2">
                       <Users className="text-blue-400 group-hover:text-blue-300 transition-colors" size={20} />
                     </div>
-                    <div className="text-2xl font-bold text-white mb-1">{profile.followers_count || 0}</div>
+                    <div className="text-2xl font-bold text-white mb-1">{profile?.followers_count || 0}</div>
                     <div className="text-xs text-zinc-400">متابِع</div>
                   </div>
                   
@@ -318,7 +357,7 @@ const UserProfile = () => {
                     <div className="flex items-center justify-center mb-2">
                       <Heart className="text-pink-400 group-hover:text-pink-300 transition-colors" size={20} />
                     </div>
-                    <div className="text-2xl font-bold text-white mb-1">{profile.following_count || 0}</div>
+                    <div className="text-2xl font-bold text-white mb-1">{profile?.following_count || 0}</div>
                     <div className="text-xs text-zinc-400">متابَع</div>
                   </div>
                   
