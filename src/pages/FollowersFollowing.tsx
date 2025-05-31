@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -131,6 +130,10 @@ const FollowersFollowing = () => {
     }
   };
 
+  const handleUserProfileClick = (userProfileId: string) => {
+    navigate(`/user-profile/${userProfileId}`);
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -168,7 +171,10 @@ const FollowersFollowing = () => {
             users.map((userProfile) => (
               <div key={userProfile.id} className="bg-zinc-800 rounded-lg p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
+                  <div 
+                    className="flex items-center space-x-3 flex-1 cursor-pointer hover:bg-zinc-700/50 rounded-lg p-2 -m-2 transition-colors"
+                    onClick={() => handleUserProfileClick(userProfile.id)}
+                  >
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
                       <span className="text-lg font-bold text-white">
                         {userProfile.username?.charAt(0).toUpperCase() || 'U'}
@@ -179,6 +185,9 @@ const FollowersFollowing = () => {
                       {userProfile.bio && (
                         <p className="text-sm text-zinc-400">{userProfile.bio}</p>
                       )}
+                      <p className="text-xs text-blue-400 mt-1">
+                        انقر للذهاب إلى البروفايل
+                      </p>
                     </div>
                   </div>
                   
