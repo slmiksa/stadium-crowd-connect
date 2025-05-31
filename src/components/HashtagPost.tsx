@@ -79,6 +79,49 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     };
   }, [post.id]);
 
+  // Set up real-time updates for likes
+  useEffect(() => {
+    const channel = supabase
+      .channel(`post-${post.id}-likes`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'hashtag_likes',
+          filter: `post_id=eq.${post.id}`
+        },
+        async () => {
+          // Refetch the actual likes count and user like status
+          await Promise.all([
+            fetchCurrentLikesCount(),
+            checkUserLike()
+          ]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [post.id, user]);
+
+  const fetchCurrentLikesCount = async () => {
+    try {
+      const { data: updatedPost, error } = await supabase
+        .from('hashtag_posts')
+        .select('likes_count')
+        .eq('id', post.id)
+        .single();
+
+      if (!error && updatedPost) {
+        setLikesCount(updatedPost.likes_count || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching likes count:', error);
+    }
+  };
+
   const checkUserLike = async () => {
     if (!user) return;
 
@@ -117,16 +160,15 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
 
     setIsProcessing(true);
     
-    // تحديث فوري للواجهة
-    const newIsLiked = !isLiked;
-    const newLikesCount = newIsLiked ? likesCount + 1 : Math.max(0, likesCount - 1);
-    
-    setIsLiked(newIsLiked);
-    setLikesCount(newLikesCount);
-
     try {
-      if (newIsLiked) {
+      if (!isLiked) {
         // إضافة إعجاب
+        console.log('Adding like for post:', post.id);
+        
+        // تحديث فوري للواجهة
+        setIsLiked(true);
+        setLikesCount(prev => prev + 1);
+        
         const { error } = await supabase
           .from('hashtag_likes')
           .insert({
@@ -138,10 +180,20 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
           console.error('Error adding like:', error);
           // إعادة التغيير في حالة الخطأ
           setIsLiked(false);
-          setLikesCount(likesCount);
+          setLikesCount(prev => prev - 1);
+        } else {
+          console.log('Like added successfully');
+          // التأكد من أن العدد محدث من قاعدة البيانات
+          await fetchCurrentLikesCount();
         }
       } else {
         // إزالة إعجاب
+        console.log('Removing like for post:', post.id);
+        
+        // تحديث فوري للواجهة
+        setIsLiked(false);
+        setLikesCount(prev => Math.max(0, prev - 1));
+        
         const { error } = await supabase
           .from('hashtag_likes')
           .delete()
@@ -152,19 +204,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
           console.error('Error removing like:', error);
           // إعادة التغيير في حالة الخطأ
           setIsLiked(true);
-          setLikesCount(likesCount);
+          setLikesCount(prev => prev + 1);
+        } else {
+          console.log('Like removed successfully');
+          // التأكد من أن العدد محدث من قاعدة البيانات
+          await fetchCurrentLikesCount();
         }
-      }
-      
-      // تحديث عدد الإعجابات من قاعدة البيانات للتأكد من الدقة
-      const { data: updatedPost, error: fetchError } = await supabase
-        .from('hashtag_posts')
-        .select('likes_count')
-        .eq('id', post.id)
-        .single();
-
-      if (!fetchError && updatedPost) {
-        setLikesCount(updatedPost.likes_count);
       }
       
       if (onLikeChange) {
@@ -172,9 +217,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      // إعادة التغيير في حالة الخطأ
-      setIsLiked(!newIsLiked);
-      setLikesCount(likesCount);
+      // إعادة الحالة في حالة خطأ غير متوقع
+      await Promise.all([
+        fetchCurrentLikesCount(),
+        checkUserLike()
+      ]);
     } finally {
       setIsProcessing(false);
     }
@@ -299,13 +346,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
                 <button
                   onClick={handleLike}
                   disabled={!user || isProcessing}
-                  className={`flex items-center space-x-2 space-x-reverse transition-all duration-100 group disabled:opacity-70 transform active:scale-95 ${
+                  className={`flex items-center space-x-2 space-x-reverse transition-all duration-150 group disabled:opacity-70 transform active:scale-95 ${
                     isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-400'
                   } ${isProcessing ? 'cursor-wait' : 'cursor-pointer'}`}
                 >
                   <Heart 
                     size={20} 
-                    className={`transition-all duration-100 group-hover:scale-110 ${
+                    className={`transition-all duration-150 group-hover:scale-110 ${
                       isLiked ? 'fill-current scale-110' : ''
                     } ${isProcessing ? 'animate-pulse' : ''}`}
                   />
