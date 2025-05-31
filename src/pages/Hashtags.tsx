@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -73,7 +72,8 @@ const Hashtags = () => {
 
   const fetchPosts = async () => {
     try {
-      console.log('Fetching posts with hashtags...');
+      console.log('=== Starting fetchPosts ===');
+      
       const { data, error } = await supabase
         .from('hashtag_posts')
         .select(`
@@ -87,49 +87,70 @@ const Hashtags = () => {
             user_id
           )
         `)
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching posts:', error);
         return;
       }
 
-      console.log('Fetched all posts data:', data);
+      console.log('Raw data from database:', data);
+      console.log('Total posts fetched:', data?.length || 0);
 
-      // تأكد من أن المنشورات التي تحتوي على هاشتاقات تظهر فقط
-      const postsWithHashtags = (data || []).filter(post => {
-        // التحقق من وجود هاشتاقات صالحة
-        const hasValidHashtags = post.hashtags && 
-                                Array.isArray(post.hashtags) && 
-                                post.hashtags.length > 0 &&
-                                post.hashtags.some(tag => tag && tag.trim() !== '');
-        
-        console.log(`Post ${post.id} hashtags check:`, {
+      if (!data || data.length === 0) {
+        console.log('No posts found in database');
+        setPopularPosts([]);
+        setTrendingPosts([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Log each post's hashtags in detail
+      data.forEach((post, index) => {
+        console.log(`Post ${index + 1} (ID: ${post.id}):`, {
+          content: post.content.substring(0, 100),
           hashtags: post.hashtags,
-          hasValidHashtags,
+          hashtagsType: typeof post.hashtags,
+          hashtagsLength: post.hashtags?.length,
+          isArray: Array.isArray(post.hashtags),
+          likes_count: post.likes_count,
+          created_at: post.created_at
+        });
+      });
+
+      // Simple filter - just check if hashtags array exists and has content
+      const postsWithHashtags = data.filter(post => {
+        const hasHashtags = post.hashtags && 
+                           Array.isArray(post.hashtags) && 
+                           post.hashtags.length > 0;
+        
+        console.log(`Post ${post.id} filter result:`, {
+          hasHashtags,
+          hashtags: post.hashtags,
           content: post.content.substring(0, 50)
         });
         
-        return hasValidHashtags;
+        return hasHashtags;
       });
       
-      console.log('Posts with valid hashtags:', postsWithHashtags.length);
+      console.log('=== Filter Results ===');
+      console.log('Posts with hashtags:', postsWithHashtags.length);
+      console.log('Filtered posts IDs:', postsWithHashtags.map(p => p.id));
       
-      // Popular posts (most likes) - showing all posts with hashtags
-      const popular = [...postsWithHashtags]
-        .sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
+      // Don't sort by likes for popular - just show all posts with hashtags in chronological order
+      const popular = [...postsWithHashtags];
       
-      // Trending posts (5+ comments for more realistic trending)
+      // Trending posts (5+ comments)
       const trending = postsWithHashtags.filter(post => (post.comments_count || 0) >= 5);
       
+      console.log('=== Final Results ===');
       console.log('Popular posts count:', popular.length);
       console.log('Trending posts count:', trending.length);
       
       setPopularPosts(popular);
       setTrendingPosts(trending);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in fetchPosts:', error);
     } finally {
       setIsLoading(false);
     }
