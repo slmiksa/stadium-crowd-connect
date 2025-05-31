@@ -333,9 +333,9 @@ const ChatRoom = () => {
 
   return (
     <Layout showBottomNav={false}>
-      <div className="flex flex-col h-screen bg-zinc-900">
+      <div className="flex flex-col h-screen bg-zinc-900 relative">
         {/* Header */}
-        <div className="bg-zinc-800 border-b border-zinc-700 p-4 flex-shrink-0">
+        <div className="bg-zinc-800 border-b border-zinc-700 p-4 flex-shrink-0 pt-safe-top">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <button 
@@ -378,9 +378,9 @@ const ChatRoom = () => {
           </div>
         )}
 
-        {/* Messages Container */}
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto p-4 space-y-4">
+        {/* Messages Container - Add bottom padding for input area */}
+        <div className="flex-1 overflow-hidden pb-20">
+          <div className="h-full overflow-y-auto p-4 space-y-4" style={{ paddingBottom: '100px' }}>
             {messages.map((message) => (
               <div key={message.id} className="flex items-start space-x-3 group">
                 <div 
@@ -455,8 +455,8 @@ const ChatRoom = () => {
           </div>
         </div>
 
-        {/* Input Area - Fixed at bottom */}
-        <div className="flex-shrink-0">
+        {/* Input Area - Fixed at bottom with mobile-specific classes */}
+        <div className="absolute bottom-0 left-0 right-0 mobile-input-container">
           <MediaInput 
             onSendMessage={sendMessage} 
             isSending={false}

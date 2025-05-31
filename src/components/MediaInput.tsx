@@ -79,7 +79,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
   };
 
   return (
-    <div className="bg-zinc-800 border-t border-zinc-700 p-4">
+    <div className="sticky bottom-0 left-0 right-0 z-50 bg-zinc-800 border-t border-zinc-700 px-4 py-3 pb-safe-bottom">
       {/* Quoted Message Preview */}
       {quotedMessage && (
         <div className="mb-3 bg-zinc-700 rounded-lg p-3 border-l-4 border-blue-500">
@@ -87,7 +87,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
             <span className="text-sm text-blue-400">الرد على {quotedMessage.profiles?.username}</span>
             <button
               onClick={onClearQuote}
-              className="text-zinc-400 hover:text-white transition-colors"
+              className="text-zinc-400 hover:text-white transition-colors p-1"
             >
               <X size={16} />
             </button>
@@ -123,13 +123,13 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex items-end gap-2">
+      <form onSubmit={handleSubmit} className="flex items-end gap-3">
         {/* Media Button */}
         <Button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isSending}
-          className="p-2 bg-zinc-700 hover:bg-zinc-600 transition-colors flex-shrink-0 h-10 w-10"
+          className="flex-shrink-0 h-12 w-12 p-0 bg-zinc-700 hover:bg-zinc-600 transition-colors rounded-xl border border-zinc-600"
           variant="secondary"
         >
           <Camera size={20} className="text-zinc-300" />
@@ -143,23 +143,26 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
           className="hidden"
         />
 
-        {/* Message Input */}
-        <Input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="اكتب رسالة..."
-          className="flex-1 bg-zinc-700 border-zinc-600 text-white"
-          disabled={isSending}
-        />
+        {/* Message Input Container */}
+        <div className="flex-1 flex items-end gap-3">
+          <Input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="اكتب رسالة..."
+            className="flex-1 min-h-[48px] bg-zinc-700 border-zinc-600 text-white placeholder-zinc-400 rounded-xl px-4 py-3 text-base resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={isSending}
+            style={{ fontSize: '16px' }} // Prevents zoom on iOS
+          />
 
-        {/* Send Button */}
-        <Button 
-          type="submit" 
-          disabled={(!message.trim() && !selectedMedia) || isSending}
-          className="bg-blue-500 hover:bg-blue-600 flex-shrink-0"
-        >
-          <Send size={18} />
-        </Button>
+          {/* Send Button */}
+          <Button 
+            type="submit" 
+            disabled={(!message.trim() && !selectedMedia) || isSending}
+            className="flex-shrink-0 h-12 w-12 p-0 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
+          >
+            <Send size={20} className="text-white" />
+          </Button>
+        </div>
       </form>
     </div>
   );

@@ -132,6 +132,28 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Safe area support for mobile devices */
+@supports (padding: max(0px)) {
+  .pb-safe-bottom {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  
+  .pt-safe-top {
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+}
+
+/* Fallback for devices without safe area support */
+@supports not (padding: max(0px)) {
+  .pb-safe-bottom {
+    padding-bottom: 12px;
+  }
+  
+  .pt-safe-top {
+    padding-top: 12px;
+  }
+}
+
 /* RTL Support */
 [dir="rtl"] {
   text-align: right;
@@ -178,4 +200,29 @@ html, body {
 
 .animate-pulse {
   animation: pulse 2s infinite;
+}
+
+/* Mobile viewport fixes */
+@media screen and (max-width: 768px) {
+  /* Ensure input area is always visible */
+  .mobile-input-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+  }
+  
+  /* Prevent keyboard from hiding input on iOS */
+  .ios-keyboard-fix {
+    padding-bottom: env(keyboard-inset-height, 0);
+  }
+}
+
+/* Android keyboard handling */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  .mobile-input-container {
+    position: fixed;
+    bottom: 0;
+  }
 }
