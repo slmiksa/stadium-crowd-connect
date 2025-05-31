@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -197,8 +196,12 @@ const Notifications = () => {
     }
 
     // Navigate based on notification type
-    if (notification.type === 'like' || notification.type === 'comment') {
-      navigate('/hashtags');
+    if (notification.type === 'comment' && notification.data?.post_id) {
+      // توجيه المستخدم إلى صفحة المنشور المحددة عند الضغط على تنبيه التعليق
+      navigate(`/post/${notification.data.post_id}`);
+    } else if (notification.type === 'like' && notification.data?.post_id) {
+      // توجيه المستخدم إلى صفحة المنشور المحددة عند الضغط على تنبيه الإعجاب
+      navigate(`/post/${notification.data.post_id}`);
     } else if (notification.type === 'follow') {
       const userId = notification.data?.follower_id;
       if (userId) {
@@ -206,6 +209,9 @@ const Notifications = () => {
       }
     } else if (notification.type === 'message') {
       navigate('/messages');
+    } else {
+      // fallback للهاشتاقات في حالة عدم وجود post_id
+      navigate('/hashtags');
     }
   };
 
