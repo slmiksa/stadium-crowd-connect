@@ -6,6 +6,7 @@ import Layout from '@/components/Layout';
 import { Search, MessageSquare, Bell, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 interface ConversationProfile {
   id: string;
@@ -269,6 +270,8 @@ const Messages = () => {
       userId = notification.data.follower_id;
     } else if (notification.type === 'message' && notification.data?.sender_id) {
       userId = notification.data.sender_id;
+    } else if (notification.type === 'post' && notification.data?.author_id) {
+      userId = notification.data.author_id;
     }
     
     if (userId) {
@@ -433,7 +436,8 @@ const Messages = () => {
                         notification.type === 'follow' ? 'bg-green-500' :
                         notification.type === 'comment' ? 'bg-blue-500' :
                         notification.type === 'like' ? 'bg-red-500' :
-                        notification.type === 'message' ? 'bg-purple-500' : 'bg-gray-500'
+                        notification.type === 'message' ? 'bg-purple-500' :
+                        notification.type === 'post' ? 'bg-yellow-500' : 'bg-gray-500'
                       }`}>
                         {notification.type === 'follow' ? (
                           <Users size={20} className="text-white" />
@@ -457,6 +461,30 @@ const Messages = () => {
                         <p className={`text-sm truncate ${!notification.is_read ? 'text-zinc-300' : 'text-zinc-400'}`}>
                           {notification.message}
                         </p>
+                        
+                        {/* Action buttons for new post notifications */}
+                        {notification.type === 'post' && (
+                          <div className="flex gap-2 mt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => handleProfileNavigation(notification, e)}
+                              className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
+                            >
+                              الذهاب إلى البروفايل
+                            </Button>
+                            {notification.data?.post_id && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => handlePostNavigation(notification, e)}
+                                className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
+                              >
+                                الذهاب إلى المنشور
+                              </Button>
+                            )}
+                          </div>
+                        )}
                         
                         {/* Action buttons for comment and like notifications */}
                         {(notification.type === 'comment' || notification.type === 'like') && (
