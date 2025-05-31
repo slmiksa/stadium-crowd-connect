@@ -95,8 +95,13 @@ const Matches = () => {
   };
 
   const handleMatchClick = (matchId: string) => {
-    // تحقق من وجود المسار في App.tsx - استخدم المسار الصحيح
-    navigate(`/match/${matchId}`);
+    console.log('Navigating to match:', matchId);
+    console.log('Current matches:', matches);
+    try {
+      navigate(`/match/${matchId}`);
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
   const formatTime = (dateString: string) => {
@@ -232,7 +237,10 @@ const Matches = () => {
               matches.map((match) => (
                 <div 
                   key={match.id} 
-                  onClick={() => handleMatchClick(match.id)}
+                  onClick={() => {
+                    console.log('Match clicked:', match.id);
+                    handleMatchClick(match.id);
+                  }}
                   className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 hover:bg-gray-750/80 transition-all duration-300 cursor-pointer border border-gray-700/50 hover:border-blue-500/40 hover:shadow-xl hover:shadow-blue-500/10"
                 >
                   {/* Competition Header */}
