@@ -7,6 +7,7 @@ import OwnerBadge from '@/components/OwnerBadge';
 import RoomMembersModal from '@/components/RoomMembersModal';
 import ChatRoomSettingsModal from '@/components/ChatRoomSettingsModal';
 import ChatRoomAnnouncement from '@/components/ChatRoomAnnouncement';
+import VoiceMessage from '@/components/VoiceMessage';
 import { ArrowLeft, Users, Settings, Quote } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,8 @@ interface Message {
   content: string;
   media_url?: string;
   media_type?: string;
+  voice_url?: string;
+  voice_duration?: number;
   created_at: string;
   user_id: string;
   profiles: {
@@ -176,12 +179,13 @@ const ChatRoom = () => {
     }
   };
 
-  const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
-    if (!content.trim() && !mediaFile) return;
+  const sendMessage = async (content: string, mediaFile?: File, mediaType?: string, voiceFile?: File, voiceDuration?: number) => {
+    if (!content.trim() && !mediaFile && !voiceFile) return;
     if (!user) return;
 
     try {
       let mediaUrl = null;
+      let voiceUrl = null;
       
       if (mediaFile) {
         const fileExt = mediaFile.name.split('.').pop();
@@ -203,6 +207,25 @@ const ChatRoom = () => {
         mediaUrl = publicUrl;
       }
 
+      if (voiceFile) {
+        const fileName = `${user.id}/${Date.now()}.webm`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('voice-messages')
+          .upload(fileName, voiceFile);
+
+        if (uploadError) {
+          console.error('Error uploading voice message:', uploadError);
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('voice-messages')
+          .getPublicUrl(fileName);
+
+        voiceUrl = publicUrl;
+      }
+
       let finalContent = content || 'مرفق';
       if (quotedMessage) {
         finalContent = `> ${quotedMessage.profiles?.username || 'مستخدم مجهول'}: ${quotedMessage.content}\n\n${finalContent}`;
@@ -215,7 +238,9 @@ const ChatRoom = () => {
           user_id: user.id,
           content: finalContent,
           media_url: mediaUrl,
-          media_type: mediaType
+          media_type: mediaType,
+          voice_url: voiceUrl,
+          voice_duration: voiceDuration
         });
 
       if (error) {
@@ -407,6 +432,18 @@ const ChatRoom = () => {
                   </button>
                 </div>
                 
+                {/* Voice Message */}
+                {message.voice_url && message.voice_duration ? (
+                  <div className="mb-2">
+                    <VoiceMessage 
+                      voiceUrl={message.voice_url}
+                      duration={message.voice_duration}
+                      isOwn={message.user_id === user?.id}
+                    />
+                  </div>
+                ) : null}
+                
+                {/* Media Message */}
                 {message.media_url ? (
                   <div className="mb-2">
                     {message.media_type?.startsWith('image/') ? (
@@ -428,19 +465,22 @@ const ChatRoom = () => {
                   </div>
                 ) : null}
                 
-                <div className="text-zinc-300">
-                  {message.content.split('\n').map((line, index) => (
-                    <div key={index}>
-                      {line.startsWith('> ') ? (
-                        <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic">
-                          {line.substring(2)}
-                        </div>
-                      ) : (
-                        <span>{line}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                {/* Text Content */}
+                {!message.voice_url && (
+                  <div className="text-zinc-300">
+                    {message.content.split('\n').map((line, index) => (
+                      <div key={index}>
+                        {line.startsWith('> ') ? (
+                          <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic">
+                            {line.substring(2)}
+                          </div>
+                        ) : (
+                          <span>{line}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}

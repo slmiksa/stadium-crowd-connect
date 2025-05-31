@@ -1,8 +1,9 @@
 
 import React, { useState, useRef } from 'react';
-import { Camera, Video, Image, Send, X } from 'lucide-react';
+import { Camera, Video, Image, Send, X, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import VoiceRecorder from './VoiceRecorder';
 
 interface Message {
   id: string;
@@ -13,7 +14,7 @@ interface Message {
 }
 
 interface MediaInputProps {
-  onSendMessage: (content: string, mediaFile?: File, mediaType?: string) => void;
+  onSendMessage: (content: string, mediaFile?: File, mediaType?: string, voiceFile?: File, voiceDuration?: number) => void;
   isSending: boolean;
   quotedMessage?: Message | null;
   onClearQuote?: () => void;
@@ -24,6 +25,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<string | null>(null);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,6 +57,15 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     }
   };
 
+  const handleVoiceRecorded = async (audioBlob: Blob, duration: number) => {
+    const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, {
+      type: 'audio/webm'
+    });
+
+    onSendMessage('رسالة صوتية', undefined, undefined, audioFile, duration);
+    setShowVoiceRecorder(false);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -80,6 +91,15 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
       fileInputRef.current.value = '';
     }
   };
+
+  if (showVoiceRecorder) {
+    return (
+      <VoiceRecorder
+        onVoiceRecorded={handleVoiceRecorded}
+        onCancel={() => setShowVoiceRecorder(false)}
+      />
+    );
+  }
 
   return (
     <div className="bg-zinc-800 border-t border-zinc-700 p-4">
@@ -127,6 +147,16 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
       )}
 
       <form onSubmit={handleSubmit} className="flex items-end space-x-2">
+        {/* Voice Record Button */}
+        <button
+          type="button"
+          onClick={() => setShowVoiceRecorder(true)}
+          className="p-2 bg-zinc-700 rounded-lg hover:bg-zinc-600 transition-colors flex-shrink-0"
+          disabled={isSending}
+        >
+          <Mic size={20} className="text-zinc-300" />
+        </button>
+
         {/* Media Button */}
         <button
           type="button"

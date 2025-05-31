@@ -434,6 +434,8 @@ export type Database = {
           room_id: string
           updated_at: string | null
           user_id: string
+          voice_duration: number | null
+          voice_url: string | null
         }
         Insert: {
           content: string
@@ -445,6 +447,8 @@ export type Database = {
           room_id: string
           updated_at?: string | null
           user_id: string
+          voice_duration?: number | null
+          voice_url?: string | null
         }
         Update: {
           content?: string
@@ -456,6 +460,8 @@ export type Database = {
           room_id?: string
           updated_at?: string | null
           user_id?: string
+          voice_duration?: number | null
+          voice_url?: string | null
         }
         Relationships: [
           {
