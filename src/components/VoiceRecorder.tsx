@@ -12,6 +12,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   
@@ -35,8 +36,11 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
       if (audioRef.current) {
         audioRef.current.pause();
       }
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
     };
-  }, []);
+  }, [audioUrl]);
 
   const startRecording = async () => {
     try {
@@ -53,14 +57,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
       console.log('Microphone access granted, stream:', stream);
       streamRef.current = stream;
 
-      // Check if MediaRecorder is supported
-      if (!MediaRecorder.isTypeSupported('audio/webm')) {
-        console.log('audio/webm not supported, trying audio/mp4');
-        if (!MediaRecorder.isTypeSupported('audio/mp4')) {
-          console.log('audio/mp4 not supported, using default');
-        }
-      }
-
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -76,7 +72,18 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
         console.log('Recording stopped, creating blob...');
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         console.log('Blob created, size:', audioBlob.size);
+        
+        // Clean up old audio URL
+        if (audioUrl) {
+          URL.revokeObjectURL(audioUrl);
+        }
+        
+        // Create new audio URL
+        const newAudioUrl = URL.createObjectURL(audioBlob);
+        console.log('Audio URL created:', newAudioUrl);
+        
         setRecordedBlob(audioBlob);
+        setAudioUrl(newAudioUrl);
         
         // Stop all tracks
         if (streamRef.current) {
@@ -108,7 +115,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
       };
 
       console.log('Starting MediaRecorder...');
-      mediaRecorder.start(1000); // Collect data every second
+      mediaRecorder.start(1000);
 
     } catch (error) {
       console.error('Error accessing microphone:', error);
@@ -131,9 +138,17 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
     }
   };
 
-  const playRecording = () => {
-    if (recordedBlob && !isPlaying) {
-      const audio = new Audio(URL.createObjectURL(recordedBlob));
+  const playRecording = async () => {
+    if (audioUrl && !isPlaying) {
+      console.log('Starting playback with URL:', audioUrl);
+      
+      // Clean up previous audio instance
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      
+      const audio = new Audio(audioUrl);
       audioRef.current = audio;
       
       audio.ontimeupdate = () => {
@@ -141,12 +156,29 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
       };
 
       audio.onended = () => {
+        console.log('Playback ended');
         setIsPlaying(false);
         setCurrentTime(0);
       };
 
-      audio.play();
-      setIsPlaying(true);
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        setIsPlaying(false);
+        alert('خطأ في تشغيل الصوت');
+      };
+
+      audio.onloadedmetadata = () => {
+        console.log('Audio metadata loaded, duration:', audio.duration);
+      };
+
+      try {
+        await audio.play();
+        setIsPlaying(true);
+        console.log('Playback started successfully');
+      } catch (error) {
+        console.error('Error playing audio:', error);
+        alert('لا يمكن تشغيل الصوت');
+      }
     }
   };
 
@@ -154,6 +186,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
     if (audioRef.current) {
       audioRef.current.pause();
       setIsPlaying(false);
+      console.log('Playback paused');
     }
   };
 
@@ -165,15 +198,26 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
 
   const handleSend = () => {
     if (recordedBlob) {
+      console.log('Sending recorded audio, size:', recordedBlob.size);
       onVoiceRecorded(recordedBlob, duration);
     }
   };
 
   const handleDelete = () => {
+    console.log('Deleting recording');
     setRecordedBlob(null);
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+    setAudioUrl(null);
     setDuration(0);
     setCurrentTime(0);
     setIsPlaying(false);
+    
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
   };
 
   return (
@@ -230,7 +274,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
                 <div className="w-32 bg-zinc-600 rounded-full h-1 mt-1">
                   <div 
                     className="bg-blue-500 h-1 rounded-full transition-all duration-300"
-                    style={{ width: `${(currentTime / duration) * 100}%` }}
+                    style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                   />
                 </div>
               </div>
