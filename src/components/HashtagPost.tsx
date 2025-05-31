@@ -280,7 +280,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
             )}
             
             <div className="flex items-center justify-between pt-2">
-              <div className="flex items-center space-x-6 space-x-reverse">
+              <div className="flex items-center space-x-8 space-x-reverse">
                 {!hideCommentsButton && (
                   <button 
                     onClick={handleCommentsClick}
