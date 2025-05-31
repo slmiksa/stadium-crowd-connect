@@ -17,9 +17,9 @@ const Layout: React.FC<LayoutProps> = ({ children, showBottomNav = true }) => {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col max-w-md mx-auto relative">
+    <div className="min-h-screen bg-zinc-950 text-white flex flex-col w-full fixed inset-0 overflow-hidden">
       {/* Main content */}
-      <div className={`flex-1 ${showBottomNav ? 'pb-20' : ''}`}>
+      <div className={`flex-1 overflow-y-auto ${showBottomNav ? 'pb-20' : ''}`}>
         {children}
       </div>
       
