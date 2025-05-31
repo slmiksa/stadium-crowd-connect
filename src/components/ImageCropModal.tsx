@@ -82,6 +82,17 @@ const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Calculate the scale ratio between displayed image and original image
+    const displayedWidth = image.offsetWidth;
+    const displayedHeight = image.offsetHeight;
+    const scaleX = image.naturalWidth / displayedWidth;
+    const scaleY = image.naturalHeight / displayedHeight;
+
+    // Calculate actual crop coordinates in the original image
+    const actualX = cropArea.x * scaleX;
+    const actualY = cropArea.y * scaleY;
+    const actualSize = cropArea.size * Math.min(scaleX, scaleY);
+
     canvas.width = cropArea.size;
     canvas.height = cropArea.size;
 
@@ -90,9 +101,10 @@ const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
     ctx.arc(cropArea.size / 2, cropArea.size / 2, cropArea.size / 2, 0, Math.PI * 2);
     ctx.clip();
 
+    // Draw the cropped portion of the original image
     ctx.drawImage(
       image,
-      cropArea.x, cropArea.y, cropArea.size, cropArea.size,
+      actualX, actualY, actualSize, actualSize,
       0, 0, cropArea.size, cropArea.size
     );
 
