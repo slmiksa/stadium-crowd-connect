@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import { Users, Search, Plus, Lock } from 'lucide-react';
+import { Users, Search, Plus, Lock, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
@@ -165,8 +165,10 @@ const ChatRooms = () => {
   if (!isInitialized || isLoading) {
     return (
       <Layout>
-        <div className="p-4 flex items-center justify-center min-h-64">
-          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+        <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+          <div className="p-6 flex items-center justify-center min-h-64">
+            <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+          </div>
         </div>
       </Layout>
     );
@@ -174,111 +176,122 @@ const ChatRooms = () => {
 
   return (
     <Layout>
-      <div className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">{t('chatRooms')}</h1>
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="p-2 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors disabled:opacity-50"
-          >
-            <div className={`w-5 h-5 border-2 border-zinc-400 border-t-transparent rounded-full ${isRefreshing ? 'animate-spin' : ''}`}></div>
-          </button>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold text-white">غرف الدردشة</h1>
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="p-3 bg-gray-800/50 backdrop-blur-sm rounded-xl hover:bg-gray-700/50 transition-all duration-200 disabled:opacity-50 border border-gray-700/50"
+            >
+              <RefreshCw size={20} className={`text-gray-300 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
 
-        {/* Search */}
-        <div className="relative mb-6">
-          <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={isRTL ? 'البحث في الغرف...' : 'Search rooms...'}
-            className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 transition-colors"
-          />
-        </div>
-
-        {/* Rooms List */}
-        <div className="space-y-4">
-          {filteredRooms.length === 0 ? (
-            <div className="text-center py-8">
-              <Users size={48} className="mx-auto text-zinc-600 mb-4" />
-              <p className="text-zinc-400">
-                {searchQuery 
-                  ? (isRTL ? 'لم يتم العثور على غرف' : 'No rooms found')
-                  : (isRTL ? 'لا توجد غرف حالياً' : 'No rooms yet')
-                }
-              </p>
+          {/* Search */}
+          <div className="relative mb-8">
+            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+              <Search size={20} className="text-gray-400" />
             </div>
-          ) : (
-            filteredRooms.map((room) => (
-              <div 
-                key={room.id} 
-                onClick={() => joinRoom(room.id)}
-                className="bg-zinc-800 rounded-lg p-4 hover:bg-zinc-750 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center space-x-3">
-                  {/* Room Avatar */}
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    {room.avatar_url ? (
-                      <img 
-                        src={room.avatar_url} 
-                        alt={room.name}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                        <span className="text-lg font-bold text-white">
-                          {room.name.charAt(0).toUpperCase()}
-                        </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="البحث في الغرف..."
+              className="w-full pr-12 pl-6 py-4 bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500/50 focus:bg-gray-800/70 transition-all duration-200"
+            />
+          </div>
+
+          {/* Rooms List */}
+          <div className="space-y-4">
+            {filteredRooms.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="bg-gray-800/30 backdrop-blur-sm rounded-3xl p-12 border border-gray-700/30">
+                  <Users size={64} className="mx-auto text-gray-600 mb-6" />
+                  <p className="text-xl text-gray-400">
+                    {searchQuery 
+                      ? 'لم يتم العثور على غرف'
+                      : 'البرمجة هي المستقبل'
+                    }
+                  </p>
+                  {!searchQuery && (
+                    <p className="text-gray-500 mt-2">نتشرف بكم جميعاً</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              filteredRooms.map((room) => (
+                <div 
+                  key={room.id} 
+                  onClick={() => joinRoom(room.id)}
+                  className="group bg-gray-800/40 backdrop-blur-sm rounded-3xl p-6 hover:bg-gray-800/60 transition-all duration-300 cursor-pointer border border-gray-700/30 hover:border-gray-600/50 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1"
+                >
+                  <div className="flex items-center justify-between">
+                    {/* Room Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <h3 className="font-bold text-xl text-white group-hover:text-blue-300 transition-colors">
+                          {room.name}
+                        </h3>
+                        {room.is_private && (
+                          <Lock size={18} className="text-amber-400 flex-shrink-0" />
+                        )}
                       </div>
-                    )}
-                  </div>
-                  
-                  {/* Room Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h3 className="font-medium text-white truncate">{room.name}</h3>
-                      {room.is_private && (
-                        <Lock size={16} className="text-zinc-400 flex-shrink-0" />
+                      
+                      {room.description && (
+                        <p className="text-gray-400 group-hover:text-gray-300 mb-4 leading-relaxed">
+                          {room.description}
+                        </p>
                       )}
-                    </div>
-                    
-                    {room.description && (
-                      <p className="text-sm text-zinc-400 truncate mb-1">
-                        {room.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4 text-xs text-zinc-500">
-                        <span className="flex items-center space-x-1">
-                          <Users size={12} />
-                          <span>{room.members_count}</span>
-                        </span>
-                        <span>
-                          {isRTL ? 'بواسطة' : 'by'} {room.profiles?.username || 'مستخدم مجهول'}
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-6 text-sm text-gray-500">
+                          <span className="flex items-center space-x-2 bg-gray-700/50 rounded-lg px-3 py-1">
+                            <Users size={14} />
+                            <span className="text-gray-300">{room.members_count}</span>
+                          </span>
+                          <span className="text-gray-400">
+                            بواسطة {room.profiles?.username || 'مستخدم مجهول'}
+                          </span>
+                        </div>
+                        <span className="text-sm text-gray-500 bg-gray-700/30 rounded-lg px-3 py-1">
+                          {formatTimestamp(room.created_at)}
                         </span>
                       </div>
-                      <span className="text-xs text-zinc-500">
-                        {formatTimestamp(room.created_at)}
-                      </span>
+                    </div>
+
+                    {/* Room Avatar */}
+                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden mr-6 group-hover:scale-110 transition-transform duration-300">
+                      {room.avatar_url ? (
+                        <img 
+                          src={room.avatar_url} 
+                          alt={room.name}
+                          className="w-full h-full object-cover rounded-2xl"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-500/80 to-purple-600/80 rounded-2xl flex items-center justify-center">
+                          <span className="text-xl font-bold text-white">
+                            {room.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
 
-        {/* Floating Action Button */}
-        <button 
-          onClick={() => navigate('/create-chat-room')}
-          className="fixed bottom-24 right-4 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors"
-        >
-          <Plus size={24} className="text-white" />
-        </button>
+          {/* Floating Action Button */}
+          <button 
+            onClick={() => navigate('/create-chat-room')}
+            className="fixed bottom-28 left-6 w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-2xl hover:shadow-blue-500/25 hover:scale-110 transition-all duration-300 border border-blue-400/30"
+          >
+            <Plus size={28} className="text-white" />
+          </button>
+        </div>
       </div>
     </Layout>
   );
