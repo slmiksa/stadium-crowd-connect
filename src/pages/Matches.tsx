@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -96,6 +95,7 @@ const Matches = () => {
   };
 
   const handleMatchClick = (matchId: string) => {
+    // تحقق من وجود المسار في App.tsx - استخدم المسار الصحيح
     navigate(`/match/${matchId}`);
   };
 
