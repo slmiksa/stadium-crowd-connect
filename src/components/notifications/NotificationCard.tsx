@@ -63,6 +63,9 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   console.log('Room ID exists?:', !!notification.data?.room_id);
   console.log('Creator ID exists?:', !!notification.data?.creator_id);
 
+  const isChatRoom = notification.type === 'chat_room';
+  console.log('isChatRoom variable:', isChatRoom);
+
   return (
     <div
       onClick={() => onNotificationClick(notification)}
@@ -112,11 +115,11 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
           )}
 
           {/* عرض تفاصيل غرفة الدردشة */}
-          {notification.type === 'chat_room' && (
+          {isChatRoom && (
             <div className="bg-orange-900/30 rounded-lg p-3 mb-3 border border-orange-700/30">
               <p className="text-xs text-orange-400 mb-1">غرفة الدردشة:</p>
               <p className="text-white font-medium text-sm mb-1">
-                {notification.data?.room_name}
+                {notification.data?.room_name || 'غرفة دردشة'}
               </p>
               {notification.data?.room_description && (
                 <p className="text-gray-300 text-xs mb-2">
@@ -137,8 +140,12 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
           {/* أزرار التفاعل */}
           <div className="flex items-center gap-2 mt-3">
-            {notification.type === 'chat_room' ? (
-              <>
+            {console.log('About to render buttons. isChatRoom:', isChatRoom)}
+            
+            {/* أزرار غرفة الدردشة */}
+            {isChatRoom && (
+              <div className="flex items-center gap-2">
+                {console.log('Rendering chat room buttons now!')}
                 <Button
                   size="sm"
                   variant="outline"
@@ -164,10 +171,13 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   <MessageSquare size={14} className="ml-1" />
                   الغرفة
                 </Button>
-              </>
-            ) : (
-              <>
-                {/* Regular notification buttons */}
+              </div>
+            )}
+
+            {/* أزرار التنبيهات العادية */}
+            {!isChatRoom && (
+              <div className="flex items-center gap-2">
+                {/* أزرار البروفايل للتنبيهات العادية */}
                 {(notification.type === 'follow' || notification.type === 'like' || 
                   notification.type === 'comment' || notification.type === 'follower_comment' ||
                   notification.type === 'post') && (
@@ -182,7 +192,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   </Button>
                 )}
 
-                {/* Post button for post-related notifications */}
+                {/* أزرار المنشور للتنبيهات المتعلقة بالمنشورات */}
                 {(notification.type === 'like' || notification.type === 'comment' || 
                   notification.type === 'follower_comment' || notification.type === 'post') && 
                   notification.data?.post_id && (
@@ -196,7 +206,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                     المنشور
                   </Button>
                 )}
-              </>
+              </div>
             )}
           </div>
           
