@@ -1,8 +1,8 @@
+
 import React, { useState, useRef } from 'react';
-import { Camera, Send, X, Mic } from 'lucide-react';
+import { Camera, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import VoiceRecorder from './VoiceRecorder';
 
 interface Message {
   id: string;
@@ -13,7 +13,7 @@ interface Message {
 }
 
 interface MediaInputProps {
-  onSendMessage: (content: string, mediaFile?: File, mediaType?: string, voiceFile?: File, voiceDuration?: number) => void;
+  onSendMessage: (content: string, mediaFile?: File, mediaType?: string) => void;
   isSending: boolean;
   quotedMessage?: Message | null;
   onClearQuote?: () => void;
@@ -24,7 +24,6 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<string | null>(null);
-  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,30 +53,6 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     }
   };
 
-  const handleVoiceRecorded = async (audioBlob: Blob, duration: number) => {
-    console.log('MediaInput received voice:', audioBlob.size, 'bytes, duration:', duration);
-    
-    try {
-      if (!audioBlob || audioBlob.size === 0) {
-        throw new Error('الملف الصوتي فارغ');
-      }
-
-      const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, {
-        type: 'audio/webm'
-      });
-
-      console.log('Created audio file:', audioFile.name, audioFile.size);
-      
-      await onSendMessage('رسالة صوتية', undefined, undefined, audioFile, duration);
-      setShowVoiceRecorder(false);
-      
-    } catch (error) {
-      console.error('Error handling voice:', error);
-      alert('فشل في إرسال الرسالة الصوتية: ' + error.message);
-      setShowVoiceRecorder(false);
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -102,20 +77,6 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
       fileInputRef.current.value = '';
     }
   };
-
-  const handleVoiceButtonClick = () => {
-    console.log('MediaInput: Voice button clicked');
-    setShowVoiceRecorder(true);
-  };
-
-  if (showVoiceRecorder) {
-    return (
-      <VoiceRecorder
-        onVoiceRecorded={handleVoiceRecorded}
-        onCancel={() => setShowVoiceRecorder(false)}
-      />
-    );
-  }
 
   return (
     <div className="bg-zinc-800 border-t border-zinc-700 p-4">
@@ -163,17 +124,6 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
       )}
 
       <form onSubmit={handleSubmit} className="flex items-end gap-2">
-        {/* Voice Record Button */}
-        <Button
-          type="button"
-          onClick={() => setShowVoiceRecorder(true)}
-          disabled={isSending}
-          className="p-2 bg-zinc-700 hover:bg-zinc-600 transition-colors flex-shrink-0 h-10 w-10"
-          variant="secondary"
-        >
-          <Mic size={20} className="text-zinc-300" />
-        </Button>
-
         {/* Media Button */}
         <Button
           type="button"

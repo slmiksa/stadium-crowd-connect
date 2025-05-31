@@ -7,7 +7,6 @@ import OwnerBadge from '@/components/OwnerBadge';
 import RoomMembersModal from '@/components/RoomMembersModal';
 import ChatRoomSettingsModal from '@/components/ChatRoomSettingsModal';
 import ChatRoomAnnouncement from '@/components/ChatRoomAnnouncement';
-import VoiceMessage from '@/components/VoiceMessage';
 import { ArrowLeft, Users, Settings, Quote } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -18,8 +17,6 @@ interface Message {
   content: string;
   media_url?: string;
   media_type?: string;
-  voice_url?: string;
-  voice_duration?: number;
   created_at: string;
   user_id: string;
   profiles: {
@@ -43,7 +40,6 @@ const ChatRoom = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
@@ -183,15 +179,14 @@ const ChatRoom = () => {
     }
   };
 
-  const sendMessage = async (content: string, mediaFile?: File, mediaType?: string, voiceFile?: File, voiceDuration?: number) => {
-    if (!content.trim() && !mediaFile && !voiceFile) return;
+  const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
+    if (!content.trim() && !mediaFile) return;
     if (!user) return;
 
     try {
-      console.log('ChatRoom sendMessage called with:', { content, voiceFile: !!voiceFile, voiceDuration });
+      console.log('ChatRoom sendMessage called with:', { content, mediaFile: !!mediaFile });
       
       let mediaUrl = null;
-      let voiceUrl = null;
       
       if (mediaFile) {
         const fileExt = mediaFile.name.split('.').pop();
@@ -213,31 +208,7 @@ const ChatRoom = () => {
         mediaUrl = publicUrl;
       }
 
-      if (voiceFile) {
-        console.log('Uploading voice file:', voiceFile.name, voiceFile.size, 'bytes');
-        
-        const fileName = `voice_${user.id}_${Date.now()}.webm`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('voice-messages')
-          .upload(fileName, voiceFile, {
-            contentType: 'audio/webm'
-          });
-
-        if (uploadError) {
-          console.error('Voice upload error:', uploadError);
-          throw new Error('فشل في رفع الملف الصوتي');
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('voice-messages')
-          .getPublicUrl(fileName);
-
-        voiceUrl = publicUrl;
-        console.log('Voice uploaded successfully:', voiceUrl);
-      }
-
-      let finalContent = content || (voiceFile ? 'رسالة صوتية' : '');
+      let finalContent = content || '';
       if (quotedMessage) {
         finalContent = `> ${quotedMessage.profiles?.username || 'مستخدم مجهول'}: ${quotedMessage.content}\n\n${finalContent}`;
       }
@@ -247,9 +218,7 @@ const ChatRoom = () => {
         user_id: user.id,
         content: finalContent,
         media_url: mediaUrl,
-        media_type: mediaType,
-        voice_url: voiceUrl,
-        voice_duration: voiceDuration ? Math.round(voiceDuration) : null
+        media_type: mediaType
       };
 
       console.log('Inserting message:', messageData);
@@ -453,18 +422,6 @@ const ChatRoom = () => {
                     </button>
                   </div>
                   
-                  {/* Voice Message */}
-                  {message.voice_url && message.voice_duration ? (
-                    <div className="mb-2">
-                      <VoiceMessage 
-                        voiceUrl={message.voice_url}
-                        duration={message.voice_duration}
-                        isOwn={message.user_id === user?.id}
-                      />
-                    </div>
-                  ) : null}
-                  
-                  {/* Media Message */}
                   {message.media_url ? (
                     <div className="mb-2">
                       {message.media_type?.startsWith('image/') ? (
@@ -486,22 +443,19 @@ const ChatRoom = () => {
                     </div>
                   ) : null}
                   
-                  {/* Text Content */}
-                  {!message.voice_url && (
-                    <div className="text-zinc-300">
-                      {message.content.split('\n').map((line, index) => (
-                        <div key={index}>
-                          {line.startsWith('> ') ? (
-                            <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic">
-                              {line.substring(2)}
-                            </div>
-                          ) : (
-                            <span>{line}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="text-zinc-300">
+                    {message.content.split('\n').map((line, index) => (
+                      <div key={index}>
+                        {line.startsWith('> ') ? (
+                          <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic">
+                            {line.substring(2)}
+                          </div>
+                        ) : (
+                          <span>{line}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             );
@@ -509,7 +463,6 @@ const ChatRoom = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Message input */}
         <MediaInput 
           onSendMessage={sendMessage} 
           isSending={false}
@@ -517,6 +470,23 @@ const ChatRoom = () => {
           onClearQuote={() => setQuotedMessage(null)}
         />
       </div>
+
+      {showMembersModal && roomId && (
+        <RoomMembersModal
+          roomId={roomId}
+          isOpen={showMembersModal}
+          onClose={() => setShowMembersModal(false)}
+        />
+      )}
+      
+      {showSettingsModal && roomId && roomInfo && (
+        <ChatRoomSettingsModal
+          room={roomInfo}
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          onAnnouncementUpdate={handleAnnouncementUpdate}
+        />
+      )}
     </Layout>
   );
 };
