@@ -48,23 +48,35 @@ const LikeButton: React.FC<LikeButtonProps> = ({
     if (!user) return;
 
     try {
-      const table = postId ? 'hashtag_likes' : 'hashtag_comment_likes';
-      const column = postId ? 'post_id' : 'comment_id';
-      const id = postId || commentId;
+      if (postId) {
+        const { data, error } = await supabase
+          .from('hashtag_likes')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('post_id', postId)
+          .single();
 
-      const { data, error } = await supabase
-        .from(table)
-        .select('id')
-        .eq('user_id', user.id)
-        .eq(column, id)
-        .single();
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error checking like status:', error);
+          return;
+        }
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error checking like status:', error);
-        return;
+        setIsLiked(!!data);
+      } else if (commentId) {
+        const { data, error } = await supabase
+          .from('hashtag_comment_likes')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('comment_id', commentId)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error checking like status:', error);
+          return;
+        }
+
+        setIsLiked(!!data);
       }
-
-      setIsLiked(!!data);
     } catch (error) {
       console.error('Error in checkIfLiked:', error);
     }
@@ -84,47 +96,80 @@ const LikeButton: React.FC<LikeButtonProps> = ({
     setIsLoading(true);
 
     try {
-      const table = postId ? 'hashtag_likes' : 'hashtag_comment_likes';
-      const column = postId ? 'post_id' : 'comment_id';
-      const id = postId || commentId;
+      if (postId) {
+        if (isLiked) {
+          // Remove like from post
+          const { error } = await supabase
+            .from('hashtag_likes')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('post_id', postId);
 
-      if (isLiked) {
-        // Remove like
-        const { error } = await supabase
-          .from(table)
-          .delete()
-          .eq('user_id', user.id)
-          .eq(column, id);
+          if (error) {
+            console.error('Error removing like:', error);
+            toast.error('حدث خطأ في إلغاء الإعجاب');
+            return;
+          }
 
-        if (error) {
-          console.error('Error removing like:', error);
-          toast.error('حدث خطأ في إلغاء الإعجاب');
-          return;
+          setIsLiked(false);
+          setLikesCount(prev => Math.max(0, prev - 1));
+          toast.success('تم إلغاء الإعجاب');
+        } else {
+          // Add like to post
+          const { error } = await supabase
+            .from('hashtag_likes')
+            .insert({
+              user_id: user.id,
+              post_id: postId
+            });
+
+          if (error) {
+            console.error('Error adding like:', error);
+            toast.error('حدث خطأ في الإعجاب');
+            return;
+          }
+
+          setIsLiked(true);
+          setLikesCount(prev => prev + 1);
+          toast.success('تم الإعجاب بنجاح');
         }
+      } else if (commentId) {
+        if (isLiked) {
+          // Remove like from comment
+          const { error } = await supabase
+            .from('hashtag_comment_likes')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('comment_id', commentId);
 
-        setIsLiked(false);
-        setLikesCount(prev => Math.max(0, prev - 1));
-        toast.success('تم إلغاء الإعجاب');
-      } else {
-        // Add like
-        const insertData = {
-          user_id: user.id,
-          [column]: id
-        };
+          if (error) {
+            console.error('Error removing comment like:', error);
+            toast.error('حدث خطأ في إلغاء الإعجاب');
+            return;
+          }
 
-        const { error } = await supabase
-          .from(table)
-          .insert(insertData);
+          setIsLiked(false);
+          setLikesCount(prev => Math.max(0, prev - 1));
+          toast.success('تم إلغاء الإعجاب');
+        } else {
+          // Add like to comment
+          const { error } = await supabase
+            .from('hashtag_comment_likes')
+            .insert({
+              user_id: user.id,
+              comment_id: commentId
+            });
 
-        if (error) {
-          console.error('Error adding like:', error);
-          toast.error('حدث خطأ في الإعجاب');
-          return;
+          if (error) {
+            console.error('Error adding comment like:', error);
+            toast.error('حدث خطأ في الإعجاب');
+            return;
+          }
+
+          setIsLiked(true);
+          setLikesCount(prev => prev + 1);
+          toast.success('تم الإعجاب بنجاح');
         }
-
-        setIsLiked(true);
-        setLikesCount(prev => prev + 1);
-        toast.success('تم الإعجاب بنجاح');
       }
 
       // Call parent callback

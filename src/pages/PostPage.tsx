@@ -12,6 +12,7 @@ interface HashtagPostWithProfile {
   id: string;
   content: string;
   hashtags: string[];
+  likes_count: number;
   comments_count: number;
   created_at: string;
   image_url?: string;

@@ -11,6 +11,7 @@ interface HashtagPostWithProfile {
   id: string;
   content: string;
   hashtags: string[];
+  likes_count: number;
   comments_count: number;
   created_at: string;
   image_url?: string;
@@ -38,7 +39,7 @@ const MyPosts = () => {
     if (!user) return;
 
     try {
-      // Get all posts by user, regardless of hashtags
+      // Get all posts by user, including likes_count
       const { data, error } = await supabase
         .from('hashtag_posts')
         .select(`
