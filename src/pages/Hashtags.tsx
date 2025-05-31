@@ -39,6 +39,28 @@ const Hashtags = () => {
 
   useEffect(() => {
     fetchPosts();
+    
+    // Set up real-time subscription for new posts
+    const channel = supabase
+      .channel('hashtag-posts-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'hashtag_posts'
+        },
+        async (payload) => {
+          console.log('New post created:', payload.new);
+          // Refetch posts when a new post is created
+          await fetchPosts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
@@ -51,6 +73,7 @@ const Hashtags = () => {
 
   const fetchPosts = async () => {
     try {
+      console.log('Fetching posts with hashtags...');
       const { data, error } = await supabase
         .from('hashtag_posts')
         .select(`
@@ -73,18 +96,27 @@ const Hashtags = () => {
         return;
       }
 
-      // Only include posts that have hashtags and hashtags array is not empty
-      const postsWithHashtags = (data || []).filter(post => 
-        post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0
-      );
+      console.log('Fetched posts data:', data);
+
+      // Filter to only include posts that have hashtags and hashtags array is not empty
+      const postsWithHashtags = (data || []).filter(post => {
+        const hasHashtags = post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0;
+        console.log(`Post ${post.id} has hashtags:`, hasHashtags, post.hashtags);
+        return hasHashtags;
+      });
       
-      // Popular posts (most likes)
+      console.log('Posts with hashtags:', postsWithHashtags.length);
+      
+      // Popular posts (most likes) - showing all posts with hashtags
       const popular = [...postsWithHashtags]
         .sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0))
         .slice(0, 20);
       
       // Trending posts (5+ comments for more realistic trending)
       const trending = postsWithHashtags.filter(post => (post.comments_count || 0) >= 5);
+      
+      console.log('Popular posts:', popular.length);
+      console.log('Trending posts:', trending.length);
       
       setPopularPosts(popular);
       setTrendingPosts(trending);
@@ -181,9 +213,9 @@ const Hashtags = () => {
   };
 
   const handlePostLikeChange = () => {
-    // Instead of refetching all posts, just update the current state
-    // This prevents posts from disappearing when likes change
-    console.log('Post like changed, maintaining current view');
+    // Don't refetch posts when likes change - this was causing posts to disappear
+    // The real-time subscriptions in individual posts will handle like count updates
+    console.log('Post like changed, keeping current view');
   };
 
   const renderPost = (post: HashtagPostWithProfile) => (
