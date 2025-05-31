@@ -457,9 +457,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_room_members: {
+        Args: { room_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: string
+      }
+      is_room_owner: {
+        Args: { room_id_param: string; user_id_param: string }
+        Returns: boolean
       }
     }
     Enums: {

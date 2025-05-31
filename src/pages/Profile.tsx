@@ -1,32 +1,39 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import Layout from '@/components/Layout';
-import { Edit2, Users, Heart, MessageSquare, Settings } from 'lucide-react';
+import { Camera, Edit3, Users, MessageSquare, Hash, Settings, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
-interface Follow {
+interface UserProfile {
   id: string;
-  follower_id: string;
-  following_id: string;
+  username: string;
+  email: string;
+  bio?: string;
+  avatar_url?: string;
+  favorite_team?: string;
+  followers_count: number;
+  following_count: number;
   created_at: string;
-  profiles: {
-    id: string;
-    username: string;
-    avatar_url?: string;
-  };
 }
 
 const Profile = () => {
   const { user, signOut } = useAuth();
+  const { t, isRTL } = useLanguage();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<any>(null);
-  const [followers, setFollowers] = useState<Follow[]>([]);
-  const [following, setFollowing] = useState<Follow[]>([]);
-  const [showFollowers, setShowFollowers] = useState(false);
-  const [showFollowing, setShowFollowing] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    username: '',
+    bio: '',
+    favorite_team: ''
+  });
 
   useEffect(() => {
     if (user) {
@@ -35,22 +42,24 @@ const Profile = () => {
   }, [user]);
 
   const fetchProfile = async () => {
-    if (!user) return;
-
     try {
-      const { data: profileData, error: profileError } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', user?.id)
         .single();
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
+      if (error) {
+        console.error('Error fetching profile:', error);
         return;
       }
 
-      setProfile(profileData);
-      await fetchFollowData();
+      setProfile(data);
+      setEditForm({
+        username: data?.username || '',
+        bio: data?.bio || '',
+        favorite_team: data?.favorite_team || ''
+      });
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -58,71 +67,48 @@ const Profile = () => {
     }
   };
 
-  const fetchFollowData = async () => {
+  const handleSaveProfile = async () => {
     if (!user) return;
 
     try {
-      // Fetch followers with explicit column selection
-      const { data: followersData, error: followersError } = await supabase
-        .from('follows')
-        .select(`
-          id,
-          follower_id,
-          following_id,
-          created_at,
-          follower_profile:profiles!follows_follower_id_fkey(id, username, avatar_url)
-        `)
-        .eq('following_id', user.id);
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          username: editForm.username,
+          bio: editForm.bio,
+          favorite_team: editForm.favorite_team
+        })
+        .eq('id', user.id);
 
-      if (followersError) {
-        console.error('Error fetching followers:', followersError);
-      } else {
-        const formattedFollowers = followersData?.map(item => ({
-          ...item,
-          profiles: item.follower_profile
-        })) || [];
-        setFollowers(formattedFollowers);
+      if (error) {
+        console.error('Error updating profile:', error);
+        return;
       }
 
-      // Fetch following with explicit column selection
-      const { data: followingData, error: followingError } = await supabase
-        .from('follows')
-        .select(`
-          id,
-          follower_id,
-          following_id,
-          created_at,
-          following_profile:profiles!follows_following_id_fkey(id, username, avatar_url)
-        `)
-        .eq('follower_id', user.id);
-
-      if (followingError) {
-        console.error('Error fetching following:', followingError);
-      } else {
-        const formattedFollowing = followingData?.map(item => ({
-          ...item,
-          profiles: item.following_profile
-        })) || [];
-        setFollowing(formattedFollowing);
-      }
+      setIsEditing(false);
+      fetchProfile();
     } catch (error) {
-      console.error('Error fetching follow data:', error);
+      console.error('Error:', error);
     }
   };
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+    await signOut();
+    navigate('/');
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ar-SA', {
+      year: 'numeric',
+      month: 'long'
+    });
   };
 
   if (isLoading) {
     return (
       <Layout>
-        <div className="p-4 flex items-center justify-center min-h-64">
+        <div className="flex items-center justify-center min-h-64">
           <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
         </div>
       </Layout>
@@ -133,7 +119,7 @@ const Profile = () => {
     return (
       <Layout>
         <div className="p-4 text-center">
-          <p className="text-zinc-400">خطأ في تحميل البروفايل</p>
+          <p className="text-zinc-400">لم يتم العثور على الملف الشخصي</p>
         </div>
       </Layout>
     );
@@ -141,152 +127,177 @@ const Profile = () => {
 
   return (
     <Layout>
-      <div className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">البروفايل</h1>
-          <button
-            onClick={() => navigate('/api-settings')}
-            className="p-2 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors"
-          >
-            <Settings size={20} className="text-white" />
-          </button>
+      <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-black">
+        {/* Header with gradient background */}
+        <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 h-32">
+          <div className="absolute top-4 right-4">
+            <button
+              onClick={() => navigate('/api-settings')}
+              className="p-2 bg-black/20 backdrop-blur-sm rounded-full hover:bg-black/30 transition-colors"
+            >
+              <Settings size={20} className="text-white" />
+            </button>
+          </div>
         </div>
 
-        {/* Profile Header */}
-        <div className="bg-zinc-800 rounded-lg p-6 mb-6">
-          <div className="flex items-center space-x-4 mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">
-                {profile.username?.charAt(0).toUpperCase() || 'U'}
-              </span>
+        {/* Profile content */}
+        <div className="relative px-4 -mt-16">
+          {/* Avatar */}
+          <div className="flex justify-center mb-4">
+            <div className="relative">
+              <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center border-4 border-white shadow-xl">
+                <span className="text-4xl font-bold text-white">
+                  {profile.username?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              </div>
+              <button className="absolute bottom-2 right-2 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors">
+                <Camera size={14} className="text-white" />
+              </button>
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-white">{profile.username}</h2>
-              <p className="text-zinc-400">{profile.email}</p>
-              {profile.bio && (
-                <p className="text-zinc-300 mt-1">{profile.bio}</p>
-              )}
-              {profile.favorite_team && (
-                <p className="text-blue-400 mt-1">⚽ {profile.favorite_team}</p>
-              )}
+          </div>
+
+          {/* Profile info */}
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center space-x-2 mb-2">
+              <h1 className="text-2xl font-bold text-white">{profile.username}</h1>
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="p-1 hover:bg-zinc-700 rounded-lg transition-colors"
+              >
+                <Edit3 size={16} className="text-zinc-400" />
+              </button>
             </div>
-            <button
-              onClick={() => navigate('/edit-profile')}
-              className="p-2 bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              <Edit2 size={18} className="text-white" />
-            </button>
+            
+            <p className="text-zinc-400 text-sm mb-2">{profile.email}</p>
+            
+            {profile.bio && (
+              <p className="text-zinc-300 max-w-md mx-auto mb-4">{profile.bio}</p>
+            )}
+            
+            {profile.favorite_team && (
+              <div className="inline-flex items-center space-x-2 bg-zinc-800 px-3 py-1 rounded-full mb-4">
+                <span className="text-sm text-zinc-300">الفريق المفضل:</span>
+                <span className="text-sm font-medium text-blue-400">{profile.favorite_team}</span>
+              </div>
+            )}
+
+            <p className="text-xs text-zinc-500">
+              انضم في {formatDate(profile.created_at)}
+            </p>
           </div>
 
           {/* Stats */}
-          <div className="flex space-x-6">
-            <button
-              onClick={() => setShowFollowers(true)}
-              className="flex items-center space-x-2 text-zinc-300 hover:text-white transition-colors"
-            >
-              <Users size={18} />
-              <span>{profile.followers_count || 0} متابِع</span>
-            </button>
-            <button
-              onClick={() => setShowFollowing(true)}
-              className="flex items-center space-x-2 text-zinc-300 hover:text-white transition-colors"
-            >
-              <Heart size={18} />
-              <span>{profile.following_count || 0} متابَع</span>
-            </button>
-            <button
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-zinc-800/50 backdrop-blur-sm rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center space-x-2 mb-2">
+                <Users size={16} className="text-blue-400" />
+                <span className="text-lg font-bold text-white">{profile.followers_count}</span>
+              </div>
+              <p className="text-sm text-zinc-400">متابعين</p>
+            </div>
+            
+            <div className="bg-zinc-800/50 backdrop-blur-sm rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center space-x-2 mb-2">
+                <Users size={16} className="text-green-400" />
+                <span className="text-lg font-bold text-white">{profile.following_count}</span>
+              </div>
+              <p className="text-sm text-zinc-400">يتابع</p>
+            </div>
+          </div>
+
+          {/* Edit form */}
+          {isEditing && (
+            <div className="bg-zinc-800 rounded-lg p-4 mb-6">
+              <h3 className="text-lg font-bold text-white mb-4">تعديل الملف الشخصي</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">
+                    اسم المستخدم
+                  </label>
+                  <Input
+                    value={editForm.username}
+                    onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                    className="bg-zinc-700 border-zinc-600 text-white"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">
+                    نبذة شخصية
+                  </label>
+                  <Textarea
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                    placeholder="اكتب نبذة عن نفسك..."
+                    className="bg-zinc-700 border-zinc-600 text-white resize-none"
+                    rows={3}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">
+                    الفريق المفضل
+                  </label>
+                  <Input
+                    value={editForm.favorite_team}
+                    onChange={(e) => setEditForm({ ...editForm, favorite_team: e.target.value })}
+                    placeholder="مثال: الأهلي، برشلونة..."
+                    className="bg-zinc-700 border-zinc-600 text-white"
+                  />
+                </div>
+                
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={handleSaveProfile}
+                    className="flex-1 bg-blue-500 hover:bg-blue-600"
+                  >
+                    حفظ التغييرات
+                  </Button>
+                  <Button
+                    onClick={() => setIsEditing(false)}
+                    variant="outline"
+                    className="flex-1 border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                  >
+                    إلغاء
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <Button
               onClick={() => navigate('/my-posts')}
-              className="flex items-center space-x-2 text-zinc-300 hover:text-white transition-colors"
+              className="bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-600"
+              variant="outline"
             >
-              <MessageSquare size={18} />
-              <span>المنشورات</span>
-            </button>
+              <Hash size={18} className="ml-2" />
+              منشوراتي
+            </Button>
+            
+            <Button
+              onClick={() => navigate('/messages')}
+              className="bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-600"
+              variant="outline"
+            >
+              <MessageSquare size={18} className="ml-2" />
+              الرسائل
+            </Button>
+          </div>
+
+          {/* Sign out button */}
+          <div className="pb-8">
+            <Button
+              onClick={handleSignOut}
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              <LogOut size={18} className="ml-2" />
+              تسجيل الخروج
+            </Button>
           </div>
         </div>
-
-        {/* Actions */}
-        <div className="space-y-4">
-          <button
-            onClick={() => navigate('/my-posts')}
-            className="w-full bg-zinc-800 p-4 rounded-lg text-white text-right hover:bg-zinc-700 transition-colors"
-          >
-            منشوراتي
-          </button>
-          
-          <button
-            onClick={handleSignOut}
-            className="w-full bg-red-600 p-4 rounded-lg text-white text-right hover:bg-red-700 transition-colors"
-          >
-            تسجيل الخروج
-          </button>
-        </div>
-
-        {/* Followers Modal */}
-        {showFollowers && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-zinc-800 rounded-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-white">المتابعون</h3>
-                <button
-                  onClick={() => setShowFollowers(false)}
-                  className="text-zinc-400 hover:text-white"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="space-y-2">
-                {followers.length === 0 ? (
-                  <p className="text-zinc-400 text-center">لا يوجد متابعون</p>
-                ) : (
-                  followers.map((follow) => (
-                    <div key={follow.id} className="flex items-center space-x-3 p-2 rounded hover:bg-zinc-700">
-                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold text-white">
-                          {follow.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                        </span>
-                      </div>
-                      <span className="text-white">{follow.profiles?.username}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Following Modal */}
-        {showFollowing && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-zinc-800 rounded-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-white">المتابَعون</h3>
-                <button
-                  onClick={() => setShowFollowing(false)}
-                  className="text-zinc-400 hover:text-white"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="space-y-2">
-                {following.length === 0 ? (
-                  <p className="text-zinc-400 text-center">لا تتابع أحد</p>
-                ) : (
-                  following.map((follow) => (
-                    <div key={follow.id} className="flex items-center space-x-3 p-2 rounded hover:bg-zinc-700">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold text-white">
-                          {follow.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                        </span>
-                      </div>
-                      <span className="text-white">{follow.profiles?.username}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </Layout>
   );
