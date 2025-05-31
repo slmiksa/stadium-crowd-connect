@@ -66,7 +66,7 @@ const Hashtags = () => {
         `)
         .not('hashtags', 'eq', '{}')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (error) {
         console.error('Error fetching posts:', error);
@@ -83,8 +83,8 @@ const Hashtags = () => {
         .sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0))
         .slice(0, 20);
       
-      // Trending posts (35+ comments)
-      const trending = postsWithHashtags.filter(post => (post.comments_count || 0) >= 35);
+      // Trending posts (5+ comments for more realistic trending)
+      const trending = postsWithHashtags.filter(post => (post.comments_count || 0) >= 5);
       
       setPopularPosts(popular);
       setTrendingPosts(trending);
@@ -135,35 +135,43 @@ const Hashtags = () => {
         console.error('Error searching comments:', commentsError);
       }
 
-      // Extract unique hashtags from all sources
-      const allHashtags = new Set<string>();
+      // Extract unique hashtags from all sources and calculate their popularity
+      const hashtagCounts = new Map<string, number>();
       
-      // From posts
+      // Count hashtags from posts
       postsData?.forEach(post => {
         post.hashtags?.forEach(tag => {
           if (tag.toLowerCase().includes(searchQuery)) {
-            allHashtags.add(tag);
+            hashtagCounts.set(tag, (hashtagCounts.get(tag) || 0) + 1);
           }
         });
       });
 
-      // From comments
+      // Count hashtags from comments
       commentsData?.forEach(comment => {
         comment.hashtags?.forEach(tag => {
           if (tag.toLowerCase().includes(searchQuery)) {
-            allHashtags.add(tag);
+            hashtagCounts.set(tag, (hashtagCounts.get(tag) || 0) + 1);
           }
         });
       });
 
       // Add exact match if not already included
       if (searchQuery) {
-        allHashtags.add(searchQuery);
+        if (!hashtagCounts.has(searchQuery)) {
+          hashtagCounts.set(searchQuery, 0);
+        }
       }
+
+      // Sort hashtags by popularity and take top 10
+      const sortedHashtags = Array.from(hashtagCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([tag]) => tag);
 
       setSearchResults({
         posts: postsData || [],
-        hashtags: Array.from(allHashtags).slice(0, 10)
+        hashtags: sortedHashtags
       });
     } catch (error) {
       console.error('Search error:', error);

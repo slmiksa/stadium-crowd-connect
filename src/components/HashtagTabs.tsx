@@ -31,7 +31,7 @@ const HashtagTabs: React.FC<HashtagTabsProps> = ({
           className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white text-gray-300 rounded-lg transition-all duration-300 py-3 px-6 font-medium"
         >
           <TrendingUp size={18} className="ml-2" />
-          هاشتاقات ترند
+          هاشتاقات ترند ({trendingPosts.length})
         </TabsTrigger>
       </TabsList>
       
@@ -59,7 +59,7 @@ const HashtagTabs: React.FC<HashtagTabsProps> = ({
                 <TrendingUp size={32} className="text-gray-400" />
               </div>
               <p className="text-gray-400 text-lg">لا توجد منشورات ترند حالياً</p>
-              <p className="text-gray-500 text-sm mt-2">المنشورات التي تحصل على 35+ تعليق تظهر هنا</p>
+              <p className="text-gray-500 text-sm mt-2">المنشورات التي تحصل على 5+ تعليقات تظهر هنا</p>
             </div>
           </div>
         ) : (

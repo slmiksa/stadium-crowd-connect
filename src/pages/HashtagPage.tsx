@@ -248,7 +248,8 @@ const HashtagPage = () => {
 
   const postsCount = posts.length;
   const commentsCount = comments.length;
-  const isTrending = posts.some(post => post.comments_count >= 35);
+  const totalContent = combinedContent.length;
+  const isTrending = totalContent >= 35 || posts.some(post => post.comments_count >= 5);
 
   if (isLoading) {
     return (
@@ -296,7 +297,7 @@ const HashtagPage = () => {
               </div>
               <div>
                 <p className="text-sm text-zinc-400">المجموع</p>
-                <p className="text-lg font-bold text-blue-400">{combinedContent.length}</p>
+                <p className="text-lg font-bold text-blue-400">{totalContent}</p>
               </div>
             </div>
             {isTrending && (
