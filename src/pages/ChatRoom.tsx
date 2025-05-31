@@ -11,6 +11,7 @@ import { ArrowLeft, Users, Settings, Quote, ArrowDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Message {
   id: string;
@@ -397,87 +398,89 @@ const ChatRoom = () => {
           <ChatRoomAnnouncement announcement={roomInfo.announcement} />
         )}
 
-        {/* Messages */}
-        <div 
-          ref={messagesContainerRef}
-          onScroll={handleScroll}
-          className="flex-1 overflow-y-auto p-4 space-y-4"
-        >
-          {messages.map((message) => {
-            console.log('ChatRoom: Rendering room message:', message);
-            return (
-              <div key={message.id} className="flex items-start space-x-3 group">
-                <div 
-                  className="cursor-pointer"
-                  onClick={() => navigateToUserProfile(message.user_id)}
-                >
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                      {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span 
-                      className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
-                      onClick={() => navigateToUserProfile(message.user_id)}
-                    >
-                      {message.profiles?.username || 'مستخدم مجهول'}
-                    </span>
-                    <OwnerBadge isOwner={message.user_id === roomInfo?.owner_id} />
-                    <span className="text-xs text-zinc-500">
-                      {formatTimestamp(message.created_at)}
-                    </span>
-                    <button
-                      onClick={() => quoteMessage(message)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
-                    >
-                      <Quote size={14} className="text-zinc-400" />
-                    </button>
+        {/* Messages with ScrollArea */}
+        <ScrollArea className="flex-1 px-4">
+          <div 
+            ref={messagesContainerRef}
+            onScroll={handleScroll}
+            className="space-y-4 py-4"
+          >
+            {messages.map((message) => {
+              console.log('ChatRoom: Rendering room message:', message);
+              return (
+                <div key={message.id} className="flex items-start space-x-3 group">
+                  <div 
+                    className="cursor-pointer"
+                    onClick={() => navigateToUserProfile(message.user_id)}
+                  >
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                        {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
                   </div>
-                  
-                  {message.media_url ? (
-                    <div className="mb-2">
-                      {message.media_type?.startsWith('image/') ? (
-                        <img 
-                          src={message.media_url} 
-                          alt="مرفق" 
-                          className="max-w-xs rounded-lg"
-                        />
-                      ) : (
-                        <a 
-                          href={message.media_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline"
-                        >
-                          عرض المرفق
-                        </a>
-                      )}
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span 
+                        className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
+                        onClick={() => navigateToUserProfile(message.user_id)}
+                      >
+                        {message.profiles?.username || 'مستخدم مجهول'}
+                      </span>
+                      <OwnerBadge isOwner={message.user_id === roomInfo?.owner_id} />
+                      <span className="text-xs text-zinc-500">
+                        {formatTimestamp(message.created_at)}
+                      </span>
+                      <button
+                        onClick={() => quoteMessage(message)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
+                      >
+                        <Quote size={14} className="text-zinc-400" />
+                      </button>
                     </div>
-                  ) : null}
-                  
-                  <div className="text-zinc-300">
-                    {message.content.split('\n').map((line, index) => (
-                      <div key={index}>
-                        {line.startsWith('> ') ? (
-                          <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic">
-                            {line.substring(2)}
-                          </div>
+                    
+                    {message.media_url ? (
+                      <div className="mb-2">
+                        {message.media_type?.startsWith('image/') ? (
+                          <img 
+                            src={message.media_url} 
+                            alt="مرفق" 
+                            className="max-w-xs rounded-lg"
+                          />
                         ) : (
-                          <span>{line}</span>
+                          <a 
+                            href={message.media_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:underline"
+                          >
+                            عرض المرفق
+                          </a>
                         )}
                       </div>
-                    ))}
+                    ) : null}
+                    
+                    <div className="text-zinc-300">
+                      {message.content.split('\n').map((line, index) => (
+                        <div key={index}>
+                          {line.startsWith('> ') ? (
+                            <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic">
+                              {line.substring(2)}
+                            </div>
+                          ) : (
+                            <span>{line}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
-        </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
       </div>
 
       {/* Scroll to bottom button */}
