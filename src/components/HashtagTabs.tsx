@@ -3,18 +3,25 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, Hash } from 'lucide-react';
 
+interface TrendingHashtag {
+  hashtag: string;
+  post_count: number;
+}
+
 interface HashtagTabsProps {
   popularPosts: any[];
-  trendingPosts: any[];
+  trendingHashtags: TrendingHashtag[];
   onPostLikeChange: () => void;
   renderPost: (post: any) => React.ReactNode;
+  renderTrendingHashtag: (hashtagData: TrendingHashtag, index: number) => React.ReactNode;
 }
 
 const HashtagTabs: React.FC<HashtagTabsProps> = ({ 
   popularPosts, 
-  trendingPosts, 
+  trendingHashtags, 
   onPostLikeChange, 
-  renderPost 
+  renderPost,
+  renderTrendingHashtag
 }) => {
   return (
     <Tabs defaultValue="popular" className="w-full">
@@ -31,7 +38,7 @@ const HashtagTabs: React.FC<HashtagTabsProps> = ({
           className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white text-gray-300 rounded-lg transition-all duration-300 py-3 px-6 font-medium"
         >
           <TrendingUp size={18} className="ml-2" />
-          هاشتاقات ترند ({trendingPosts.length})
+          هاشتاقات ترند ({trendingHashtags.length})
         </TabsTrigger>
       </TabsList>
       
@@ -52,18 +59,20 @@ const HashtagTabs: React.FC<HashtagTabsProps> = ({
       </TabsContent>
       
       <TabsContent value="trending" className="space-y-4 px-6 pb-6">
-        {trendingPosts.length === 0 ? (
+        {trendingHashtags.length === 0 ? (
           <div className="text-center py-12">
             <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <TrendingUp size={32} className="text-gray-400" />
               </div>
-              <p className="text-gray-400 text-lg">لا توجد منشورات ترند حالياً</p>
-              <p className="text-gray-500 text-sm mt-2">المنشورات التي تحصل على 5+ تعليقات تظهر هنا</p>
+              <p className="text-gray-400 text-lg">لا توجد هاشتاقات ترند حالياً</p>
+              <p className="text-gray-500 text-sm mt-2">الهاشتاقات التي تحصل على 35+ منشور تظهر هنا</p>
             </div>
           </div>
         ) : (
-          trendingPosts.map(renderPost)
+          <div className="grid gap-4">
+            {trendingHashtags.map((hashtagData, index) => renderTrendingHashtag(hashtagData, index))}
+          </div>
         )}
       </TabsContent>
     </Tabs>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -27,17 +28,23 @@ interface HashtagPostWithProfile {
   }>;
 }
 
+interface TrendingHashtag {
+  hashtag: string;
+  post_count: number;
+}
+
 const Hashtags = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [popularPosts, setPopularPosts] = useState<HashtagPostWithProfile[]>([]);
-  const [trendingPosts, setTrendingPosts] = useState<HashtagPostWithProfile[]>([]);
+  const [trendingHashtags, setTrendingHashtags] = useState<TrendingHashtag[]>([]);
   const [searchResults, setSearchResults] = useState<{posts: HashtagPostWithProfile[], hashtags: string[]}>({posts: [], hashtags: []});
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     fetchPosts();
+    fetchTrendingHashtags();
     
     // Set up real-time subscription for new posts
     const channel = supabase
@@ -53,6 +60,7 @@ const Hashtags = () => {
           console.log('New post created:', payload.new);
           // Refetch posts when a new post is created
           await fetchPosts();
+          await fetchTrendingHashtags();
         }
       )
       .subscribe();
@@ -100,7 +108,6 @@ const Hashtags = () => {
       if (!data || data.length === 0) {
         console.log('No posts found in database');
         setPopularPosts([]);
-        setTrendingPosts([]);
         setIsLoading(false);
         return;
       }
@@ -140,19 +147,64 @@ const Hashtags = () => {
       // Don't sort by likes for popular - just show all posts with hashtags in chronological order
       const popular = [...postsWithHashtags];
       
-      // Trending posts (5+ comments)
-      const trending = postsWithHashtags.filter(post => (post.comments_count || 0) >= 5);
-      
       console.log('=== Final Results ===');
       console.log('Popular posts count:', popular.length);
-      console.log('Trending posts count:', trending.length);
       
       setPopularPosts(popular);
-      setTrendingPosts(trending);
     } catch (error) {
       console.error('Error in fetchPosts:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchTrendingHashtags = async () => {
+    try {
+      console.log('=== Starting fetchTrendingHashtags ===');
+      
+      const { data, error } = await supabase
+        .from('hashtag_posts')
+        .select('hashtags')
+        .not('hashtags', 'is', null);
+
+      if (error) {
+        console.error('Error fetching hashtags:', error);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        console.log('No hashtag data found');
+        setTrendingHashtags([]);
+        return;
+      }
+
+      // Count hashtag occurrences
+      const hashtagCounts = new Map<string, number>();
+      
+      data.forEach(post => {
+        if (post.hashtags && Array.isArray(post.hashtags)) {
+          post.hashtags.forEach(hashtag => {
+            if (hashtag && hashtag.trim()) {
+              const cleanHashtag = hashtag.trim();
+              hashtagCounts.set(cleanHashtag, (hashtagCounts.get(cleanHashtag) || 0) + 1);
+            }
+          });
+        }
+      });
+
+      // Filter hashtags with more than 35 posts and sort by count
+      const trendingHashtagsArray = Array.from(hashtagCounts.entries())
+        .filter(([hashtag, count]) => count > 35)
+        .sort((a, b) => b[1] - a[1])
+        .map(([hashtag, count]) => ({
+          hashtag,
+          post_count: count
+        }));
+
+      console.log('Trending hashtags (>35 posts):', trendingHashtagsArray);
+      setTrendingHashtags(trendingHashtagsArray);
+    } catch (error) {
+      console.error('Error in fetchTrendingHashtags:', error);
     }
   };
 
@@ -263,6 +315,41 @@ const Hashtags = () => {
     />
   );
 
+  const renderTrendingHashtag = (hashtagData: TrendingHashtag, index: number) => (
+    <div 
+      key={hashtagData.hashtag}
+      onClick={() => navigate(`/hashtag/${hashtagData.hashtag}`)}
+      className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:border-purple-500/50 transition-all duration-300 cursor-pointer hover:scale-105 group"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl flex items-center justify-center border border-purple-500/30 group-hover:border-purple-400/50 transition-colors">
+            <Hash size={24} className="text-purple-400 group-hover:text-purple-300" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white group-hover:text-purple-300 transition-colors">
+              #{hashtagData.hashtag}
+            </h3>
+            <p className="text-gray-400 text-sm">
+              {hashtagData.post_count} منشور
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold text-purple-400 group-hover:text-purple-300 transition-colors">
+            #{index + 1}
+          </div>
+          <div className="text-xs text-gray-500">الترتيب</div>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-2 text-gray-400 text-sm">
+        <TrendingUp size={16} className="text-purple-400" />
+        <span>هاشتاق شائع</span>
+      </div>
+    </div>
+  );
+
   if (isLoading) {
     return (
       <Layout>
@@ -367,9 +454,10 @@ const Hashtags = () => {
           {!searchTerm.trim() && (
             <HashtagTabs
               popularPosts={popularPosts}
-              trendingPosts={trendingPosts}
+              trendingHashtags={trendingHashtags}
               onPostLikeChange={handlePostLikeChange}
               renderPost={renderPost}
+              renderTrendingHashtag={renderTrendingHashtag}
             />
           )}
         </div>
