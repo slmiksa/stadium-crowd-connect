@@ -18,15 +18,19 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
       if (audioRef.current) {
         audioRef.current.pause();
@@ -36,59 +40,75 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
 
   const startRecording = async () => {
     try {
-      console.log('Starting recording...');
+      console.log('Requesting microphone access...');
       
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 48000,
-          channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
         }
       });
 
-      console.log('Got media stream:', stream);
+      console.log('Microphone access granted, stream:', stream);
+      streamRef.current = stream;
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+      // Check if MediaRecorder is supported
+      if (!MediaRecorder.isTypeSupported('audio/webm')) {
+        console.log('audio/webm not supported, trying audio/mp4');
+        if (!MediaRecorder.isTypeSupported('audio/mp4')) {
+          console.log('audio/mp4 not supported, using default');
+        }
+      }
 
+      const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        console.log('Data available:', event.data.size);
+        console.log('Data available, size:', event.data.size);
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstop = () => {
-        console.log('Recording stopped');
+        console.log('Recording stopped, creating blob...');
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log('Blob created, size:', audioBlob.size);
         setRecordedBlob(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
+        
+        // Stop all tracks
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => {
+            track.stop();
+            console.log('Track stopped:', track.kind);
+          });
+        }
+      };
+
+      mediaRecorder.onstart = () => {
+        console.log('Recording started');
+        setIsRecording(true);
+        setDuration(0);
+
+        // Start timer
+        intervalRef.current = window.setInterval(() => {
+          setDuration(prev => {
+            const newDuration = prev + 1;
+            console.log('Timer tick:', newDuration);
+            return newDuration;
+          });
+        }, 1000);
       };
 
       mediaRecorder.onerror = (event) => {
         console.error('MediaRecorder error:', event);
+        alert('حدث خطأ أثناء التسجيل');
       };
 
-      mediaRecorder.start(100);
-      setIsRecording(true);
-      setDuration(0);
-
-      // Start timer
-      intervalRef.current = setInterval(() => {
-        setDuration(prev => {
-          const newDuration = prev + 1;
-          console.log('Duration updated:', newDuration);
-          return newDuration;
-        });
-      }, 1000);
-
-      console.log('Recording started successfully');
+      console.log('Starting MediaRecorder...');
+      mediaRecorder.start(1000); // Collect data every second
 
     } catch (error) {
       console.error('Error accessing microphone:', error);
@@ -97,13 +117,16 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onVoiceRecorded, onCancel
   };
 
   const stopRecording = () => {
-    console.log('Stopping recording...');
+    console.log('Stop recording button clicked');
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      console.log('Stopping MediaRecorder...');
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
+        console.log('Timer cleared');
       }
     }
   };
