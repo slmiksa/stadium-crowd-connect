@@ -5,7 +5,7 @@ import Layout from '@/components/Layout';
 import MediaInput from '@/components/MediaInput';
 import OwnerBadge from '@/components/OwnerBadge';
 import RoomMembersModal from '@/components/RoomMembersModal';
-import { ArrowLeft, Users, Settings, Quote } from 'lucide-react';
+import { ArrowLeft, Users, Settings, Quote, Wifi, Battery } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -241,6 +241,15 @@ const ChatRoom = () => {
     navigate(`/user/${userId}`);
   };
 
+  const getCurrentTime = () => {
+    const now = new Date();
+    return now.toLocaleTimeString('ar-SA', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -311,6 +320,21 @@ const ChatRoom = () => {
   return (
     <Layout showBottomNav={false}>
       <div className="flex flex-col h-screen">
+        {/* Status Bar */}
+        <div className="bg-black text-white px-4 py-1 flex items-center justify-between text-sm font-medium">
+          <div className="flex items-center space-x-2">
+            <span>{getCurrentTime()}</span>
+          </div>
+          <div className="flex items-center space-x-1 space-x-reverse">
+            <Wifi size={16} />
+            <span className="text-xs">4G</span>
+            <div className="flex items-center space-x-1">
+              <Battery size={16} />
+              <span className="text-xs">100%</span>
+            </div>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="bg-zinc-800 border-b border-zinc-700 p-4">
           <div className="flex items-center justify-between">
