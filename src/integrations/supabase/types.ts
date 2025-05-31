@@ -129,6 +129,7 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          hashtags: string[] | null
           id: string
           image_url: string | null
           parent_id: string | null
@@ -139,6 +140,7 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          hashtags?: string[] | null
           id?: string
           image_url?: string | null
           parent_id?: string | null
@@ -149,6 +151,7 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          hashtags?: string[] | null
           id?: string
           image_url?: string | null
           parent_id?: string | null

@@ -15,6 +15,7 @@ interface Comment {
   media_url?: string;
   media_type?: string;
   parent_id?: string;
+  hashtags?: string[];
   profiles: {
     id: string;
     username: string;
@@ -158,6 +159,12 @@ const PostComments: React.FC<PostCommentsProps> = ({
     }
   };
 
+  const extractHashtags = (text: string) => {
+    const hashtagRegex = /#[\u0600-\u06FF\w]+/g;
+    const matches = text.match(hashtagRegex);
+    return matches ? matches.map(tag => tag.slice(1)) : [];
+  };
+
   const handleSubmitComment = async (content: string, mediaFile?: File, parentId?: string, mediaType?: string) => {
     if (!user) {
       console.log('No user found');
@@ -185,6 +192,10 @@ const PostComments: React.FC<PostCommentsProps> = ({
         console.log('Media uploaded successfully:', mediaUrl);
       }
 
+      // Extract hashtags from comment content
+      const hashtags = extractHashtags(content);
+      console.log('Extracted hashtags:', hashtags);
+
       console.log('Inserting comment into database...');
       const { data: insertData, error: insertError } = await supabase
         .from('hashtag_comments')
@@ -194,7 +205,8 @@ const PostComments: React.FC<PostCommentsProps> = ({
           content: content.trim() || '',
           media_url: mediaUrl,
           media_type: mediaType || null,
-          parent_id: parentId || null
+          parent_id: parentId || null,
+          hashtags: hashtags
         })
         .select();
 

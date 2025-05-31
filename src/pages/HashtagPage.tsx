@@ -1,12 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import HashtagPost from '@/components/HashtagPost';
-import { ArrowLeft, Hash, TrendingUp } from 'lucide-react';
+import CommentItem from '@/components/CommentItem';
+import { ArrowLeft, Hash, TrendingUp, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface HashtagPostWithProfile {
   id: string;
@@ -27,24 +30,43 @@ interface HashtagPostWithProfile {
   }>;
 }
 
+interface HashtagCommentWithProfile {
+  id: string;
+  content: string;
+  hashtags: string[];
+  created_at: string;
+  user_id: string;
+  post_id: string;
+  parent_id?: string;
+  media_url?: string;
+  media_type?: string;
+  profiles: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+  };
+}
+
 const HashtagPage = () => {
   const { hashtag } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<HashtagPostWithProfile[]>([]);
+  const [comments, setComments] = useState<HashtagCommentWithProfile[]>([]);
   const [content, setContent] = useState(`#${hashtag} `);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (hashtag) {
-      fetchHashtagPosts();
+      fetchHashtagContent();
     }
   }, [hashtag]);
 
-  const fetchHashtagPosts = async () => {
+  const fetchHashtagContent = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch posts
+      const { data: postsData, error: postsError } = await supabase
         .from('hashtag_posts')
         .select(`
           *,
@@ -60,12 +82,31 @@ const HashtagPage = () => {
         .contains('hashtags', [hashtag])
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching hashtag posts:', error);
-        return;
+      if (postsError) {
+        console.error('Error fetching hashtag posts:', postsError);
+      } else {
+        setPosts(postsData || []);
       }
 
-      setPosts(data || []);
+      // Fetch comments with hashtags
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('hashtag_comments')
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            username,
+            avatar_url
+          )
+        `)
+        .contains('hashtags', [hashtag])
+        .order('created_at', { ascending: false });
+
+      if (commentsError) {
+        console.error('Error fetching hashtag comments:', commentsError);
+      } else {
+        setComments(commentsData || []);
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -101,7 +142,7 @@ const HashtagPage = () => {
       }
 
       setContent(`#${hashtag} `);
-      fetchHashtagPosts();
+      fetchHashtagContent();
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -110,7 +151,19 @@ const HashtagPage = () => {
   };
 
   const handlePostLikeChange = () => {
-    fetchHashtagPosts();
+    fetchHashtagContent();
+  };
+
+  const handleCommentClick = (commentData: HashtagCommentWithProfile) => {
+    navigate(`/post/${commentData.post_id}`);
+  };
+
+  const handleProfileClick = (userId: string) => {
+    if (userId === user?.id) {
+      navigate('/profile');
+    } else {
+      navigate(`/user-profile/${userId}`);
+    }
   };
 
   const isTrending = posts.filter(post => post.comments_count >= 35).length > 0;
@@ -150,9 +203,15 @@ const HashtagPage = () => {
         {/* Hashtag Stats */}
         <div className="bg-zinc-800 rounded-lg p-4 mb-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-zinc-400">عدد المنشورات</p>
-              <p className="text-lg font-bold text-white">{posts.length}</p>
+            <div className="flex gap-6">
+              <div>
+                <p className="text-sm text-zinc-400">عدد المنشورات</p>
+                <p className="text-lg font-bold text-white">{posts.length}</p>
+              </div>
+              <div>
+                <p className="text-sm text-zinc-400">عدد التعليقات</p>
+                <p className="text-lg font-bold text-white">{comments.length}</p>
+              </div>
             </div>
             {isTrending && (
               <div className="flex items-center space-x-2 bg-orange-500/20 px-3 py-1 rounded-full">
@@ -200,27 +259,69 @@ const HashtagPage = () => {
           </div>
         )}
 
-        {/* Posts */}
-        <div className="space-y-6">
-          {posts.length === 0 ? (
-            <div className="text-center py-8">
-              <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
-              <p className="text-zinc-400">لا توجد منشورات لهذا الهاشتاق بعد</p>
-              <p className="text-zinc-500 text-sm">كن أول من ينشر!</p>
-            </div>
-          ) : (
-            posts.map((post) => (
-              <HashtagPost 
-                key={post.id} 
-                post={{
-                  ...post,
-                  hashtag: hashtag || ''
-                }} 
-                onLikeChange={handlePostLikeChange}
-              />
-            ))
-          )}
-        </div>
+        {/* Content Tabs */}
+        <Tabs defaultValue="posts" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-zinc-800 mb-6">
+            <TabsTrigger value="posts" className="flex items-center gap-2">
+              <Hash size={16} />
+              المنشورات ({posts.length})
+            </TabsTrigger>
+            <TabsTrigger value="comments" className="flex items-center gap-2">
+              <MessageCircle size={16} />
+              التعليقات ({comments.length})
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="posts" className="space-y-6">
+            {posts.length === 0 ? (
+              <div className="text-center py-8">
+                <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
+                <p className="text-zinc-400">لا توجد منشورات لهذا الهاشتاق بعد</p>
+                <p className="text-zinc-500 text-sm">كن أول من ينشر!</p>
+              </div>
+            ) : (
+              posts.map((post) => (
+                <HashtagPost 
+                  key={post.id} 
+                  post={{
+                    ...post,
+                    hashtag: hashtag || ''
+                  }} 
+                  onLikeChange={handlePostLikeChange}
+                />
+              ))
+            )}
+          </TabsContent>
+          
+          <TabsContent value="comments" className="space-y-4">
+            {comments.length === 0 ? (
+              <div className="text-center py-8">
+                <MessageCircle size={48} className="mx-auto text-zinc-600 mb-4" />
+                <p className="text-zinc-400">لا توجد تعليقات تحتوي على هذا الهاشتاق بعد</p>
+                <p className="text-zinc-500 text-sm">اكتب تعليقاً يحتوي على #{hashtag}!</p>
+              </div>
+            ) : (
+              comments.map((comment) => (
+                <div 
+                  key={comment.id} 
+                  className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700/50 hover:bg-zinc-800/70 transition-colors cursor-pointer"
+                  onClick={() => handleCommentClick(comment)}
+                >
+                  <CommentItem
+                    comment={comment}
+                    onReply={() => {}}
+                    onProfileClick={handleProfileClick}
+                  />
+                  <div className="mt-3 pt-3 border-t border-zinc-700/30">
+                    <p className="text-xs text-zinc-500">
+                      تعليق على منشور • اضغط للذهاب إلى المنشور
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +14,7 @@ interface Comment {
   media_url?: string;
   media_type?: string;
   parent_id?: string;
+  hashtags?: string[];
   profiles: {
     id: string;
     username: string;
@@ -124,6 +124,12 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
     return data.publicUrl;
   };
 
+  const extractHashtags = (text: string) => {
+    const hashtagRegex = /#[\u0600-\u06FF\w]+/g;
+    const matches = text.match(hashtagRegex);
+    return matches ? matches.map(tag => tag.slice(1)) : [];
+  };
+
   const handleSubmitComment = async (content: string, mediaFile?: File, mediaType?: string) => {
     if (!user) {
       console.log('No user found');
@@ -162,6 +168,10 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
         console.log('Media uploaded successfully:', mediaUrl);
       }
 
+      // Extract hashtags from comment content
+      const hashtags = extractHashtags(content);
+      console.log('Extracted hashtags:', hashtags);
+
       console.log('Inserting comment into database...');
       
       // Prepare the comment data with proper typing
@@ -169,7 +179,8 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
         post_id: postId,
         user_id: user.id,
         content: content.trim() || '',
-        parent_id: replyTo?.id || null
+        parent_id: replyTo?.id || null,
+        hashtags: hashtags
       };
 
       // Only add media fields if we have media
