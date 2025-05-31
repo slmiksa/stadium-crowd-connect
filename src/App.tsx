@@ -8,6 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import AuthGuard from "./components/AuthGuard";
 import Matches from "./pages/Matches";
+import MatchDetails from "./pages/MatchDetails";
 import Hashtags from "./pages/Hashtags";
 import ChatRooms from "./pages/ChatRooms";
 import Messages from "./pages/Messages";
@@ -23,6 +24,7 @@ const AuthenticatedApp = () => (
     <Routes>
       <Route path="/" element={<Navigate to="/matches" replace />} />
       <Route path="/matches" element={<Matches />} />
+      <Route path="/match/:matchId" element={<MatchDetails />} />
       <Route path="/hashtags" element={<Hashtags />} />
       <Route path="/chat-rooms" element={<ChatRooms />} />
       <Route path="/messages" element={<Messages />} />

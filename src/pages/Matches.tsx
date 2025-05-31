@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
@@ -20,6 +21,7 @@ interface Match {
 }
 
 const Matches = () => {
+  const navigate = useNavigate();
   const { t, isRTL } = useLanguage();
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'finished'>('live');
@@ -34,13 +36,29 @@ const Matches = () => {
       setApiStatus('working');
       
       const today = new Date().toISOString().split('T')[0];
+      let apiStatus = status;
+      let apiDate = today;
       
-      console.log('Calling edge function with params:', { status, date: today });
+      // تحديد الحالة والتاريخ المناسب لكل تبويب
+      if (status === 'finished') {
+        apiStatus = 'finished';
+        // جلب مباريات اليوم والأمس
+        apiDate = today;
+      } else if (status === 'upcoming') {
+        apiStatus = 'upcoming';
+        // جلب مباريات اليوم والغد
+        apiDate = today;
+      } else {
+        // المباريات المباشرة
+        apiStatus = 'live';
+      }
+      
+      console.log('Calling edge function with params:', { status: apiStatus, date: apiDate });
       
       const { data, error } = await supabase.functions.invoke('get-football-matches', {
         body: JSON.stringify({ 
-          status: status,
-          date: today
+          status: apiStatus,
+          date: apiDate
         }),
         headers: {
           'Content-Type': 'application/json'
@@ -57,8 +75,19 @@ const Matches = () => {
       console.log('Function response:', data);
       
       if (data && data.matches) {
-        setMatches(data.matches);
-        console.log(`Set ${data.matches.length} matches for status ${status}`);
+        // فلترة المباريات حسب الحالة المطلوبة
+        let filteredMatches = data.matches;
+        
+        if (status === 'finished') {
+          filteredMatches = data.matches.filter((match: Match) => match.status === 'finished');
+        } else if (status === 'upcoming') {
+          filteredMatches = data.matches.filter((match: Match) => match.status === 'upcoming');
+        } else if (status === 'live') {
+          filteredMatches = data.matches.filter((match: Match) => match.status === 'live');
+        }
+        
+        setMatches(filteredMatches);
+        console.log(`Set ${filteredMatches.length} matches for status ${status}`);
         console.log(`Total available: ${data.totalAvailable}, From target leagues: ${data.fromTargetLeagues}`);
       } else {
         setMatches([]);
@@ -84,6 +113,10 @@ const Matches = () => {
 
   const handleTabChange = (newTab: 'live' | 'upcoming' | 'finished') => {
     setActiveTab(newTab);
+  };
+
+  const handleMatchClick = (matchId: string) => {
+    navigate(`/match/${matchId}`);
   };
 
   const tabs = [
@@ -184,7 +217,11 @@ const Matches = () => {
               </div>
             ) : (
               matches.map((match) => (
-                <div key={match.id} className="bg-zinc-800 rounded-lg p-4 relative overflow-hidden hover:bg-zinc-750 transition-colors">
+                <div 
+                  key={match.id} 
+                  onClick={() => handleMatchClick(match.id)}
+                  className="bg-zinc-800 rounded-lg p-4 relative overflow-hidden hover:bg-zinc-750 transition-colors cursor-pointer"
+                >
                   {/* League Flag Background */}
                   {match.leagueFlag && (
                     <div className="absolute top-2 right-2 opacity-10">
