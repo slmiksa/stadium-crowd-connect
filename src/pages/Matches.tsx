@@ -36,29 +36,13 @@ const Matches = () => {
       setApiStatus('working');
       
       const today = new Date().toISOString().split('T')[0];
-      let apiStatus = status;
-      let apiDate = today;
       
-      // تحديد الحالة والتاريخ المناسب لكل تبويب
-      if (status === 'finished') {
-        apiStatus = 'finished';
-        // جلب مباريات اليوم والأمس
-        apiDate = today;
-      } else if (status === 'upcoming') {
-        apiStatus = 'upcoming';
-        // جلب مباريات اليوم والغد
-        apiDate = today;
-      } else {
-        // المباريات المباشرة
-        apiStatus = 'live';
-      }
-      
-      console.log('Calling edge function with params:', { status: apiStatus, date: apiDate });
+      console.log('Calling edge function with params:', { status, date: today });
       
       const { data, error } = await supabase.functions.invoke('get-football-matches', {
         body: JSON.stringify({ 
-          status: apiStatus,
-          date: apiDate
+          status: status,
+          date: today
         }),
         headers: {
           'Content-Type': 'application/json'
@@ -75,19 +59,8 @@ const Matches = () => {
       console.log('Function response:', data);
       
       if (data && data.matches) {
-        // فلترة المباريات حسب الحالة المطلوبة
-        let filteredMatches = data.matches;
-        
-        if (status === 'finished') {
-          filteredMatches = data.matches.filter((match: Match) => match.status === 'finished');
-        } else if (status === 'upcoming') {
-          filteredMatches = data.matches.filter((match: Match) => match.status === 'upcoming');
-        } else if (status === 'live') {
-          filteredMatches = data.matches.filter((match: Match) => match.status === 'live');
-        }
-        
-        setMatches(filteredMatches);
-        console.log(`Set ${filteredMatches.length} matches for status ${status}`);
+        setMatches(data.matches);
+        console.log(`Set ${data.matches.length} matches for status ${status}`);
         console.log(`Total available: ${data.totalAvailable}, From target leagues: ${data.fromTargetLeagues}`);
       } else {
         setMatches([]);
@@ -120,14 +93,18 @@ const Matches = () => {
   };
 
   const tabs = [
-    { id: 'live' as const, label: t('liveMatches'), color: 'text-red-400' },
-    { id: 'upcoming' as const, label: t('upcomingMatches'), color: 'text-blue-400' },
-    { id: 'finished' as const, label: t('finishedMatches'), color: 'text-green-400' }
+    { id: 'live' as const, label: 'المباريات المباشرة', color: 'text-red-400' },
+    { id: 'upcoming' as const, label: 'المباريات القادمة', color: 'text-blue-400' },
+    { id: 'finished' as const, label: 'المباريات المنتهية', color: 'text-green-400' }
   ];
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString('ar-SA', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
   };
 
   const formatDate = (dateString: string) => {
@@ -144,7 +121,7 @@ const Matches = () => {
       <div className="p-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">{t('matches')}</h1>
+          <h1 className="text-2xl font-bold text-white">المباريات</h1>
           <button
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
@@ -207,8 +184,8 @@ const Matches = () => {
                   <div className="text-4xl mb-4">⚽</div>
                   <p className="text-zinc-400 text-lg mb-2">
                     {activeTab === 'live' && 'لا توجد مباريات مباشرة حالياً'}
-                    {activeTab === 'upcoming' && 'لا توجد مباريات قادمة اليوم'}
-                    {activeTab === 'finished' && 'لا توجد مباريات منتهية اليوم'}
+                    {activeTab === 'upcoming' && 'لا توجد مباريات قادمة'}
+                    {activeTab === 'finished' && 'لا توجد مباريات منتهية'}
                   </p>
                   <p className="text-zinc-500 text-sm">
                     جرب تحديث الصفحة أو العودة لاحقاً
@@ -243,9 +220,9 @@ const Matches = () => {
                   
                   <div className="flex items-center justify-between">
                     {/* Home Team */}
-                    <div className={`flex-1 flex items-center ${isRTL ? 'flex-row-reverse' : 'flex-row'} ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <div className="flex-1 flex items-center text-right">
                       {match.homeLogo && (
-                        <img src={match.homeLogo} alt={match.homeTeam} className="w-8 h-8 object-contain mr-2" />
+                        <img src={match.homeLogo} alt={match.homeTeam} className="w-8 h-8 object-contain ml-2" />
                       )}
                       <p className="font-medium text-white text-sm truncate">{match.homeTeam}</p>
                     </div>
@@ -254,10 +231,10 @@ const Matches = () => {
                     <div className="mx-4 text-center min-w-[80px]">
                       {match.status === 'live' && (
                         <div className="flex items-center justify-center mb-1">
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-1"></div>
+                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse ml-1"></div>
                           <span className="text-red-400 text-xs font-medium">مباشر</span>
                           {match.minute && (
-                            <span className="text-red-400 text-xs ml-1">{match.minute}'</span>
+                            <span className="text-red-400 text-xs mr-1">{match.minute}'</span>
                           )}
                         </div>
                       )}
@@ -275,10 +252,10 @@ const Matches = () => {
                     </div>
                     
                     {/* Away Team */}
-                    <div className={`flex-1 flex items-center ${isRTL ? 'flex-row' : 'flex-row-reverse'} ${isRTL ? 'text-left' : 'text-right'}`}>
+                    <div className="flex-1 flex items-center flex-row-reverse text-left">
                       <p className="font-medium text-white text-sm truncate">{match.awayTeam}</p>
                       {match.awayLogo && (
-                        <img src={match.awayLogo} alt={match.awayTeam} className="w-8 h-8 object-contain ml-2" />
+                        <img src={match.awayLogo} alt={match.awayTeam} className="w-8 h-8 object-contain mr-2" />
                       )}
                     </div>
                   </div>

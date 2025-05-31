@@ -41,7 +41,100 @@ const leagueTranslations: { [key: string]: string } = {
   'Coupe de France': 'كأس فرنسا'
 }
 
-// معرفات الدوريات المهمة (إضافة المزيد من الدوريات العالمية)
+// ترجمة أسماء الفرق
+const teamTranslations: { [key: string]: string } = {
+  // الفرق السعودية
+  'Al Hilal': 'الهلال',
+  'Al Nassr': 'النصر',
+  'Al Ahli': 'الأهلي',
+  'Al Ittihad': 'الاتحاد',
+  'Al Shabab': 'الشباب',
+  'Al Ettifaq': 'الاتفاق',
+  'Al Taawoun': 'التعاون',
+  'Al Fayha': 'الفيحاء',
+  'Al Riyadh': 'الرياض',
+  'Al Khaleej': 'الخليج',
+  'Damac': 'ضمك',
+  'Al Fateh': 'الفتح',
+  'Al Raed': 'الرائد',
+  'Al Tai': 'التائي',
+  'Al Hazem': 'الحزم',
+  'Al Wehda': 'الوحدة',
+  'Al Qadsiah': 'القادسية',
+  'Al Okhdood': 'الأخدود',
+  
+  // الفرق المصرية
+  'Al Ahly': 'الأهلي',
+  'Zamalek': 'الزمالك',
+  'Pyramids FC': 'بيراميدز',
+  'Ismaily': 'الإسماعيلي',
+  'Al Masry': 'المصري',
+  'ENPPI': 'إنبي',
+  'El Gouna': 'الجونة',
+  'Ceramica Cleopatra': 'سيراميكا كليوباترا',
+  'National Bank of Egypt': 'البنك الأهلي',
+  'Pharco FC': 'فاركو',
+  'ZED FC': 'زيد',
+  'Smouha': 'سموحة',
+  'Al Ittihad Alexandria': 'الاتحاد السكندري',
+  'Al Mokawloon': 'المقاولون العرب',
+  'Ghazl El Mahalla': 'غزل المحلة',
+  'Haras El Hodoud': 'حرس الحدود',
+  'Al Dakhliya': 'الداخلية',
+  'Aswan SC': 'أسوان',
+  
+  // الفرق الإماراتية
+  'Al Ain': 'العين',
+  'Al Wasl': 'الوصل',
+  'Shabab Al Ahli Dubai': 'شباب الأهلي دبي',
+  'Al Jazira': 'الجزيرة',
+  'Al Wahda': 'الوحدة',
+  'Sharjah': 'الشارقة',
+  'Al Nasr': 'النصر',
+  'Ajman': 'عجمان',
+  'Emirates': 'الإمارات',
+  'Al Dhafra': 'الظفرة',
+  'Khorfakkan': 'خورفكان',
+  'Al Bataeh': 'البطائح',
+  'Kalba': 'كلباء',
+  'Ittihad Kalba': 'اتحاد كلباء',
+  
+  // الفرق القطرية
+  'Al Sadd': 'السد',
+  'Al Duhail': 'الدحيل',
+  'Al Rayyan': 'الريان',
+  'Al Gharafa': 'الغرافة',
+  'Al Arabi': 'العربي',
+  'Al Wakrah': 'الوكرة',
+  'Qatar SC': 'قطر',
+  'Al Ahli Doha': 'الأهلي',
+  'Al Sailiya': 'السيلية',
+  'Al Markhiya': 'المرخية',
+  'Al Shamal': 'الشمال',
+  'Umm Salal': 'أم صلال',
+  
+  // الفرق العالمية الشهيرة
+  'Real Madrid': 'ريال مدريد',
+  'Barcelona': 'برشلونة',
+  'Manchester United': 'مانشستر يونايتد',
+  'Manchester City': 'مانشستر سيتي',
+  'Liverpool': 'ليفربول',
+  'Chelsea': 'تشيلسي',
+  'Arsenal': 'آرسنال',
+  'Tottenham': 'توتنهام',
+  'Bayern Munich': 'بايرن ميونيخ',
+  'Borussia Dortmund': 'بوروسيا دورتمند',
+  'Paris Saint-Germain': 'باريس سان جيرمان',
+  'Juventus': 'يوفنتوس',
+  'AC Milan': 'إيه سي ميلان',
+  'Inter Milan': 'إنتر ميلان',
+  'Atletico Madrid': 'أتلتيكو مدريد',
+  'Sevilla': 'إشبيلية',
+  'Valencia': 'فالنسيا',
+  'Villarreal': 'فياريال'
+}
+
+// معرفات الدوريات المهمة
 const targetLeagues = [
   // السعودية
   307, // Saudi Pro League
@@ -90,7 +183,6 @@ serve(async (req) => {
   }
 
   try {
-    // استخدام مفتاح API من Supabase Secrets
     const apiKey = Deno.env.get('FOOTBALL_API_KEY')
     
     if (!apiKey) {
@@ -106,11 +198,10 @@ serve(async (req) => {
     
     console.log('Using API Key from Supabase Secrets:', apiKey.substring(0, 8) + '...')
 
-    // قراءة المعاملات - تجربة طرق مختلفة
+    // قراءة المعاملات
     let status = 'live'
     let date = new Date().toISOString().split('T')[0]
     
-    // محاولة قراءة من body أولاً
     try {
       if (req.method === 'POST') {
         const requestText = await req.text()
@@ -132,37 +223,24 @@ serve(async (req) => {
       }
     } catch (e) {
       console.log('Error reading body:', e)
-      // محاولة قراءة من URL parameters
-      try {
-        const url = new URL(req.url)
-        const urlStatus = url.searchParams.get('status')
-        const urlDate = url.searchParams.get('date')
-        
-        if (urlStatus) {
-          status = urlStatus
-          console.log('Status from URL:', status)
-        }
-        if (urlDate) {
-          date = urlDate
-          console.log('Date from URL:', date)
-        }
-      } catch (urlError) {
-        console.log('Error reading URL params:', urlError)
-      }
     }
     
     console.log(`Final parameters - Status: ${status}, Date: ${date}`)
 
-    // جلب المباريات من API Football
+    // تحديد URL API حسب الحالة المطلوبة
     let apiUrl: string
     
     if (status === 'live') {
       apiUrl = 'https://v3.football.api-sports.io/fixtures?live=all'
     } else if (status === 'finished') {
+      // للمباريات المنتهية - جلب مباريات اليوم وأمس
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
       apiUrl = `https://v3.football.api-sports.io/fixtures?date=${date}&status=FT`
-    } else {
-      // upcoming matches
+    } else if (status === 'upcoming') {
+      // للمباريات القادمة - جلب مباريات اليوم وغداً
       apiUrl = `https://v3.football.api-sports.io/fixtures?date=${date}&status=NS`
+    } else {
+      apiUrl = 'https://v3.football.api-sports.io/fixtures?live=all'
     }
 
     console.log('Making API call to:', apiUrl)
@@ -197,38 +275,100 @@ serve(async (req) => {
     const data = await response.json()
     console.log(`API returned ${data.response?.length || 0} total fixtures`)
 
-    // إذا لم توجد مباريات في الدوريات المستهدفة، جلب جميع المباريات
-    let filteredMatches = data.response?.filter((fixture: any) => 
+    let allMatches = data.response || []
+
+    // إذا كانت المباريات المنتهية، جلب من أمس أيضاً
+    if (status === 'finished' && allMatches.length < 5) {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+      const yesterdayUrl = `https://v3.football.api-sports.io/fixtures?date=${yesterday}&status=FT`
+      
+      try {
+        const yesterdayResponse = await fetch(yesterdayUrl, {
+          method: 'GET',
+          headers: {
+            'X-RapidAPI-Key': apiKey,
+            'X-RapidAPI-Host': 'v3.football.api-sports.io'
+          }
+        })
+        
+        if (yesterdayResponse.ok) {
+          const yesterdayData = await yesterdayResponse.json()
+          if (yesterdayData.response) {
+            allMatches = [...allMatches, ...yesterdayData.response]
+            console.log(`Added ${yesterdayData.response.length} matches from yesterday`)
+          }
+        }
+      } catch (error) {
+        console.log('Error fetching yesterday matches:', error)
+      }
+    }
+
+    // إذا كانت المباريات القادمة، جلب من غداً أيضاً
+    if (status === 'upcoming' && allMatches.length < 5) {
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
+      const tomorrowUrl = `https://v3.football.api-sports.io/fixtures?date=${tomorrow}&status=NS`
+      
+      try {
+        const tomorrowResponse = await fetch(tomorrowUrl, {
+          method: 'GET',
+          headers: {
+            'X-RapidAPI-Key': apiKey,
+            'X-RapidAPI-Host': 'v3.football.api-sports.io'
+          }
+        })
+        
+        if (tomorrowResponse.ok) {
+          const tomorrowData = await tomorrowResponse.json()
+          if (tomorrowData.response) {
+            allMatches = [...allMatches, ...tomorrowData.response]
+            console.log(`Added ${tomorrowData.response.length} matches from tomorrow`)
+          }
+        }
+      } catch (error) {
+        console.log('Error fetching tomorrow matches:', error)
+      }
+    }
+
+    // فلترة المباريات حسب الدوريات المستهدفة
+    let filteredMatches = allMatches.filter((fixture: any) => 
       targetLeagues.includes(fixture.league.id)
-    ) || []
+    )
 
     console.log(`Filtered to ${filteredMatches.length} matches from target leagues`)
 
-    // إذا لم توجد مباريات في الدوريات المستهدفة، جلب أهم المباريات
-    if (filteredMatches.length === 0 && data.response && data.response.length > 0) {
+    // إذا لم توجد مباريات في الدوريات المستهدفة، جلب المباريات الشائعة
+    if (filteredMatches.length === 0 && allMatches.length > 0) {
       console.log('No matches in target leagues, showing popular matches')
-      // أخذ أول 20 مباراة من أي دوري
-      filteredMatches = data.response.slice(0, 20)
+      filteredMatches = allMatches.slice(0, 20)
     }
 
-    // تحويل البيانات إلى التنسيق المطلوب
+    // تحويل البيانات إلى التنسيق المطلوب مع الترجمة
     const matches = filteredMatches.map((fixture: any) => {
       const leagueName = fixture.league.name
       const arabicLeagueName = leagueTranslations[leagueName] || leagueName
 
+      // ترجمة أسماء الفرق
+      const homeTeamName = teamTranslations[fixture.teams.home.name] || fixture.teams.home.name
+      const awayTeamName = teamTranslations[fixture.teams.away.name] || fixture.teams.away.name
+
       let matchStatus: 'upcoming' | 'live' | 'finished' = 'upcoming'
       if (fixture.fixture.status.short === 'LIVE' || fixture.fixture.status.short === '1H' || 
-          fixture.fixture.status.short === '2H' || fixture.fixture.status.short === 'HT') {
+          fixture.fixture.status.short === '2H' || fixture.fixture.status.short === 'HT' ||
+          fixture.fixture.status.short === 'ET' || fixture.fixture.status.short === 'BT' ||
+          fixture.fixture.status.short === 'P' || fixture.fixture.status.short === 'SUSP' ||
+          fixture.fixture.status.short === 'INT') {
         matchStatus = 'live'
       } else if (fixture.fixture.status.short === 'FT' || fixture.fixture.status.short === 'AET' || 
-                 fixture.fixture.status.short === 'PEN') {
+                 fixture.fixture.status.short === 'PEN' || fixture.fixture.status.short === 'PST' ||
+                 fixture.fixture.status.short === 'CANC' || fixture.fixture.status.short === 'ABD' ||
+                 fixture.fixture.status.short === 'AWD' || fixture.fixture.status.short === 'WO') {
         matchStatus = 'finished'
       }
 
       return {
         id: fixture.fixture.id.toString(),
-        homeTeam: fixture.teams.home.name,
-        awayTeam: fixture.teams.away.name,
+        homeTeam: homeTeamName,
+        awayTeam: awayTeamName,
         homeScore: fixture.goals.home,
         awayScore: fixture.goals.away,
         status: matchStatus,
@@ -246,7 +386,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         matches,
-        totalAvailable: data.response?.length || 0,
+        totalAvailable: allMatches.length || 0,
         fromTargetLeagues: filteredMatches.length > 0
       }),
       { 
