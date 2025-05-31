@@ -1,34 +1,35 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import { ArrowLeft, Lock, Users } from 'lucide-react';
+import { ArrowLeft, Hash, Lock, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 
 const CreateChatRoom = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    isPrivate: false
-  });
+  const navigate = useNavigate();
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !formData.name.trim()) return;
+    if (!user || !name.trim()) return;
 
     setIsSubmitting(true);
     try {
-      // Create the room
+      // إنشاء الغرفة
       const { data: room, error: roomError } = await supabase
         .from('chat_rooms')
         .insert({
-          name: formData.name.trim(),
-          description: formData.description.trim() || null,
-          is_private: formData.isPrivate,
+          name: name.trim(),
+          description: description.trim() || null,
+          is_private: isPrivate,
           owner_id: user.id,
           members_count: 1
         })
@@ -40,7 +41,7 @@ const CreateChatRoom = () => {
         return;
       }
 
-      // Add the creator as a member
+      // إضافة المنشئ كعضو في الغرفة
       const { error: memberError } = await supabase
         .from('room_members')
         .insert({
@@ -50,10 +51,11 @@ const CreateChatRoom = () => {
         });
 
       if (memberError) {
-        console.error('Error adding member:', memberError);
+        console.error('Error adding owner as member:', memberError);
         return;
       }
 
+      // الانتقال إلى الغرفة
       navigate(`/chat-room/${room.id}`);
     } catch (error) {
       console.error('Error:', error);
@@ -74,85 +76,84 @@ const CreateChatRoom = () => {
             >
               <ArrowLeft size={20} className="text-white" />
             </button>
-            <h1 className="text-xl font-bold text-white">غرفة جديدة</h1>
+            <h1 className="text-xl font-bold text-white">إنشاء غرفة دردشة</h1>
           </div>
-          <button
+          <Button
             onClick={handleSubmit}
-            disabled={!formData.name.trim() || isSubmitting}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!name.trim() || isSubmitting}
+            className="bg-blue-500 hover:bg-blue-600"
           >
             {isSubmitting ? 'جاري الإنشاء...' : 'إنشاء'}
-          </button>
+          </Button>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-zinc-800 rounded-lg p-4 space-y-4">
-            {/* Room Name */}
-            <div>
-              <label className="block text-white font-medium mb-2">
-                اسم الغرفة
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="أدخل اسم الغرفة"
-                className="w-full px-4 py-3 bg-zinc-700 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500"
-                maxLength={50}
-                required
-              />
-            </div>
+          {/* Room Name */}
+          <div className="bg-zinc-800 rounded-lg p-4">
+            <label className="block text-sm font-medium text-zinc-300 mb-2">
+              اسم الغرفة *
+            </label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="أدخل اسم الغرفة"
+              className="bg-zinc-900 border-zinc-700 text-white"
+              maxLength={100}
+            />
+          </div>
 
-            {/* Room Description */}
-            <div>
-              <label className="block text-white font-medium mb-2">
-                الوصف (اختياري)
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="وصف مختصر للغرفة"
-                className="w-full px-4 py-3 bg-zinc-700 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 resize-none"
-                rows={3}
-                maxLength={200}
-              />
-            </div>
+          {/* Description */}
+          <div className="bg-zinc-800 rounded-lg p-4">
+            <label className="block text-sm font-medium text-zinc-300 mb-2">
+              وصف الغرفة
+            </label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="أدخل وصفاً للغرفة (اختياري)"
+              className="bg-zinc-900 border-zinc-700 text-white resize-none"
+              rows={3}
+              maxLength={500}
+            />
+          </div>
 
-            {/* Privacy Setting */}
-            <div className="flex items-center justify-between p-4 bg-zinc-700 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-zinc-600 rounded-lg">
-                  {formData.isPrivate ? (
-                    <Lock size={20} className="text-white" />
-                  ) : (
-                    <Users size={20} className="text-white" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-white font-medium">
-                    {formData.isPrivate ? 'غرفة خاصة' : 'غرفة عامة'}
-                  </h3>
-                  <p className="text-sm text-zinc-400">
-                    {formData.isPrivate 
-                      ? 'يمكن للأعضاء المدعوين فقط الانضمام'
-                      : 'يمكن لأي شخص الانضمام والمشاركة'
-                    }
-                  </p>
-                </div>
-              </div>
+          {/* Privacy Settings */}
+          <div className="bg-zinc-800 rounded-lg p-4">
+            <label className="block text-sm font-medium text-zinc-300 mb-3">
+              إعدادات الخصوصية
+            </label>
+            <div className="space-y-3">
               <button
                 type="button"
-                onClick={() => setFormData(prev => ({ ...prev, isPrivate: !prev.isPrivate }))}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  formData.isPrivate ? 'bg-blue-500' : 'bg-zinc-600'
+                onClick={() => setIsPrivate(false)}
+                className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                  !isPrivate ? 'bg-blue-600' : 'bg-zinc-700 hover:bg-zinc-600'
                 }`}
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    formData.isPrivate ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
+                <div className="flex items-center space-x-3">
+                  <Globe size={20} className="text-white" />
+                  <div className="text-right">
+                    <p className="font-medium text-white">عامة</p>
+                    <p className="text-sm text-zinc-300">يمكن لأي شخص الانضمام</p>
+                  </div>
+                </div>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setIsPrivate(true)}
+                className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                  isPrivate ? 'bg-blue-600' : 'bg-zinc-700 hover:bg-zinc-600'
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <Lock size={20} className="text-white" />
+                  <div className="text-right">
+                    <p className="font-medium text-white">خاصة</p>
+                    <p className="text-sm text-zinc-300">بالدعوة فقط</p>
+                  </div>
+                </div>
               </button>
             </div>
           </div>

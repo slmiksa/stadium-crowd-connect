@@ -4,6 +4,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Send, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+
+interface ChatRoom {
+  id: string;
+  name: string;
+  description?: string;
+  is_private: boolean;
+  members_count: number;
+  owner_id: string;
+}
 
 interface Message {
   id: string;
@@ -16,49 +27,23 @@ interface Message {
   };
 }
 
-interface RoomDetails {
-  id: string;
-  name: string;
-  description?: string;
-  members_count: number;
-}
-
 const ChatRoom = () => {
   const { roomId } = useParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const [room, setRoom] = useState<ChatRoom | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [roomDetails, setRoomDetails] = useState<RoomDetails | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isMember, setIsMember] = useState(false);
 
   useEffect(() => {
     if (roomId && user) {
-      fetchRoomDetails();
-      fetchMessages();
-      
-      // Subscribe to new messages
-      const channel = supabase
-        .channel(`room_${roomId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'room_messages',
-            filter: `room_id=eq.${roomId}`
-          },
-          (payload) => {
-            fetchMessages(); // Refresh messages when new one is added
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      fetchRoomData();
+      checkMembership();
     }
   }, [roomId, user]);
 
@@ -67,33 +52,51 @@ const ChatRoom = () => {
   }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const fetchRoomDetails = async () => {
-    if (!roomId) return;
-
+  const fetchRoomData = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: roomData, error: roomError } = await supabase
         .from('chat_rooms')
         .select('*')
         .eq('id', roomId)
         .single();
 
-      if (error) {
-        console.error('Error fetching room details:', error);
+      if (roomError) {
+        console.error('Error fetching room:', roomError);
+        navigate('/chat-rooms');
         return;
       }
 
-      setRoomDetails(data);
+      setRoom(roomData);
     } catch (error) {
       console.error('Error:', error);
     }
   };
 
-  const fetchMessages = async () => {
-    if (!roomId) return;
+  const checkMembership = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('room_members')
+        .select('id')
+        .eq('room_id', roomId)
+        .eq('user_id', user?.id)
+        .single();
 
+      setIsMember(!!data);
+      
+      if (data) {
+        fetchMessages();
+      }
+    } catch (error) {
+      console.error('Error checking membership:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchMessages = async () => {
     try {
       const { data, error } = await supabase
         .from('room_messages')
@@ -115,23 +118,45 @@ const ChatRoom = () => {
       setMessages(data || []);
     } catch (error) {
       console.error('Error:', error);
-    } finally {
-      setIsLoading(false);
+    }
+  };
+
+  const joinRoom = async () => {
+    if (!user || !room) return;
+
+    try {
+      const { error } = await supabase
+        .from('room_members')
+        .insert({
+          room_id: room.id,
+          user_id: user.id,
+          role: 'member'
+        });
+
+      if (error) {
+        console.error('Error joining room:', error);
+        return;
+      }
+
+      setIsMember(true);
+      fetchMessages();
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user || !roomId || isSending) return;
+    if (!newMessage.trim() || !user || isSending) return;
 
     setIsSending(true);
     try {
       const { error } = await supabase
         .from('room_messages')
         .insert({
-          content: newMessage.trim(),
           room_id: roomId,
-          user_id: user.id
+          user_id: user.id,
+          content: newMessage.trim()
         });
 
       if (error) {
@@ -140,6 +165,7 @@ const ChatRoom = () => {
       }
 
       setNewMessage('');
+      fetchMessages();
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -147,7 +173,7 @@ const ChatRoom = () => {
     }
   };
 
-  const formatTime = (timestamp: string) => {
+  const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('ar-SA', { 
       hour: '2-digit', 
@@ -157,95 +183,115 @@ const ChatRoom = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-black flex flex-col">
-      {/* Header */}
-      <div className="bg-zinc-900 p-4 border-b border-zinc-800">
-        <div className="flex items-center space-x-3">
-          <button 
-            onClick={() => navigate('/chat-rooms')}
-            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
-          >
-            <ArrowLeft size={20} className="text-white" />
-          </button>
-          
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-            <span className="text-lg font-bold text-white">
-              {roomDetails?.name.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-white">{roomDetails?.name}</h1>
-            <div className="flex items-center space-x-2 text-sm text-zinc-400">
-              <Users size={14} />
-              <span>{roomDetails?.members_count} عضو</span>
-            </div>
-          </div>
+  if (!room) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-zinc-400">الغرفة غير موجودة</p>
+          <Button onClick={() => navigate('/chat-rooms')} className="mt-4">
+            العودة للغرف
+          </Button>
         </div>
       </div>
+    );
+  }
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-zinc-400">لا توجد رسائل بعد</p>
-          </div>
-        ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
+  return (
+    <div className="min-h-screen bg-zinc-900 flex flex-col">
+      {/* Header */}
+      <div className="bg-zinc-800 border-b border-zinc-700 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => navigate('/chat-rooms')}
+              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
             >
-              <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  message.user_id === user?.id
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-zinc-700 text-white'
-                }`}
-              >
-                {message.user_id !== user?.id && (
-                  <p className="text-xs text-zinc-300 mb-1">
-                    {message.profiles?.username || 'مستخدم مجهول'}
-                  </p>
-                )}
-                <p className="text-sm">{message.content}</p>
-                <p className="text-xs mt-1 opacity-70">
-                  {formatTime(message.created_at)}
-                </p>
+              <ArrowLeft size={20} className="text-white" />
+            </button>
+            <div>
+              <h1 className="text-lg font-bold text-white">{room.name}</h1>
+              <div className="flex items-center space-x-2 text-sm text-zinc-400">
+                <Users size={16} />
+                <span>{room.members_count} عضو</span>
               </div>
             </div>
-          ))
-        )}
-        <div ref={messagesEndRef} />
+          </div>
+        </div>
       </div>
 
-      {/* Message Input */}
-      <form onSubmit={sendMessage} className="p-4 bg-zinc-900 border-t border-zinc-800">
-        <div className="flex items-center space-x-2">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="اكتب رسالة..."
-            className="flex-1 px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500"
-            disabled={isSending}
-          />
-          <button
-            type="submit"
-            disabled={!newMessage.trim() || isSending}
-            className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Send size={20} />
-          </button>
+      {!isMember ? (
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-white mb-2">{room.name}</h2>
+            {room.description && (
+              <p className="text-zinc-400 mb-4">{room.description}</p>
+            )}
+            <Button onClick={joinRoom} className="bg-blue-500 hover:bg-blue-600">
+              انضم للغرفة
+            </Button>
+          </div>
         </div>
-      </form>
+      ) : (
+        <>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-zinc-400">لا توجد رسائل بعد</p>
+                <p className="text-zinc-500 text-sm">كن أول من يرسل رسالة!</p>
+              </div>
+            ) : (
+              messages.map((message) => (
+                <div key={message.id} className="flex space-x-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-bold text-white">
+                      {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="font-medium text-white text-sm">
+                        {message.profiles?.username || 'مستخدم مجهول'}
+                      </span>
+                      <span className="text-xs text-zinc-500">
+                        {formatTimestamp(message.created_at)}
+                      </span>
+                    </div>
+                    <p className="text-zinc-300">{message.content}</p>
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Message Input */}
+          <div className="bg-zinc-800 border-t border-zinc-700 p-4">
+            <form onSubmit={sendMessage} className="flex space-x-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="اكتب رسالة..."
+                className="flex-1 bg-zinc-700 border-zinc-600 text-white"
+                disabled={isSending}
+              />
+              <Button 
+                type="submit" 
+                disabled={!newMessage.trim() || isSending}
+                className="bg-blue-500 hover:bg-blue-600"
+              >
+                <Send size={18} />
+              </Button>
+            </form>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import PostComments from './PostComments';
 
 interface HashtagPostProps {
@@ -29,6 +30,7 @@ interface HashtagPostProps {
 
 const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isLiking, setIsLiking] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [localLikesCount, setLocalLikesCount] = useState(post.likes_count);
@@ -103,6 +105,37 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
     onLikeChange();
   };
 
+  const handleUsernameClick = () => {
+    navigate(`/user/${post.user_id}`);
+  };
+
+  const handleHashtagClick = (hashtag: string) => {
+    navigate(`/hashtag/${hashtag}`);
+  };
+
+  const renderContentWithHashtags = (content: string) => {
+    const hashtagRegex = /#[\u0600-\u06FF\w]+/g;
+    const parts = content.split(hashtagRegex);
+    const hashtags = content.match(hashtagRegex) || [];
+    
+    const result = [];
+    for (let i = 0; i < parts.length; i++) {
+      result.push(parts[i]);
+      if (hashtags[i]) {
+        result.push(
+          <button
+            key={i}
+            onClick={() => handleHashtagClick(hashtags[i].slice(1))}
+            className="text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            {hashtags[i]}
+          </button>
+        );
+      }
+    }
+    return result;
+  };
+
   return (
     <>
       <div className="bg-zinc-800 rounded-lg p-4">
@@ -114,9 +147,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
             </span>
           </div>
           <div className="ml-3 flex-1">
-            <h3 className="font-medium text-white">
+            <button
+              onClick={handleUsernameClick}
+              className="font-medium text-white hover:text-blue-400 transition-colors"
+            >
               {post.profiles?.username || 'مستخدم مجهول'}
-            </h3>
+            </button>
             <p className="text-xs text-zinc-500">
               {formatTimestamp(post.created_at)}
             </p>
@@ -125,18 +161,9 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
 
         {/* Post Content */}
         <div className="mb-3">
-          <p className="text-white mb-2">{post.content}</p>
-          
-          {/* Hashtags */}
-          {post.hashtags && post.hashtags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {post.hashtags.map((hashtag, index) => (
-                <span key={index} className="text-blue-400 text-sm">
-                  #{hashtag}
-                </span>
-              ))}
-            </div>
-          )}
+          <p className="text-white mb-2">
+            {renderContentWithHashtags(post.content)}
+          </p>
 
           {/* Image */}
           {post.image_url && (

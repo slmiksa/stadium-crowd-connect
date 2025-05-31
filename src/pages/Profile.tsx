@@ -1,57 +1,104 @@
-
 import React, { useState, useEffect } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import Layout from '@/components/Layout';
-import { Settings, Edit, Users, Hash, MessageSquare, LogOut } from 'lucide-react';
+import { User, Settings, Users, Hash, MessageSquare, Calendar, MapPin, Link as LinkIcon, Edit3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
+interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  bio?: string;
+  avatar_url?: string;
+  followers_count: number;
+  following_count: number;
+  favorite_team?: string;
+  created_at: string;
+}
+
+interface Follow {
+  id: string;
+  follower_id: string;
+  following_id: string;
+  profiles: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+  };
+}
+
 const Profile = () => {
-  const { t, isRTL, language, setLanguage } = useLanguage();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
-  const [showSettings, setShowSettings] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [postsCount, setPostsCount] = useState(0);
+  const [roomsCount, setRoomsCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
-  const [followers, setFollowers] = useState([]);
-  const [following, setFollowing] = useState([]);
-  const [userStats, setUserStats] = useState({
-    followers_count: 0,
-    following_count: 0,
-    posts_count: 0
-  });
+  const [followers, setFollowers] = useState<Follow[]>([]);
+  const [following, setFollowing] = useState<Follow[]>([]);
 
   useEffect(() => {
     if (user) {
-      fetchUserStats();
+      fetchProfile();
+      fetchCounts();
     }
   }, [user]);
 
-  const fetchUserStats = async () => {
+  const fetchProfile = async () => {
     if (!user) return;
 
     try {
-      // Get user profile with counts
-      const { data: profile } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .select('followers_count, following_count')
+        .select('*')
         .eq('id', user.id)
         .single();
 
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+
+      setProfile(data);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchCounts = async () => {
+    if (!user) return;
+
+    try {
       // Get posts count
-      const { count: postsCount } = await supabase
+      const { count: postsCount, error: postsError } = await supabase
         .from('hashtag_posts')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
-      setUserStats({
-        followers_count: profile?.followers_count || 0,
-        following_count: profile?.following_count || 0,
-        posts_count: postsCount || 0
-      });
+      if (!postsError) {
+        setPostsCount(postsCount || 0);
+      }
+
+      // Get rooms count (where user is owner)
+      const { count: roomsCount, error: roomsError } = await supabase
+        .from('chat_rooms')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_id', user.id);
+
+      if (!roomsError) {
+        setRoomsCount(roomsCount || 0);
+      }
     } catch (error) {
-      console.error('Error fetching user stats:', error);
+      console.error('Error fetching counts:', error);
     }
   };
 
@@ -59,10 +106,10 @@ const Profile = () => {
     if (!user) return;
 
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('follows')
         .select(`
-          follower_id,
+          *,
           profiles:follower_id (
             id,
             username,
@@ -71,10 +118,14 @@ const Profile = () => {
         `)
         .eq('following_id', user.id);
 
+      if (error) {
+        console.error('Error fetching followers:', error);
+        return;
+      }
+
       setFollowers(data || []);
-      setShowFollowers(true);
     } catch (error) {
-      console.error('Error fetching followers:', error);
+      console.error('Error:', error);
     }
   };
 
@@ -82,10 +133,10 @@ const Profile = () => {
     if (!user) return;
 
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('follows')
         .select(`
-          following_id,
+          *,
           profiles:following_id (
             id,
             username,
@@ -94,41 +145,54 @@ const Profile = () => {
         `)
         .eq('follower_id', user.id);
 
+      if (error) {
+        console.error('Error fetching following:', error);
+        return;
+      }
+
       setFollowing(data || []);
-      setShowFollowing(true);
     } catch (error) {
-      console.error('Error fetching following:', error);
+      console.error('Error:', error);
     }
   };
 
-  const handleLanguageToggle = () => {
-    setLanguage(language === 'ar' ? 'en' : 'ar');
+  const handleShowFollowers = () => {
+    fetchFollowers();
+    setShowFollowers(true);
   };
 
-  const handleLogout = async () => {
-    await logout();
+  const handleShowFollowing = () => {
+    fetchFollowing();
+    setShowFollowing(true);
   };
 
-  const stats = [
-    { 
-      label: t('followers'), 
-      value: userStats.followers_count, 
-      icon: Users,
-      onClick: fetchFollowers
-    },
-    { 
-      label: t('following'), 
-      value: userStats.following_count, 
-      icon: Users,
-      onClick: fetchFollowing
-    },
-    { 
-      label: t('posts'), 
-      value: userStats.posts_count, 
-      icon: Hash,
-      onClick: () => navigate('/hashtags')
-    }
-  ];
+  const handleMyPosts = () => {
+    navigate('/my-posts');
+  };
+
+  const handleMyRooms = () => {
+    navigate('/chat-rooms');
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="p-4 flex items-center justify-center min-h-64">
+          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Layout>
+        <div className="p-4 text-center">
+          <p className="text-zinc-400">خطأ في تحميل الملف الشخصي</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -137,190 +201,160 @@ const Profile = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-white">{t('profile')}</h1>
           <button
-            onClick={() => setShowSettings(true)}
+            onClick={() => navigate('/api-settings')}
             className="p-2 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors"
           >
-            <Settings size={20} className="text-zinc-400" />
+            <Settings size={20} className="text-white" />
           </button>
         </div>
 
-        {/* Profile Header */}
+        {/* Profile Card */}
         <div className="bg-zinc-800 rounded-lg p-6 mb-6">
-          <div className="flex items-center space-x-4 mb-4">
-            {/* Avatar */}
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
+          <div className="flex items-start space-x-4">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-2xl font-bold text-white">
-                {user?.email?.charAt(0).toUpperCase() || 'U'}
+                {profile.username.charAt(0).toUpperCase()}
               </span>
             </div>
-            
-            {/* User Info */}
             <div className="flex-1">
-              <h2 className="text-xl font-bold text-white">{user?.email}</h2>
-              <p className="text-zinc-400">{user?.email}</p>
+              <div className="flex items-center space-x-2 mb-2">
+                <h2 className="text-xl font-bold text-white">{profile.username}</h2>
+                <button className="p-1 text-zinc-400 hover:text-white transition-colors">
+                  <Edit3 size={16} />
+                </button>
+              </div>
+              <p className="text-zinc-400 mb-3">{profile.email}</p>
+              {profile.bio && <p className="text-zinc-300 mb-3">{profile.bio}</p>}
+              
+              <div className="flex items-center space-x-4 text-sm text-zinc-400 mb-4">
+                <div className="flex items-center space-x-1">
+                  <Calendar size={16} />
+                  <span>انضم في {new Date(profile.created_at).toLocaleDateString('ar-SA')}</span>
+                </div>
+                {profile.favorite_team && (
+                  <div className="flex items-center space-x-1">
+                    <span>⚽</span>
+                    <span>{profile.favorite_team}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Stats */}
+              <div className="flex space-x-6">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-white">{postsCount}</div>
+                  <div className="text-sm text-zinc-400">منشور</div>
+                </div>
+                <button onClick={handleShowFollowers} className="text-center hover:bg-zinc-700 p-2 rounded transition-colors">
+                  <div className="text-lg font-bold text-white">{profile.followers_count}</div>
+                  <div className="text-sm text-zinc-400">متابع</div>
+                </button>
+                <button onClick={handleShowFollowing} className="text-center hover:bg-zinc-700 p-2 rounded transition-colors">
+                  <div className="text-lg font-bold text-white">{profile.following_count}</div>
+                  <div className="text-sm text-zinc-400">متابَع</div>
+                </button>
+              </div>
             </div>
-            
-            {/* Edit Button */}
-            <button className="p-2 bg-zinc-700 rounded-lg hover:bg-zinc-600 transition-colors">
-              <Edit size={18} className="text-zinc-300" />
-            </button>
-          </div>
-
-          {/* Bio */}
-          <p className="text-zinc-300 mb-4">
-            {isRTL ? 'مشجع رياضي عاشق للكرة' : 'Sports enthusiast and football lover'}
-          </p>
-
-          {/* Stats */}
-          <div className="flex justify-around py-4 border-t border-zinc-700">
-            {stats.map((stat, index) => (
-              <button
-                key={index}
-                onClick={stat.onClick}
-                className="text-center hover:bg-zinc-700 p-2 rounded-lg transition-colors"
-              >
-                <div className="text-xl font-bold text-white">{stat.value}</div>
-                <div className="text-sm text-zinc-400">{stat.label}</div>
-              </button>
-            ))}
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <button 
-            onClick={() => navigate('/hashtags')}
-            className="bg-zinc-800 rounded-lg p-4 hover:bg-zinc-700 transition-colors"
+            onClick={handleMyPosts}
+            className="bg-zinc-800 rounded-lg p-4 text-center hover:bg-zinc-700 transition-colors"
           >
-            <Hash size={24} className="text-blue-400 mx-auto mb-2" />
-            <p className="text-white font-medium">
-              {isRTL ? 'منشوراتي' : 'My Posts'}
-            </p>
+            <Hash size={24} className="mx-auto mb-2 text-blue-400" />
+            <span className="text-white font-medium">منشوراتي</span>
+            <div className="text-sm text-zinc-400">{postsCount} منشور</div>
           </button>
-          
           <button 
-            onClick={() => navigate('/chat-rooms')}
-            className="bg-zinc-800 rounded-lg p-4 hover:bg-zinc-700 transition-colors"
+            onClick={handleMyRooms}
+            className="bg-zinc-800 rounded-lg p-4 text-center hover:bg-zinc-700 transition-colors"
           >
-            <MessageSquare size={24} className="text-green-400 mx-auto mb-2" />
-            <p className="text-white font-medium">
-              {isRTL ? 'غرفي' : 'My Rooms'}
-            </p>
+            <MessageSquare size={24} className="mx-auto mb-2 text-green-400" />
+            <span className="text-white font-medium">غرفي</span>
+            <div className="text-sm text-zinc-400">{roomsCount} غرفة</div>
           </button>
         </div>
 
-        {/* Settings Modal */}
-        {showSettings && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-zinc-800 rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold text-white mb-6">{t('settings')}</h2>
-              
-              <div className="space-y-4">
-                {/* Language Setting */}
-                <div className="flex items-center justify-between py-3 border-b border-zinc-700">
-                  <span className="text-white">
-                    {isRTL ? 'اللغة' : 'Language'}
-                  </span>
-                  <button
-                    onClick={handleLanguageToggle}
-                    className="px-3 py-1 bg-zinc-700 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-600 transition-colors"
-                  >
-                    {language === 'ar' ? 'العربية' : 'English'}
-                  </button>
-                </div>
-
-                {/* Account Info */}
-                <div className="py-3 border-b border-zinc-700">
-                  <p className="text-zinc-400 text-sm">{isRTL ? 'معلومات الحساب' : 'Account Information'}</p>
-                  <p className="text-white">{user?.email}</p>
-                  <p className="text-zinc-300 text-sm">
-                    {isRTL ? 'منذ:' : 'Member since:'} {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
-                  </p>
-                </div>
-
-                {/* Logout Button */}
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center justify-center space-x-2 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  <LogOut size={18} />
-                  <span>{t('logout')}</span>
-                </button>
-              </div>
-              
-              <div className="flex justify-end mt-6">
-                <button
-                  onClick={() => setShowSettings(false)}
-                  className="px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors"
-                >
-                  {t('cancel')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Sign Out Button */}
+        <button
+          onClick={signOut}
+          className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 rounded-lg transition-colors"
+        >
+          تسجيل الخروج
+        </button>
 
         {/* Followers Modal */}
-        {showFollowers && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-zinc-800 rounded-lg p-6 w-full max-w-md max-h-96">
-              <h2 className="text-xl font-bold text-white mb-6">المتابعون</h2>
-              <div className="overflow-y-auto space-y-3">
-                {followers.length === 0 ? (
-                  <p className="text-zinc-400 text-center">لا يوجد متابعون</p>
-                ) : (
-                  followers.map((follower: any) => (
-                    <div key={follower.follower_id} className="flex items-center space-x-3 p-2 hover:bg-zinc-700 rounded-lg">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold text-white">
-                          {follower.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                        </span>
-                      </div>
-                      <span className="text-white">{follower.profiles?.username || 'مستخدم مجهول'}</span>
+        <Dialog open={showFollowers} onOpenChange={setShowFollowers}>
+          <DialogContent className="bg-zinc-800 border-zinc-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">المتابعون</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {followers.length === 0 ? (
+                <p className="text-zinc-400 text-center py-4">لا يوجد متابعون بعد</p>
+              ) : (
+                followers.map((follow) => (
+                  <div key={follow.id} className="flex items-center space-x-3 p-2 hover:bg-zinc-700 rounded transition-colors">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-bold text-white">
+                        {follow.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                      </span>
                     </div>
-                  ))
-                )}
-              </div>
-              <button
-                onClick={() => setShowFollowers(false)}
-                className="w-full mt-4 px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors"
-              >
-                إغلاق
-              </button>
+                    <button
+                      onClick={() => {
+                        setShowFollowers(false);
+                        navigate(`/user/${follow.profiles?.id}`);
+                      }}
+                      className="flex-1 text-right"
+                    >
+                      <p className="text-white font-medium hover:text-blue-400 transition-colors">
+                        {follow.profiles?.username || 'مستخدم مجهول'}
+                      </p>
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {/* Following Modal */}
-        {showFollowing && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-zinc-800 rounded-lg p-6 w-full max-w-md max-h-96">
-              <h2 className="text-xl font-bold text-white mb-6">المتابَعون</h2>
-              <div className="overflow-y-auto space-y-3">
-                {following.length === 0 ? (
-                  <p className="text-zinc-400 text-center">لا تتابع أحد</p>
-                ) : (
-                  following.map((follow: any) => (
-                    <div key={follow.following_id} className="flex items-center space-x-3 p-2 hover:bg-zinc-700 rounded-lg">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold text-white">
-                          {follow.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                        </span>
-                      </div>
-                      <span className="text-white">{follow.profiles?.username || 'مستخدم مجهول'}</span>
+        <Dialog open={showFollowing} onOpenChange={setShowFollowing}>
+          <DialogContent className="bg-zinc-800 border-zinc-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">المتابَعون</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {following.length === 0 ? (
+                <p className="text-zinc-400 text-center py-4">لا تتابع أحداً بعد</p>
+              ) : (
+                following.map((follow) => (
+                  <div key={follow.id} className="flex items-center space-x-3 p-2 hover:bg-zinc-700 rounded transition-colors">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-bold text-white">
+                        {follow.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                      </span>
                     </div>
-                  ))
-                )}
-              </div>
-              <button
-                onClick={() => setShowFollowing(false)}
-                className="w-full mt-4 px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors"
-              >
-                إغلاق
-              </button>
+                    <button
+                      onClick={() => {
+                        setShowFollowing(false);
+                        navigate(`/user/${follow.profiles?.id}`);
+                      }}
+                      className="flex-1 text-right"
+                    >
+                      <p className="text-white font-medium hover:text-blue-400 transition-colors">
+                        {follow.profiles?.username || 'مستخدم مجهول'}
+                      </p>
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

@@ -77,11 +77,25 @@ const Hashtags = () => {
       // الشائعة هي كل المنشورات
       setPopularPosts(posts);
       
-      // الترند هي المنشورات التي لديها 35 تعليق أو أكثر، مرتبة حسب التعليقات
-      const trending = posts
-        .filter(post => post.comments_count >= 35)
-        .sort((a, b) => b.comments_count - a.comments_count);
-      setTrendingPosts(trending);
+      // الترند - استخدام البيانات من hashtag_details
+      const { data: trendingHashtags, error: trendingError } = await supabase
+        .from('hashtag_details')
+        .select('hashtag')
+        .eq('is_trending', true);
+
+      if (!trendingError && trendingHashtags) {
+        const trendingHashtagsList = trendingHashtags.map(h => h.hashtag);
+        const trendingPostsData = posts.filter(post => 
+          post.hashtags.some(tag => trendingHashtagsList.includes(tag))
+        );
+        setTrendingPosts(trendingPostsData);
+      } else {
+        // Fallback: المنشورات التي لديها 35 تعليق أو أكثر
+        const trending = posts
+          .filter(post => post.comments_count >= 35)
+          .sort((a, b) => b.comments_count - a.comments_count);
+        setTrendingPosts(trending);
+      }
       
     } catch (error) {
       console.error('Error:', error);
