@@ -98,6 +98,19 @@ const MatchDetails = () => {
     });
   };
 
+  const getMatchStatus = (status: string) => {
+    switch (status) {
+      case 'live':
+        return 'مباشر';
+      case 'upcoming':
+        return 'قادمة';
+      case 'finished':
+        return 'انتهت';
+      default:
+        return status;
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -207,19 +220,15 @@ const MatchDetails = () => {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center text-zinc-400">
                 <Clock size={16} className="ml-2" />
-                <span>{formatTime(match.date)}</span>
+                <span>التوقيت: {formatTime(match.date)}</span>
               </div>
               <div className="flex items-center text-zinc-400">
                 <Users size={16} className="ml-2" />
-                <span>
-                  {match.status === 'live' && 'جاري الآن'}
-                  {match.status === 'upcoming' && 'قادمة'}
-                  {match.status === 'finished' && 'انتهت'}
-                </span>
+                <span>الحالة: {getMatchStatus(match.status)}</span>
               </div>
             </div>
             <div className="mt-2 text-zinc-500 text-sm">
-              {formatDate(match.date)}
+              التاريخ: {formatDate(match.date)}
             </div>
           </div>
         </div>
@@ -230,10 +239,10 @@ const MatchDetails = () => {
           <div className="space-y-2 text-sm text-zinc-400">
             <p>• معرف المباراة: {match.id}</p>
             <p>• البطولة: {match.competition}</p>
-            <p>• الحالة: {
-              match.status === 'live' ? 'مباشرة' :
-              match.status === 'upcoming' ? 'قادمة' : 'منتهية'
-            }</p>
+            <p>• الحالة: {getMatchStatus(match.status)}</p>
+            {match.minute && match.status === 'live' && (
+              <p>• الدقيقة: {match.minute}</p>
+            )}
           </div>
         </div>
       </div>
