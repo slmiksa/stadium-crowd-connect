@@ -3,9 +3,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, Mic } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import VoiceMessage from '@/components/VoiceMessage';
+import VoiceRecorder from '@/components/VoiceRecorder';
 
 interface Message {
   id: string;
@@ -14,6 +16,8 @@ interface Message {
   sender_id: string;
   receiver_id: string;
   is_read: boolean;
+  voice_url?: string;
+  voice_duration?: number;
   sender_profile: {
     username: string;
     avatar_url?: string;
@@ -37,6 +41,7 @@ const PrivateChat = () => {
   const [otherUser, setOtherUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
 
   useEffect(() => {
     if (userId && user) {
@@ -127,6 +132,39 @@ const PrivateChat = () => {
     }
   };
 
+  const uploadVoiceToStorage = async (audioBlob: Blob): Promise<string> => {
+    try {
+      const fileName = `${user?.id}/${Date.now()}_voice.webm`;
+      
+      console.log('Uploading voice file:', fileName);
+      
+      const { data, error } = await supabase.storage
+        .from('voice-messages')
+        .upload(fileName, audioBlob, {
+          contentType: 'audio/webm',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
+
+      console.log('Upload successful:', data);
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('voice-messages')
+        .getPublicUrl(fileName);
+
+      console.log('Public URL:', urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading voice file:', error);
+      throw new Error('فشل في رفع الملف الصوتي');
+    }
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user || !userId || isSending) return;
@@ -156,6 +194,42 @@ const PrivateChat = () => {
     }
   };
 
+  const handleVoiceRecorded = async (audioBlob: Blob, duration: number) => {
+    if (!user || !userId) return;
+
+    setIsSending(true);
+    try {
+      console.log('Voice recorded, uploading to storage...');
+      const voiceUrl = await uploadVoiceToStorage(audioBlob);
+      console.log('Voice uploaded successfully:', voiceUrl);
+
+      const { error } = await supabase
+        .from('private_messages')
+        .insert({
+          sender_id: user.id,
+          receiver_id: userId,
+          content: 'رسالة صوتية',
+          voice_url: voiceUrl,
+          voice_duration: duration,
+          is_read: false
+        });
+
+      if (error) {
+        console.error('Error sending voice message:', error);
+        throw error;
+      }
+
+      setShowVoiceRecorder(false);
+      fetchMessages();
+    } catch (error) {
+      console.error('Error handling voice recording:', error);
+      alert('فشل في إرسال الرسالة الصوتية');
+      setShowVoiceRecorder(false);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('ar-SA', { 
@@ -163,6 +237,17 @@ const PrivateChat = () => {
       minute: '2-digit' 
     });
   };
+
+  if (showVoiceRecorder) {
+    return (
+      <div className="min-h-screen bg-zinc-900">
+        <VoiceRecorder
+          onVoiceRecorded={handleVoiceRecorded}
+          onCancel={() => setShowVoiceRecorder(false)}
+        />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -220,20 +305,28 @@ const PrivateChat = () => {
               key={message.id} 
               className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
             >
-              <div 
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  message.sender_id === user?.id 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-zinc-700 text-white'
-                }`}
-              >
-                <p>{message.content}</p>
-                <p className={`text-xs mt-1 ${
-                  message.sender_id === user?.id ? 'text-blue-100' : 'text-zinc-400'
-                }`}>
-                  {formatTimestamp(message.created_at)}
-                </p>
-              </div>
+              {message.voice_url ? (
+                <VoiceMessage
+                  voiceUrl={message.voice_url}
+                  duration={message.voice_duration || 0}
+                  isOwn={message.sender_id === user?.id}
+                />
+              ) : (
+                <div 
+                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    message.sender_id === user?.id 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-zinc-700 text-white'
+                  }`}
+                >
+                  <p>{message.content}</p>
+                  <p className={`text-xs mt-1 ${
+                    message.sender_id === user?.id ? 'text-blue-100' : 'text-zinc-400'
+                  }`}>
+                    {formatTimestamp(message.created_at)}
+                  </p>
+                </div>
+              )}
             </div>
           ))
         )}
@@ -243,6 +336,15 @@ const PrivateChat = () => {
       {/* Message Input */}
       <div className="bg-zinc-800 border-t border-zinc-700 p-4">
         <form onSubmit={sendMessage} className="flex space-x-2">
+          <Button
+            type="button"
+            onClick={() => setShowVoiceRecorder(true)}
+            disabled={isSending}
+            className="p-2 bg-zinc-700 hover:bg-zinc-600 transition-colors flex-shrink-0"
+            variant="secondary"
+          >
+            <Mic size={18} />
+          </Button>
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
