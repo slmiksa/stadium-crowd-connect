@@ -40,12 +40,9 @@ const Matches = () => {
       console.log('Calling edge function with params:', { status, date: today });
       
       const { data, error } = await supabase.functions.invoke('get-football-matches', {
-        body: JSON.stringify({ 
+        body: { 
           status: status,
           date: today
-        }),
-        headers: {
-          'Content-Type': 'application/json'
         }
       });
 
@@ -59,19 +56,8 @@ const Matches = () => {
       console.log('Function response:', data);
       
       if (data && data.matches) {
-        const filteredMatches = data.matches.filter((match: Match) => {
-          if (status === 'live') {
-            return match.status === 'live';
-          } else if (status === 'upcoming') {
-            return match.status === 'upcoming';
-          } else if (status === 'finished') {
-            return match.status === 'finished';
-          }
-          return true;
-        });
-        
-        setMatches(filteredMatches);
-        console.log(`Set ${filteredMatches.length} matches for status ${status}`);
+        setMatches(data.matches);
+        console.log(`Set ${data.matches.length} matches for status ${status}`);
         console.log(`Total available: ${data.totalAvailable}, From target leagues: ${data.fromTargetLeagues}`);
       } else {
         setMatches([]);
@@ -102,12 +88,6 @@ const Matches = () => {
   const handleMatchClick = (matchId: string) => {
     navigate(`/match/${matchId}`);
   };
-
-  const tabs = [
-    { id: 'live' as const, label: 'المباريات المباشرة', color: 'text-red-400' },
-    { id: 'upcoming' as const, label: 'المباريات القادمة', color: 'text-blue-400' },
-    { id: 'finished' as const, label: 'المباريات المنتهية', color: 'text-green-400' }
-  ];
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -142,12 +122,21 @@ const Matches = () => {
           </button>
         </div>
 
-        {/* API Status with better design */}
+        {/* API Status */}
         {apiStatus === 'working' && !isLoading && (
           <div className="bg-green-900/30 border border-green-500/40 rounded-xl p-4 mb-6 backdrop-blur-sm">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-green-500 rounded-full mr-3 animate-pulse"></div>
-              <p className="text-green-300 font-medium">يعمل بشكل طبيعي</p>
+              <p className="text-green-300 font-medium">الـ API يعمل بشكل طبيعي - {matches.length} مباراة</p>
+            </div>
+          </div>
+        )}
+
+        {apiStatus === 'error' && (
+          <div className="bg-red-900/30 border border-red-500/40 rounded-xl p-4 mb-6 backdrop-blur-sm">
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+              <p className="text-red-300 font-medium">خطأ في الـ API - تحقق من المفتاح</p>
             </div>
           </div>
         )}
@@ -225,9 +214,9 @@ const Matches = () => {
                   onClick={() => handleMatchClick(match.id)}
                   className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 hover:bg-gray-750/80 transition-all duration-300 cursor-pointer border border-gray-700/50 hover:border-blue-500/40 hover:shadow-xl hover:shadow-blue-500/10"
                 >
-                  {/* Competition Header with better design */}
+                  {/* Competition Header */}
                   <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 space-x-reverse">
                       {match.leagueFlag && (
                         <img src={match.leagueFlag} alt="" className="w-8 h-6 object-cover rounded shadow-sm" />
                       )}
@@ -241,23 +230,23 @@ const Matches = () => {
                     </div>
                   </div>
                   
-                  {/* Enhanced Match Details */}
+                  {/* Match Details */}
                   <div className="flex items-center justify-between">
                     {/* Home Team */}
                     <div className="flex-1 flex items-center text-right min-w-0">
-                      <div className="flex items-center space-x-4 flex-1 min-w-0">
+                      <div className="flex items-center space-x-4 space-x-reverse flex-1 min-w-0">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-white text-lg truncate">{match.homeTeam}</p>
+                        </div>
                         {match.homeLogo && (
                           <div className="w-14 h-14 bg-gray-700/50 rounded-xl p-2 flex items-center justify-center">
                             <img src={match.homeLogo} alt={match.homeTeam} className="w-full h-full object-contain" />
                           </div>
                         )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-white text-lg truncate">{match.homeTeam}</p>
-                        </div>
                       </div>
                     </div>
                     
-                    {/* Enhanced Score/Status */}
+                    {/* Score/Status */}
                     <div className="mx-8 text-center min-w-[140px]">
                       {match.status === 'live' && (
                         <div className="flex items-center justify-center mb-3">
@@ -288,8 +277,8 @@ const Matches = () => {
                     </div>
                     
                     {/* Away Team */}
-                    <div className="flex-1 flex items-center flex-row-reverse text-left min-w-0">
-                      <div className="flex items-center space-x-reverse space-x-4 flex-1 min-w-0">
+                    <div className="flex-1 flex items-center text-left min-w-0">
+                      <div className="flex items-center space-x-4 flex-1 min-w-0">
                         {match.awayLogo && (
                           <div className="w-14 h-14 bg-gray-700/50 rounded-xl p-2 flex items-center justify-center">
                             <img src={match.awayLogo} alt={match.awayTeam} className="w-full h-full object-contain" />
