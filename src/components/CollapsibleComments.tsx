@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -207,19 +206,30 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
   const organizedComments = organizeComments(comments);
 
   return (
-    <div className="mt-4 border-t border-gray-700/30 pt-4">
+    <div className="mt-3 border-t border-gray-700/30 pt-3">
+      {/* Comment Input - Moved to top */}
+      <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/40 mb-4">
+        <CommentInput
+          onSubmit={handleSubmitComment}
+          isSubmitting={isSubmitting}
+          placeholder="اكتب تعليقاً..."
+          replyTo={replyTo}
+          onCancelReply={handleCancelReply}
+        />
+      </div>
+
       {/* Comments List */}
-      <div className="space-y-4 mb-4">
+      <div className="space-y-3">
         {isLoading ? (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-6">
             <div className="relative">
-              <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+              <div className="w-5 h-5 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
             </div>
           </div>
         ) : organizedComments.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="w-12 h-12 bg-gradient-to-r from-gray-700 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-3">
-              <span className="text-lg">💬</span>
+          <div className="text-center py-6">
+            <div className="w-10 h-10 bg-gradient-to-r from-gray-700 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-2">
+              <span className="text-base">💬</span>
             </div>
             <p className="text-gray-400 text-sm">لا توجد تعليقات بعد</p>
             <p className="text-gray-500 text-xs mt-1">كن أول من يعلق!</p>
@@ -235,17 +245,6 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
             />
           ))
         )}
-      </div>
-
-      {/* Comment Input */}
-      <div className="bg-gray-800/30 rounded-lg p-3 border border-gray-700/50">
-        <CommentInput
-          onSubmit={handleSubmitComment}
-          isSubmitting={isSubmitting}
-          placeholder="اكتب تعليقاً..."
-          replyTo={replyTo}
-          onCancelReply={handleCancelReply}
-        />
       </div>
     </div>
   );

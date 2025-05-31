@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Reply, MoreVertical, Clock, X, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -103,51 +102,56 @@ const CommentItem: React.FC<CommentItemProps> = ({
   const mediaUrl = comment.media_url || comment.image_url;
   const mediaType = comment.media_type || (comment.image_url ? 'image' : null);
 
+  // Different background color for replies to distinguish them
+  const isReply = comment.parent_id !== null;
+  const cardBgColor = isReply ? 'bg-blue-900/20' : 'bg-gray-800/60';
+  const borderColor = isReply ? 'border-blue-700/30' : 'border-gray-700/30';
+
   return (
     <>
       <div className={`${marginClass}`}>
         <div className="flex space-x-3 space-x-reverse group">
           <button
             onClick={handleProfileClick}
-            className={`w-10 h-10 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg hover:scale-105 transition-transform duration-200`}
+            className={`w-8 h-8 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center flex-shrink-0 shadow-md hover:scale-105 transition-transform duration-200`}
           >
-            <span className="text-sm font-bold text-white">
+            <span className="text-xs font-bold text-white">
               {comment.profiles?.username?.charAt(0).toUpperCase() || 'U'}
             </span>
           </button>
           <div className="flex-1">
-            <div className="bg-gray-800/70 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/30 group-hover:bg-gray-800/90 transition-all duration-200">
+            <div className={`${cardBgColor} backdrop-blur-sm rounded-lg p-3 border ${borderColor} group-hover:bg-opacity-80 transition-all duration-200`}>
               <div className="flex items-center justify-between mb-2">
                 <button
                   onClick={handleProfileClick}
-                  className="text-sm font-semibold text-white hover:text-blue-400 transition-colors"
+                  className="text-xs font-semibold text-white hover:text-blue-400 transition-colors"
                 >
                   {comment.profiles?.username || 'مستخدم مجهول'}
                 </button>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center text-gray-500 text-xs">
-                    <Clock size={12} className="ml-1" />
+                    <Clock size={10} className="ml-1" />
                     {formatTimestamp(comment.created_at)}
                   </div>
                   <button className="text-gray-500 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                    <MoreVertical size={14} />
+                    <MoreVertical size={12} />
                   </button>
                 </div>
               </div>
               
               {comment.content && (
-                <div className="text-sm text-gray-300 whitespace-pre-wrap mb-3 leading-relaxed">
+                <div className="text-xs text-gray-300 whitespace-pre-wrap mb-2 leading-relaxed">
                   {renderContentWithHashtags(comment.content)}
                 </div>
               )}
               
               {mediaUrl && (
-                <div className="mb-3 rounded-xl overflow-hidden">
+                <div className="mb-2 rounded-lg overflow-hidden">
                   {mediaType === 'video' ? (
                     <div className="relative">
                       <video 
                         src={mediaUrl} 
-                        className="max-w-full h-auto rounded-xl cursor-pointer"
+                        className="max-w-full h-auto rounded-lg cursor-pointer"
                         controls
                         preload="metadata"
                       />
@@ -156,7 +160,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
                     <img 
                       src={mediaUrl} 
                       alt="Comment attachment" 
-                      className="max-w-full h-auto rounded-xl hover:scale-105 transition-transform duration-300 cursor-pointer"
+                      className="max-w-full h-auto rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
                       onClick={() => setShowMediaModal(true)}
                     />
                   )}
@@ -164,12 +168,12 @@ const CommentItem: React.FC<CommentItemProps> = ({
               )}
               
               {/* Comment Actions */}
-              <div className="flex items-center gap-6 pt-2 border-t border-gray-700/30">
+              <div className="flex items-center gap-4 pt-2 border-t border-gray-700/30">
                 <button
                   onClick={() => onReply(comment.id, comment.profiles?.username || 'مستخدم مجهول')}
-                  className="flex items-center gap-2 text-xs text-gray-500 hover:text-blue-400 transition-colors group/btn"
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-400 transition-colors group/btn"
                 >
-                  <Reply size={14} className="group-hover/btn:scale-110 transition-transform" />
+                  <Reply size={12} className="group-hover/btn:scale-110 transition-transform" />
                   <span>رد</span>
                 </button>
               </div>
@@ -177,7 +181,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
             
             {/* Replies */}
             {replies.length > 0 && (
-              <div className="mt-4 space-y-3">
+              <div className="mt-3 space-y-2">
                 {replies.slice(0, showReplies ? replies.length : 2).map((reply) => (
                   <CommentItem
                     key={reply.id}
@@ -190,7 +194,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
                 {replies.length > 2 && !showReplies && (
                   <button
                     onClick={() => setShowReplies(true)}
-                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors mr-13"
+                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors mr-11"
                   >
                     عرض {replies.length - 2} ردود أخرى
                   </button>
