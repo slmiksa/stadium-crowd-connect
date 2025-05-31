@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -83,20 +82,21 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     };
   }, [post.id]);
 
-  // Real-time updates for likes - fetch fresh data every time
+  // Real-time updates for likes - simplified approach
   useEffect(() => {
     const channel = supabase
       .channel(`post-${post.id}-likes`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'hashtag_likes',
           filter: `post_id=eq.${post.id}`
         },
-        async () => {
-          // Fetch fresh like data
+        async (payload) => {
+          console.log('Like added:', payload.new);
+          // Fetch fresh data to ensure accuracy
           const { data: likesData, error } = await supabase
             .from('hashtag_likes')
             .select('user_id')
@@ -104,7 +104,31 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
 
           if (!error && likesData) {
             setLikesCount(likesData.length);
-            
+            if (user) {
+              const userLike = likesData.find(like => like.user_id === user.id);
+              setIsLiked(!!userLike);
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'hashtag_likes',
+          filter: `post_id=eq.${post.id}`
+        },
+        async (payload) => {
+          console.log('Like removed:', payload.old);
+          // Fetch fresh data to ensure accuracy
+          const { data: likesData, error } = await supabase
+            .from('hashtag_likes')
+            .select('user_id')
+            .eq('post_id', post.id);
+
+          if (!error && likesData) {
+            setLikesCount(likesData.length);
             if (user) {
               const userLike = likesData.find(like => like.user_id === user.id);
               setIsLiked(!!userLike);
@@ -137,7 +161,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
     
     try {
       if (!isLiked) {
-        // Add like
+        // Optimistically update UI first
+        setIsLiked(true);
+        setLikesCount(prev => prev + 1);
+        
+        // Add like to database
         const { error } = await supabase
           .from('hashtag_likes')
           .insert({
@@ -147,13 +175,19 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         
         if (error) {
           console.error('Error adding like:', error);
+          // Revert optimistic update on error
+          setIsLiked(false);
+          setLikesCount(prev => prev - 1);
           toast.error('حدث خطأ في إضافة الإعجاب');
         } else {
-          // Don't update state manually - let real-time handle it
           toast.success('تم إضافة الإعجاب');
         }
       } else {
-        // Remove like
+        // Optimistically update UI first
+        setIsLiked(false);
+        setLikesCount(prev => Math.max(0, prev - 1));
+        
+        // Remove like from database
         const { error } = await supabase
           .from('hashtag_likes')
           .delete()
@@ -162,9 +196,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         
         if (error) {
           console.error('Error removing like:', error);
+          // Revert optimistic update on error
+          setIsLiked(true);
+          setLikesCount(prev => prev + 1);
           toast.error('حدث خطأ في إزالة الإعجاب');
         } else {
-          // Don't update state manually - let real-time handle it
           toast.success('تم إزالة الإعجاب');
         }
       }
@@ -174,6 +210,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
       }
     } catch (error) {
       console.error('Error toggling like:', error);
+      // Revert any optimistic updates
+      if (user && post.hashtag_likes && Array.isArray(post.hashtag_likes)) {
+        const userLike = post.hashtag_likes.find(like => like.user_id === user.id);
+        setIsLiked(!!userLike);
+        setLikesCount(post.likes_count || 0);
+      }
       toast.error('حدث خطأ غير متوقع');
     } finally {
       setIsProcessing(false);
