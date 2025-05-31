@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -67,7 +68,7 @@ const HashtagPage = () => {
     try {
       console.log('Fetching content for hashtag:', hashtag);
       
-      // Fetch posts
+      // Fetch posts with hashtag
       const { data: postsData, error: postsError } = await supabase
         .from('hashtag_posts')
         .select(`
@@ -88,11 +89,8 @@ const HashtagPage = () => {
         console.error('Error fetching hashtag posts:', postsError);
       }
 
-      // Fetch comments with hashtags - improved approach with proper JOIN
-      let allComments = [];
-      
-      // Get comments that contain the hashtag in the hashtags array
-      const { data: arrayComments, error: arrayError } = await supabase
+      // Fetch comments with hashtag in array
+      const { data: hashtagArrayComments, error: arrayError } = await supabase
         .from('hashtag_comments')
         .select(`
           *,
@@ -105,12 +103,8 @@ const HashtagPage = () => {
         .contains('hashtags', [hashtag])
         .order('created_at', { ascending: false });
 
-      if (arrayComments) {
-        allComments.push(...arrayComments);
-      }
-
-      // Get comments that contain the hashtag in the content text
-      const { data: contentComments, error: contentError } = await supabase
+      // Fetch comments with hashtag in content (using ilike for case-insensitive search)
+      const { data: hashtagContentComments, error: contentError } = await supabase
         .from('hashtag_comments')
         .select(`
           *,
@@ -123,13 +117,6 @@ const HashtagPage = () => {
         .ilike('content', `%#${hashtag}%`)
         .order('created_at', { ascending: false });
 
-      if (contentComments) {
-        // Remove duplicates by filtering out comments that already exist
-        const existingIds = new Set(allComments.map(c => c.id));
-        const uniqueContentComments = contentComments.filter(c => !existingIds.has(c.id));
-        allComments.push(...uniqueContentComments);
-      }
-
       if (arrayError) {
         console.error('Error fetching comments from hashtags array:', arrayError);
       }
@@ -137,8 +124,32 @@ const HashtagPage = () => {
         console.error('Error fetching comments from content:', contentError);
       }
 
+      // Combine comments and remove duplicates
+      const allComments = [];
+      const commentIds = new Set();
+
+      // Add comments from hashtags array
+      if (hashtagArrayComments) {
+        hashtagArrayComments.forEach(comment => {
+          if (!commentIds.has(comment.id)) {
+            allComments.push(comment);
+            commentIds.add(comment.id);
+          }
+        });
+      }
+
+      // Add comments from content search (avoiding duplicates)
+      if (hashtagContentComments) {
+        hashtagContentComments.forEach(comment => {
+          if (!commentIds.has(comment.id)) {
+            allComments.push(comment);
+            commentIds.add(comment.id);
+          }
+        });
+      }
+
       console.log('Posts data:', postsData);
-      console.log('Comments data:', allComments);
+      console.log('All comments data:', allComments);
 
       // Combine and sort all content by creation date
       const allContent: HashtagContent[] = [];
@@ -164,7 +175,7 @@ const HashtagPage = () => {
       // Sort by creation date (newest first)
       allContent.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
-      console.log('All content:', allContent);
+      console.log('All content combined:', allContent);
       setContent(allContent);
     } catch (error) {
       console.error('Error:', error);
