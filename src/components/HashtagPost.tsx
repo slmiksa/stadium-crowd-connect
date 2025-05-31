@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -39,7 +38,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [showComments, setShowComments] = useState(false);
-  const [isLiking, setIsLiking] = useState(false);
 
   // Check if user has liked the post
   useEffect(() => {
@@ -149,36 +147,18 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
   };
 
   const handleLike = async () => {
-    if (!user || isLiking) return;
+    if (!user) return;
 
-    // Optimistic UI update
-    const previousIsLiked = isLiked;
-    const previousLikesCount = likesCount;
+    // تحديث فوري للواجهة
+    const newIsLiked = !isLiked;
+    const newLikesCount = newIsLiked ? likesCount + 1 : Math.max(0, likesCount - 1);
     
-    setIsLiked(!isLiked);
-    setLikesCount(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
-    setIsLiking(true);
+    setIsLiked(newIsLiked);
+    setLikesCount(newLikesCount);
 
+    // تنفيذ العملية في قاعدة البيانات في الخلفية
     try {
-      if (isLiked) {
-        console.log('Removing like...');
-        const { error } = await supabase
-          .from('hashtag_likes')
-          .delete()
-          .eq('post_id', post.id)
-          .eq('user_id', user.id);
-        
-        if (error) {
-          console.error('Error removing like:', error);
-          // Revert optimistic update
-          setIsLiked(previousIsLiked);
-          setLikesCount(previousLikesCount);
-          return;
-        }
-        
-        console.log('Like removed successfully');
-      } else {
-        console.log('Adding like...');
+      if (newIsLiked) {
         const { error } = await supabase
           .from('hashtag_likes')
           .insert({
@@ -188,13 +168,23 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
         
         if (error) {
           console.error('Error adding like:', error);
-          // Revert optimistic update
-          setIsLiked(previousIsLiked);
-          setLikesCount(previousLikesCount);
-          return;
+          // إعادة التغيير في حالة الخطأ
+          setIsLiked(!newIsLiked);
+          setLikesCount(likesCount);
         }
+      } else {
+        const { error } = await supabase
+          .from('hashtag_likes')
+          .delete()
+          .eq('post_id', post.id)
+          .eq('user_id', user.id);
         
-        console.log('Like added successfully');
+        if (error) {
+          console.error('Error removing like:', error);
+          // إعادة التغيير في حالة الخطأ
+          setIsLiked(!newIsLiked);
+          setLikesCount(likesCount);
+        }
       }
       
       if (onLikeChange) {
@@ -202,11 +192,9 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      // Revert optimistic update
-      setIsLiked(previousIsLiked);
-      setLikesCount(previousLikesCount);
-    } finally {
-      setIsLiking(false);
+      // إعادة التغيير في حالة الخطأ
+      setIsLiked(!newIsLiked);
+      setLikesCount(likesCount);
     }
   };
 
@@ -328,14 +316,14 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange, hideComme
               <div className="flex items-center space-x-6 space-x-reverse">
                 <button
                   onClick={handleLike}
-                  disabled={isLiking || !user}
-                  className={`flex items-center space-x-2 space-x-reverse transition-all duration-200 group disabled:opacity-70 ${
+                  disabled={!user}
+                  className={`flex items-center space-x-2 space-x-reverse transition-all duration-150 group disabled:opacity-70 transform active:scale-95 ${
                     isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-400'
                   }`}
                 >
                   <Heart 
                     size={20} 
-                    className={`transition-transform group-hover:scale-110 ${isLiked ? 'fill-current' : ''} ${isLiking ? 'animate-pulse' : ''}`}
+                    className={`transition-all duration-150 group-hover:scale-110 ${isLiked ? 'fill-current scale-110' : ''}`}
                   />
                   <span className="text-sm font-medium">{likesCount}</span>
                 </button>
