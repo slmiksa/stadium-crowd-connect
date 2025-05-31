@@ -8,10 +8,12 @@ import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 
 const CreateChatRoom = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
@@ -40,7 +42,11 @@ const CreateChatRoom = () => {
 
       if (roomError) {
         console.error('Error creating room:', roomError);
-        alert('خطأ في إنشاء الغرفة: ' + roomError.message);
+        toast({
+          title: "خطأ في إنشاء الغرفة",
+          description: roomError.message,
+          variant: "destructive"
+        });
         return;
       }
 
@@ -57,17 +63,30 @@ const CreateChatRoom = () => {
 
       if (memberError) {
         console.error('Error adding owner as member:', memberError);
-        alert('خطأ في إضافة العضو: ' + memberError.message);
+        toast({
+          title: "خطأ في إضافة العضو",
+          description: memberError.message,
+          variant: "destructive"
+        });
         return;
       }
 
       console.log('Owner added as member successfully');
       
+      toast({
+        title: "تم إنشاء الغرفة بنجاح",
+        description: "يمكنك الآن بدء المحادثة"
+      });
+      
       // الانتقال إلى الغرفة
       navigate(`/chat-room/${room.id}`);
     } catch (error) {
       console.error('Error:', error);
-      alert('حدث خطأ غير متوقع');
+      toast({
+        title: "حدث خطأ غير متوقع",
+        description: "يرجى المحاولة مرة أخرى",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }

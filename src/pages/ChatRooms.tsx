@@ -6,6 +6,7 @@ import Layout from '@/components/Layout';
 import { Users, Search, Plus, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ChatRoomWithDetails {
   id: string;
@@ -30,6 +31,7 @@ const ChatRooms = () => {
   const { t, isRTL } = useLanguage();
   const { user, isInitialized } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [rooms, setRooms] = useState<ChatRoomWithDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -67,12 +69,22 @@ const ChatRooms = () => {
 
       if (error) {
         console.error('Error fetching rooms:', error);
+        toast({
+          title: "خطأ في جلب الغرف",
+          description: error.message,
+          variant: "destructive"
+        });
         return;
       }
 
       setRooms(data || []);
     } catch (error) {
       console.error('Error:', error);
+      toast({
+        title: "حدث خطأ غير متوقع",
+        description: "يرجى المحاولة مرة أخرى",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -108,14 +120,29 @@ const ChatRooms = () => {
 
         if (error) {
           console.error('Error joining room:', error);
+          toast({
+            title: "خطأ في الانضمام للغرفة",
+            description: error.message,
+            variant: "destructive"
+          });
           return;
         }
+
+        toast({
+          title: "تم الانضمام بنجاح",
+          description: "مرحباً بك في الغرفة"
+        });
       }
 
       // Navigate to the room
       navigate(`/chat-room/${roomId}`);
     } catch (error) {
       console.error('Error:', error);
+      toast({
+        title: "حدث خطأ غير متوقع",
+        description: "يرجى المحاولة مرة أخرى",
+        variant: "destructive"
+      });
     }
   };
 
