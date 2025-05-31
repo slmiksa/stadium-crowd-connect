@@ -4,6 +4,7 @@ import Layout from '@/components/Layout';
 import { ArrowLeft, Bell, Heart, MessageCircle, User, CheckCheck, FileText, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 interface NotificationData {
   post_id?: string;
@@ -199,6 +200,45 @@ const Notifications = () => {
     return text.substring(0, maxLength) + '...';
   };
 
+  const handleProfileClick = (notification: Notification, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!notification.is_read) {
+      markAsRead(notification.id);
+    }
+
+    let userId;
+    if (notification.type === 'follow') {
+      userId = notification.data?.follower_id;
+    } else if (notification.type === 'like') {
+      userId = notification.data?.liker_id;
+    } else if (notification.type === 'comment' || notification.type === 'follower_comment') {
+      userId = notification.data?.commenter_id;
+    } else if (notification.type === 'post') {
+      userId = notification.data?.author_id;
+    }
+
+    if (userId) {
+      if (userId === user?.id) {
+        navigate('/profile');
+      } else {
+        navigate(`/user-profile/${userId}`);
+      }
+    }
+  };
+
+  const handlePostClick = (notification: Notification, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!notification.is_read) {
+      markAsRead(notification.id);
+    }
+
+    if (notification.data?.post_id) {
+      navigate(`/post/${notification.data.post_id}`);
+    }
+  };
+
   const handleNotificationClick = async (notification: Notification) => {
     console.log('Notification clicked:', notification);
     console.log('Notification type:', notification.type);
@@ -333,6 +373,37 @@ const Notifications = () => {
                           </p>
                         </div>
                       )}
+
+                      {/* أزرار التفاعل */}
+                      <div className="flex items-center gap-2 mt-3">
+                        {/* زر البروفايل */}
+                        {(notification.type === 'follow' || notification.type === 'like' || 
+                          notification.type === 'comment' || notification.type === 'follower_comment' || 
+                          notification.type === 'post') && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => handleProfileClick(notification, e)}
+                            className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
+                          >
+                            البروفايل
+                          </Button>
+                        )}
+
+                        {/* زر المنشور */}
+                        {(notification.type === 'like' || notification.type === 'comment' || 
+                          notification.type === 'follower_comment' || notification.type === 'post') && 
+                          notification.data?.post_id && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => handlePostClick(notification, e)}
+                            className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
+                          >
+                            المنشور
+                          </Button>
+                        )}
+                      </div>
                       
                       {!notification.is_read && (
                         <div className="mt-2">
