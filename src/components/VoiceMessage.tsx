@@ -54,21 +54,47 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
       }
 
       // If audio exists but is paused, resume it
-      if (audioRef.current && !isPlaying) {
+      if (audioRef.current && !isPlaying && !audioRef.current.ended) {
         console.log('VoiceMessage: Resuming audio');
-        await audioRef.current.play();
-        setIsPlaying(true);
-        return;
+        try {
+          await audioRef.current.play();
+          setIsPlaying(true);
+          return;
+        } catch (error) {
+          console.log('VoiceMessage: Resume failed, creating new audio instance');
+          // Fall through to create new audio instance
+        }
       }
 
       // Create new audio element
       setIsLoading(true);
-      console.log('VoiceMessage: Creating new audio element');
+      console.log('VoiceMessage: Creating new audio element with URL:', voiceUrl);
       
+      // Clean up existing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current = null;
+      }
+
       const audio = new Audio();
       audioRef.current = audio;
 
-      // Set up event listeners
+      // Set up event listeners before loading
+      audio.addEventListener('loadstart', () => {
+        console.log('VoiceMessage: Load started');
+      });
+
+      audio.addEventListener('canplay', () => {
+        console.log('VoiceMessage: Audio can play');
+        setIsLoading(false);
+      });
+
+      audio.addEventListener('loadeddata', () => {
+        console.log('VoiceMessage: Audio data loaded, duration:', audio.duration);
+        setIsLoading(false);
+      });
+
       audio.addEventListener('timeupdate', () => {
         setCurrentTime(audio.currentTime);
       });
@@ -79,43 +105,67 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
         setCurrentTime(0);
       });
 
-      audio.addEventListener('loadeddata', () => {
-        console.log('VoiceMessage: Audio data loaded');
-        setIsLoading(false);
-      });
-
-      audio.addEventListener('canplay', () => {
-        console.log('VoiceMessage: Audio can play');
-        setIsLoading(false);
-      });
-
       audio.addEventListener('error', (e) => {
         console.error('VoiceMessage: Audio error:', e);
+        console.error('VoiceMessage: Audio error details:', audio.error);
         setIsLoading(false);
         setHasError(true);
         setIsPlaying(false);
       });
 
-      // Load the audio
-      audio.src = voiceUrl;
-      audio.load();
+      audio.addEventListener('abort', () => {
+        console.log('VoiceMessage: Audio loading aborted');
+        setIsLoading(false);
+      });
 
-      // Try to play after a short delay
-      setTimeout(async () => {
-        try {
-          await audio.play();
-          setIsPlaying(true);
-          setIsLoading(false);
-          console.log('VoiceMessage: Audio started playing');
-        } catch (error) {
-          console.error('VoiceMessage: Failed to play audio:', error);
-          setIsLoading(false);
-          setHasError(true);
-        }
-      }, 100);
+      // Set crossOrigin to handle CORS issues
+      audio.crossOrigin = 'anonymous';
+      
+      // Load the audio with error handling
+      audio.src = voiceUrl;
+      console.log('VoiceMessage: Audio src set to:', audio.src);
+      
+      // Try to load and play
+      try {
+        audio.load();
+        
+        // Wait for the audio to be ready
+        await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Audio loading timeout'));
+          }, 10000); // 10 second timeout
+
+          audio.addEventListener('canplay', () => {
+            clearTimeout(timeoutId);
+            resolve(true);
+          }, { once: true });
+
+          audio.addEventListener('error', () => {
+            clearTimeout(timeoutId);
+            reject(audio.error || new Error('Audio loading failed'));
+          }, { once: true });
+        });
+
+        // Now try to play
+        await audio.play();
+        setIsPlaying(true);
+        setIsLoading(false);
+        console.log('VoiceMessage: Audio started playing successfully');
+        
+      } catch (playError) {
+        console.error('VoiceMessage: Failed to play audio:', playError);
+        setIsLoading(false);
+        setHasError(true);
+        setIsPlaying(false);
+        
+        // Additional debug info
+        console.log('VoiceMessage: Audio readyState:', audio.readyState);
+        console.log('VoiceMessage: Audio networkState:', audio.networkState);
+        console.log('VoiceMessage: Audio src:', audio.src);
+      }
 
     } catch (error) {
-      console.error('VoiceMessage: Error during playback:', error);
+      console.error('VoiceMessage: Error during playback setup:', error);
       setIsLoading(false);
       setHasError(true);
       setIsPlaying(false);

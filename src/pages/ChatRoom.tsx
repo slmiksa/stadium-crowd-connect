@@ -208,33 +208,49 @@ const ChatRoom = () => {
       }
 
       if (voiceFile) {
-        console.log('Uploading voice file to storage...');
-        const fileName = `${user.id}/${Date.now()}.webm`;
+        console.log('ChatRoom: Uploading voice file to storage...');
+        const fileName = `${user.id}/${Date.now()}_voice.webm`;
 
         const { data, error: uploadError } = await supabase.storage
           .from('voice-messages')
-          .upload(fileName, voiceFile);
+          .upload(fileName, voiceFile, {
+            contentType: 'audio/webm',
+            upsert: false
+          });
 
         if (uploadError) {
-          console.error('Error uploading voice message:', uploadError);
+          console.error('ChatRoom: Error uploading voice message:', uploadError);
           alert('فشل في رفع الملف الصوتي');
           return;
         }
 
-        console.log('Voice file uploaded successfully:', data);
+        console.log('ChatRoom: Voice file uploaded successfully:', data);
 
         const { data: { publicUrl } } = supabase.storage
           .from('voice-messages')
           .getPublicUrl(fileName);
 
         voiceUrl = publicUrl;
-        console.log('Voice public URL:', voiceUrl);
+        console.log('ChatRoom: Voice public URL generated:', voiceUrl);
+        
+        // Test the URL immediately
+        try {
+          const testResponse = await fetch(voiceUrl, { method: 'HEAD' });
+          console.log('ChatRoom: Voice URL test response status:', testResponse.status);
+          if (!testResponse.ok) {
+            console.error('ChatRoom: Voice URL not accessible:', testResponse.status);
+          }
+        } catch (testError) {
+          console.error('ChatRoom: Voice URL test failed:', testError);
+        }
       }
 
       let finalContent = content || 'مرفق';
       if (quotedMessage) {
         finalContent = `> ${quotedMessage.profiles?.username || 'مستخدم مجهول'}: ${quotedMessage.content}\n\n${finalContent}`;
       }
+
+      console.log('ChatRoom: Inserting message with voice_url:', voiceUrl, 'voice_duration:', voiceDuration);
 
       const { error } = await supabase
         .from('room_messages')
@@ -249,13 +265,14 @@ const ChatRoom = () => {
         });
 
       if (error) {
-        console.error('Error sending message:', error);
+        console.error('ChatRoom: Error sending message:', error);
         return;
       }
 
+      console.log('ChatRoom: Message sent successfully');
       setQuotedMessage(null);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('ChatRoom: Error in sendMessage:', error);
     }
   };
 
