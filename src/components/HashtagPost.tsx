@@ -55,35 +55,45 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
   const [localCommentsCount, setLocalCommentsCount] = useState(post.comments_count);
   const [showImageModal, setShowImageModal] = useState(false);
   const [localLikesCount, setLocalLikesCount] = useState(post.likes_count);
-  const [localIsLiked, setLocalIsLiked] = useState(isLiked);
+  const [localIsLiked, setLocalIsLiked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
 
   // Check if we're on the hashtags page to determine comment display style
   const isHashtagsPage = location.pathname === '/hashtags' || location.pathname.startsWith('/hashtag/');
 
-  // Check if post is liked by current user on component mount
+  // Check if post is liked by current user and get real likes count
   useEffect(() => {
-    const checkIfLiked = async () => {
+    const fetchLikeData = async () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
+        // Get total likes count from database
+        const { count: totalLikes, error: countError } = await supabase
+          .from('hashtag_likes')
+          .select('id', { count: 'exact' })
+          .eq('post_id', post.id);
+
+        if (!countError && totalLikes !== null) {
+          setLocalLikesCount(totalLikes);
+        }
+
+        // Check if current user liked this post
+        const { data: userLike, error: likeError } = await supabase
           .from('hashtag_likes')
           .select('id')
           .eq('post_id', post.id)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
         
-        if (!error && data) {
-          setLocalIsLiked(true);
+        if (!likeError) {
+          setLocalIsLiked(!!userLike);
         }
       } catch (error) {
-        // No like found, which is fine
-        setLocalIsLiked(false);
+        console.error('Error fetching like data:', error);
       }
     };
 
-    checkIfLiked();
+    fetchLikeData();
   }, [post.id, user]);
 
   const formatTimestamp = (timestamp: string) => {
@@ -242,7 +252,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
 
     try {
       if (localIsLiked) {
-        // Unlike
+        // Unlike - remove from database
         console.log('Unliking post...');
         const { error } = await supabase
           .from('hashtag_likes')
@@ -254,12 +264,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
           console.log('Successfully unliked post');
           setLocalIsLiked(false);
           setLocalLikesCount(prev => Math.max(0, prev - 1));
-          if (onLikeChange) onLikeChange();
         } else {
           console.error('Error unliking post:', error);
         }
       } else {
-        // Like
+        // Like - add to database
         console.log('Liking post...');
         const { error } = await supabase
           .from('hashtag_likes')
@@ -272,10 +281,14 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
           console.log('Successfully liked post');
           setLocalIsLiked(true);
           setLocalLikesCount(prev => prev + 1);
-          if (onLikeChange) onLikeChange();
         } else {
           console.error('Error liking post:', error);
         }
+      }
+
+      // Refresh the parent component if callback is provided
+      if (onLikeChange) {
+        onLikeChange();
       }
     } catch (error) {
       console.error('Error handling like:', error);
