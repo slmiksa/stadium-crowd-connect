@@ -476,12 +476,14 @@ const ChatRoom = () => {
           roomId={roomId}
           isOpen={showMembersModal}
           onClose={() => setShowMembersModal(false)}
+          isOwner={user?.id === roomInfo?.owner_id}
         />
       )}
       
       {showSettingsModal && roomId && roomInfo && (
         <ChatRoomSettingsModal
-          room={roomInfo}
+          roomId={roomId}
+          currentAnnouncement={roomInfo.announcement}
           isOpen={showSettingsModal}
           onClose={() => setShowSettingsModal(false)}
           onAnnouncementUpdate={handleAnnouncementUpdate}
