@@ -53,6 +53,7 @@ const App = () => {
     }
   };
 
+  // Show intro before everything else
   if (showIntro) {
     return <IntroScreen onComplete={handleIntroComplete} />;
   }
