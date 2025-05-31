@@ -1,11 +1,11 @@
-
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import PostComments from './PostComments';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import CollapsibleComments from './CollapsibleComments';
 
 interface HashtagPostProps {
   post: {
@@ -140,99 +140,100 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLikeChange }) => {
   };
 
   return (
-    <>
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:bg-gray-800/70 transition-all duration-300 shadow-xl">
-        <div className="flex items-start space-x-3 space-x-reverse">
-          <button
-            onClick={handleProfileClick}
-            className={`w-12 h-12 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg hover:scale-105 transition-transform duration-200`}
-          >
-            {post.profiles?.avatar_url ? (
-              <Avatar className="w-12 h-12">
-                <AvatarImage src={post.profiles.avatar_url} />
-                <AvatarFallback className={`bg-gradient-to-br ${getAvatarGradient()} text-white font-bold`}>
-                  {post.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-            ) : (
-              <span className="text-lg font-bold text-white">
+    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:bg-gray-800/70 transition-all duration-300 shadow-xl">
+      <div className="flex items-start space-x-3 space-x-reverse">
+        <button
+          onClick={handleProfileClick}
+          className={`w-12 h-12 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg hover:scale-105 transition-transform duration-200`}
+        >
+          {post.profiles?.avatar_url ? (
+            <Avatar className="w-12 h-12">
+              <AvatarImage src={post.profiles.avatar_url} />
+              <AvatarFallback className={`bg-gradient-to-br ${getAvatarGradient()} text-white font-bold`}>
                 {post.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-              </span>
-            )}
-          </button>
-          
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <button
-                  onClick={handleProfileClick}
-                  className="font-semibold text-white hover:text-blue-400 transition-colors"
-                >
-                  {post.profiles?.username || 'مستخدم مجهول'}
-                </button>
-                <div className="flex items-center text-gray-500 text-sm">
-                  <Clock size={14} className="ml-1" />
-                  {formatTimestamp(post.created_at)}
-                </div>
-              </div>
-              <button className="text-gray-500 hover:text-white transition-colors p-1 rounded-full hover:bg-gray-700/50">
-                <MoreVertical size={18} />
+              </AvatarFallback>
+            </Avatar>
+          ) : (
+            <span className="text-lg font-bold text-white">
+              {post.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+            </span>
+          )}
+        </button>
+        
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <button
+                onClick={handleProfileClick}
+                className="font-semibold text-white hover:text-blue-400 transition-colors"
+              >
+                {post.profiles?.username || 'مستخدم مجهول'}
               </button>
-            </div>
-            
-            <div className="text-gray-300 mb-4 leading-relaxed whitespace-pre-wrap">
-              {renderContentWithHashtags(post.content)}
-            </div>
-            
-            {post.image_url && (
-              <div className="mb-4 rounded-xl overflow-hidden">
-                <img 
-                  src={post.image_url} 
-                  alt="Post content" 
-                  className="w-full max-h-96 object-cover hover:scale-105 transition-transform duration-300"
-                />
+              <div className="flex items-center text-gray-500 text-sm">
+                <Clock size={14} className="ml-1" />
+                {formatTimestamp(post.created_at)}
               </div>
-            )}
-            
-            <div className="flex items-center justify-between pt-4 border-t border-gray-700/30">
-              <div className="flex items-center space-x-6 space-x-reverse">
-                <button
-                  onClick={handleLike}
-                  className={`flex items-center space-x-2 space-x-reverse transition-all duration-200 group ${
-                    isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-400'
-                  }`}
-                >
-                  <Heart 
-                    size={20} 
-                    className={`transition-transform group-hover:scale-110 ${isLiked ? 'fill-current' : ''}`}
-                  />
-                  <span className="text-sm font-medium">{likesCount}</span>
-                </button>
-                
-                <button
-                  onClick={() => setShowComments(true)}
-                  className="flex items-center space-x-2 space-x-reverse text-gray-500 hover:text-blue-400 transition-all duration-200 group"
-                >
-                  <MessageCircle size={20} className="transition-transform group-hover:scale-110" />
-                  <span className="text-sm font-medium">{commentsCount}</span>
-                </button>
-              </div>
-              
-              <button className="text-gray-500 hover:text-green-400 transition-colors p-2 rounded-full hover:bg-gray-700/30">
-                <Share2 size={18} />
-              </button>
             </div>
+            <button className="text-gray-500 hover:text-white transition-colors p-1 rounded-full hover:bg-gray-700/50">
+              <MoreVertical size={18} />
+            </button>
           </div>
+          
+          <div className="text-gray-300 mb-4 leading-relaxed whitespace-pre-wrap">
+            {renderContentWithHashtags(post.content)}
+          </div>
+          
+          {post.image_url && (
+            <div className="mb-4 rounded-xl overflow-hidden">
+              <img 
+                src={post.image_url} 
+                alt="Post content" 
+                className="w-full max-h-96 object-cover hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+          )}
+          
+          <div className="flex items-center justify-between pt-4 border-t border-gray-700/30">
+            <div className="flex items-center space-x-6 space-x-reverse">
+              <button
+                onClick={handleLike}
+                className={`flex items-center space-x-2 space-x-reverse transition-all duration-200 group ${
+                  isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-400'
+                }`}
+              >
+                <Heart 
+                  size={20} 
+                  className={`transition-transform group-hover:scale-110 ${isLiked ? 'fill-current' : ''}`}
+                />
+                <span className="text-sm font-medium">{likesCount}</span>
+              </button>
+              
+              <Collapsible open={showComments} onOpenChange={setShowComments}>
+                <CollapsibleTrigger asChild>
+                  <button className="flex items-center space-x-2 space-x-reverse text-gray-500 hover:text-blue-400 transition-all duration-200 group">
+                    <MessageCircle size={20} className="transition-transform group-hover:scale-110" />
+                    <span className="text-sm font-medium">{commentsCount}</span>
+                  </button>
+                </CollapsibleTrigger>
+              </Collapsible>
+            </div>
+            
+            <button className="text-gray-500 hover:text-green-400 transition-colors p-2 rounded-full hover:bg-gray-700/30">
+              <Share2 size={18} />
+            </button>
+          </div>
+          
+          <Collapsible open={showComments} onOpenChange={setShowComments}>
+            <CollapsibleContent className="space-y-0 overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+              <CollapsibleComments
+                postId={post.id}
+                onCommentAdded={handleCommentAdded}
+              />
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </div>
-
-      <PostComments
-        postId={post.id}
-        isOpen={showComments}
-        onClose={() => setShowComments(false)}
-        onCommentAdded={handleCommentAdded}
-      />
-    </>
+    </div>
   );
 };
 
