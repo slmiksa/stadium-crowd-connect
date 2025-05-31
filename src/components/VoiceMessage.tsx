@@ -101,7 +101,7 @@ const VoiceMessage: React.FC<VoiceMessageProps> = ({ voiceUrl, duration, isOwn =
         setIsLoading(false);
       });
 
-      // Set crossOrigin and preload
+      // Set crossOrigin for public URLs
       audio.crossOrigin = 'anonymous';
       audio.preload = 'auto';
       

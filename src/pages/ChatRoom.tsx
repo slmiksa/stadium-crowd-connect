@@ -214,18 +214,6 @@ const ChatRoom = () => {
         
         const fileName = `voice_${user.id}_${Date.now()}.webm`;
 
-        // First, ensure the bucket exists by trying to create it
-        const { error: bucketError } = await supabase.storage.createBucket('voice-messages', {
-          public: true,
-          allowedMimeTypes: ['audio/webm', 'audio/mp3', 'audio/wav'],
-          fileSizeLimit: 10485760 // 10MB
-        });
-
-        // Ignore error if bucket already exists
-        if (bucketError && !bucketError.message.includes('already exists')) {
-          console.error('ChatRoom: Error creating bucket:', bucketError);
-        }
-
         const { data, error: uploadError } = await supabase.storage
           .from('voice-messages')
           .upload(fileName, voiceFile, {
