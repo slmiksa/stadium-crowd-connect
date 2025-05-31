@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -92,8 +90,11 @@ const HashtagPage = () => {
         console.error('Error fetching hashtag posts:', postsError);
       }
 
-      // Fetch comments with hashtags - improved query to get all comments that contain the hashtag
-      const { data: commentsData, error: commentsError } = await supabase
+      // Fetch comments with hashtags - using multiple queries to ensure we get all comments
+      let commentsData = [];
+      
+      // First, try to get comments that have the hashtag in the hashtags array
+      const { data: hashtagCommentsData, error: hashtagCommentsError } = await supabase
         .from('hashtag_comments')
         .select(`
           id,
@@ -111,11 +112,47 @@ const HashtagPage = () => {
             avatar_url
           )
         `)
-        .or(`hashtags.cs.{${hashtag}},content.like.%#${hashtag}%`)
+        .contains('hashtags', [hashtag])
         .order('created_at', { ascending: false });
 
-      if (commentsError) {
-        console.error('Error fetching hashtag comments:', commentsError);
+      if (hashtagCommentsData) {
+        commentsData.push(...hashtagCommentsData);
+      }
+
+      // Second, try to get comments that contain the hashtag in the content
+      const { data: contentCommentsData, error: contentCommentsError } = await supabase
+        .from('hashtag_comments')
+        .select(`
+          id,
+          content,
+          hashtags,
+          created_at,
+          user_id,
+          post_id,
+          parent_id,
+          image_url,
+          updated_at,
+          profiles!hashtag_comments_user_id_fkey (
+            id,
+            username,
+            avatar_url
+          )
+        `)
+        .ilike('content', `%#${hashtag}%`)
+        .order('created_at', { ascending: false });
+
+      if (contentCommentsData) {
+        // Filter out duplicates based on id
+        const existingIds = new Set(commentsData.map(c => c.id));
+        const newComments = contentCommentsData.filter(c => !existingIds.has(c.id));
+        commentsData.push(...newComments);
+      }
+
+      if (hashtagCommentsError) {
+        console.error('Error fetching hashtag comments from hashtags array:', hashtagCommentsError);
+      }
+      if (contentCommentsError) {
+        console.error('Error fetching hashtag comments from content:', contentCommentsError);
       }
 
       console.log('Posts data:', postsData);
@@ -367,4 +404,3 @@ const HashtagPage = () => {
 };
 
 export default HashtagPage;
-
