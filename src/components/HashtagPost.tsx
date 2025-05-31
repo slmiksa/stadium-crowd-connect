@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock, User, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -98,29 +99,59 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
     try {
       console.log('Loading comments for post:', post.id);
       
-      const { data, error } = await supabase
+      // First get all comments for this post
+      const { data: commentsData, error: commentsError } = await supabase
         .from('hashtag_comments')
-        .select(`
-          *,
-          profiles (
-            id,
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('post_id', post.id)
         .order('created_at', { ascending: true });
 
-      if (error) {
-        console.error('Error loading comments:', error);
+      if (commentsError) {
+        console.error('Error loading comments:', commentsError);
         return;
       }
 
-      console.log('Loaded comments:', data);
-      const organizedComments = organizeComments(data || []);
-      setComments(organizedComments);
+      console.log('Comments data:', commentsData);
+
+      if (commentsData && commentsData.length > 0) {
+        // Get unique user IDs from comments
+        const userIds = [...new Set(commentsData.map(comment => comment.user_id))];
+        
+        console.log('Fetching profiles for user IDs:', userIds);
+        
+        // Get profiles for these user IDs
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          setComments([]);
+          return;
+        }
+
+        console.log('Profiles data:', profilesData);
+
+        // Combine comments with profiles
+        const commentsWithProfiles = commentsData.map(comment => ({
+          ...comment,
+          profiles: profilesData?.find(profile => profile.id === comment.user_id) || {
+            id: comment.user_id,
+            username: 'مستخدم مجهول',
+            avatar_url: null
+          }
+        }));
+
+        console.log('Comments with profiles:', commentsWithProfiles);
+        const organizedComments = organizeComments(commentsWithProfiles);
+        setComments(organizedComments);
+      } else {
+        setComments([]);
+      }
     } catch (error) {
       console.error('Error loading comments:', error);
+      setComments([]);
     } finally {
       setIsLoadingComments(false);
     }
