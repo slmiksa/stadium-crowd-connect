@@ -1,7 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Reply, Heart, MoreVertical, Clock, X } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from 'react';
+import { Reply, MoreVertical, Clock, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface CommentItemProps {
@@ -33,47 +32,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
 }) => {
   const { user } = useAuth();
   const [showReplies, setShowReplies] = useState(true);
-  const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(0);
-  const [isLiking, setIsLiking] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
-
-  // Check if comment is liked and get likes count
-  useEffect(() => {
-    if (user) {
-      checkCommentLike();
-    }
-  }, [comment.id, user]);
-
-  const checkCommentLike = async () => {
-    if (!user) return;
-    
-    try {
-      // Check if user liked this comment
-      const { data: likeData, error: likeError } = await supabase
-        .from('hashtag_comment_likes')
-        .select('id')
-        .eq('comment_id', comment.id)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (!likeError && likeData) {
-        setIsLiked(true);
-      }
-
-      // Get total likes count for this comment
-      const { data: countData, error: countError } = await supabase
-        .from('hashtag_comment_likes')
-        .select('id', { count: 'exact' })
-        .eq('comment_id', comment.id);
-      
-      if (!countError && countData) {
-        setLikesCount(countData.length);
-      }
-    } catch (error) {
-      console.error('Error checking comment like:', error);
-    }
-  };
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -97,44 +56,6 @@ const CommentItem: React.FC<CommentItemProps> = ({
     ];
     const index = (comment.user_id?.charCodeAt(0) || 0) % gradients.length;
     return gradients[index];
-  };
-
-  const handleLike = async () => {
-    if (!user || isLiking) return;
-    
-    setIsLiking(true);
-    try {
-      if (isLiked) {
-        // Unlike
-        const { error } = await supabase
-          .from('hashtag_comment_likes')
-          .delete()
-          .eq('comment_id', comment.id)
-          .eq('user_id', user.id);
-
-        if (!error) {
-          setIsLiked(false);
-          setLikesCount(prev => Math.max(0, prev - 1));
-        }
-      } else {
-        // Like
-        const { error } = await supabase
-          .from('hashtag_comment_likes')
-          .insert({
-            comment_id: comment.id,
-            user_id: user.id
-          });
-
-        if (!error) {
-          setIsLiked(true);
-          setLikesCount(prev => prev + 1);
-        }
-      }
-    } catch (error) {
-      console.error('Error handling like:', error);
-    } finally {
-      setIsLiking(false);
-    }
   };
 
   const handleProfileClick = () => {
@@ -203,22 +124,6 @@ const CommentItem: React.FC<CommentItemProps> = ({
                   <Reply size={14} className="group-hover/btn:scale-110 transition-transform" />
                   <span>رد</span>
                 </button>
-                <button 
-                  onClick={handleLike}
-                  disabled={isLiking}
-                  className={`flex items-center gap-2 text-xs transition-colors group/btn ${
-                    isLiked 
-                      ? 'text-red-400 hover:text-red-300' 
-                      : 'text-gray-500 hover:text-red-400'
-                  } ${isLiking ? 'opacity-50' : ''}`}
-                >
-                  <Heart 
-                    size={14} 
-                    fill={isLiked ? 'currentColor' : 'none'} 
-                    className="group-hover/btn:scale-110 transition-transform" 
-                  />
-                  <span>{likesCount > 0 ? likesCount : 'إعجاب'}</span>
-                </button>
               </div>
             </div>
             
@@ -250,7 +155,14 @@ const CommentItem: React.FC<CommentItemProps> = ({
 
       {/* Image Modal */}
       {showImageModal && comment.image_url && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div 
+          className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowImageModal(false);
+            }
+          }}
+        >
           <div className="relative max-w-full max-h-full">
             <button
               onClick={() => setShowImageModal(false)}

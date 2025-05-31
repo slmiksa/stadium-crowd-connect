@@ -530,7 +530,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
                               
                               // Close modal on click
                               modal.addEventListener('click', (e) => {
-                                if (e.target === modal || e.target?.closest('button')) {
+                                if (e.target === modal || (e.target as Element)?.closest('button')) {
                                   document.body.removeChild(modal);
                                 }
                               });
@@ -598,7 +598,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
                                           
                                           // Close modal on click
                                           modal.addEventListener('click', (e) => {
-                                            if (e.target === modal || e.target?.closest('button')) {
+                                            if (e.target === modal || (e.target as Element)?.closest('button')) {
                                               document.body.removeChild(modal);
                                             }
                                           });
@@ -633,7 +633,14 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
 
       {/* Image Modal */}
       {showImageModal && post.image_url && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div 
+          className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowImageModal(false);
+            }
+          }}
+        >
           <div className="relative max-w-full max-h-full">
             <button
               onClick={() => setShowImageModal(false)}
