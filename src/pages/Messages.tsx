@@ -245,6 +245,39 @@ const Messages = () => {
     }
   };
 
+  const handlePostNavigation = async (notification: Notification, event: React.MouseEvent) => {
+    event.stopPropagation();
+    await markNotificationAsRead(notification.id);
+    
+    if (notification.data?.post_id) {
+      navigate(`/post/${notification.data.post_id}`);
+    } else {
+      navigate('/hashtags');
+    }
+  };
+
+  const handleProfileNavigation = async (notification: Notification, event: React.MouseEvent) => {
+    event.stopPropagation();
+    await markNotificationAsRead(notification.id);
+    
+    let userId = null;
+    if (notification.type === 'comment' && notification.data?.commenter_id) {
+      userId = notification.data.commenter_id;
+    } else if (notification.type === 'like' && notification.data?.liker_id) {
+      userId = notification.data.liker_id;
+    } else if (notification.type === 'follow' && notification.data?.follower_id) {
+      userId = notification.data.follower_id;
+    } else if (notification.type === 'message' && notification.data?.sender_id) {
+      userId = notification.data.sender_id;
+    }
+    
+    if (userId) {
+      navigate(`/user-profile/${userId}`);
+    } else {
+      navigate('/hashtags');
+    }
+  };
+
   const handleConversationClick = async (conversation: Conversation) => {
     // Mark messages as read when opening conversation
     try {
@@ -389,15 +422,14 @@ const Messages = () => {
               filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`p-4 rounded-lg cursor-pointer transition-colors hover:bg-zinc-750 ${
+                  className={`p-4 rounded-lg transition-colors ${
                     !notification.is_read ? 'bg-zinc-800 border-l-4 border-blue-500' : 'bg-zinc-800/50'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3 flex-1">
                       {/* Notification Icon */}
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer ${
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                         notification.type === 'follow' ? 'bg-green-500' :
                         notification.type === 'comment' ? 'bg-blue-500' :
                         notification.type === 'like' ? 'bg-red-500' :
@@ -425,14 +457,43 @@ const Messages = () => {
                         <p className={`text-sm truncate ${!notification.is_read ? 'text-zinc-300' : 'text-zinc-400'}`}>
                           {notification.message}
                         </p>
-                        <p className="text-xs text-blue-400 mt-1">
-                          {notification.type === 'comment' || notification.type === 'like' 
-                            ? 'انقر للذهاب إلى المنشور'
-                            : notification.type === 'follow'
-                            ? 'انقر للذهاب إلى البروفايل'
-                            : 'انقر للذهاب إلى المحادثة'
-                          }
-                        </p>
+                        
+                        {/* Action buttons for comment and like notifications */}
+                        {(notification.type === 'comment' || notification.type === 'like') && (
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={(e) => handlePostNavigation(notification, e)}
+                              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full transition-colors"
+                            >
+                              المنشور
+                            </button>
+                            <button
+                              onClick={(e) => handleProfileNavigation(notification, e)}
+                              className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-full transition-colors"
+                            >
+                              البروفايل
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* Single action for other notification types */}
+                        {notification.type === 'follow' && (
+                          <button
+                            onClick={(e) => handleProfileNavigation(notification, e)}
+                            className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-full mt-2 transition-colors"
+                          >
+                            الذهاب إلى البروفايل
+                          </button>
+                        )}
+                        
+                        {notification.type === 'message' && (
+                          <button
+                            onClick={(e) => handleNotificationClick(notification)}
+                            className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-full mt-2 transition-colors"
+                          >
+                            الذهاب إلى المحادثة
+                          </button>
+                        )}
                       </div>
                     </div>
                     
