@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -129,61 +130,72 @@ const Matches = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gray-900 p-4">
-        {/* Header */}
+        {/* Header with better styling */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">المباريات</h1>
+          <h1 className="text-3xl font-bold text-white">المباريات</h1>
           <button
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
-            className="p-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="p-3 bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-lg"
           >
             <div className={`w-5 h-5 border-2 border-white border-t-transparent rounded-full ${isRefreshing ? 'animate-spin' : ''}`}></div>
           </button>
         </div>
 
-        {/* API Status */}
-        {apiStatus === 'error' && (
-          <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4 mb-6">
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-red-500 rounded-full mr-3 animate-pulse"></div>
-              <p className="text-red-300">مشكلة في الاتصال بـ API. تحقق من إعدادات المفتاح.</p>
-            </div>
-          </div>
-        )}
-
+        {/* API Status with better design */}
         {apiStatus === 'working' && !isLoading && (
-          <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-4 mb-6">
+          <div className="bg-green-900/30 border border-green-500/40 rounded-xl p-4 mb-6 backdrop-blur-sm">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-              <p className="text-green-300">API يعمل بشكل طبيعي</p>
+              <div className="w-3 h-3 bg-green-500 rounded-full mr-3 animate-pulse"></div>
+              <p className="text-green-300 font-medium">يعمل بشكل طبيعي</p>
             </div>
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="bg-gray-800 rounded-xl p-1 mb-6">
-          <div className="grid grid-cols-3 gap-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+        {/* Enhanced Tabs */}
+        <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-2 mb-8 border border-gray-700/50">
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => handleTabChange('live')}
+              className={`py-4 px-6 rounded-xl text-sm font-bold transition-all duration-300 ${
+                activeTab === 'live'
+                  ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                {activeTab === 'live' && <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>}
+                مباشرة
+              </div>
+            </button>
+            <button
+              onClick={() => handleTabChange('upcoming')}
+              className={`py-4 px-6 rounded-xl text-sm font-bold transition-all duration-300 ${
+                activeTab === 'upcoming'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
+              القادمة
+            </button>
+            <button
+              onClick={() => handleTabChange('finished')}
+              className={`py-4 px-6 rounded-xl text-sm font-bold transition-all duration-300 ${
+                activeTab === 'finished'
+                  ? 'bg-green-600 text-white shadow-lg shadow-green-600/30'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
+              المنتهية
+            </button>
           </div>
         </div>
 
         {/* Loading State */}
         {isLoading && (
-          <div className="text-center py-12">
-            <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-300 text-lg">
+          <div className="text-center py-16">
+            <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-6"></div>
+            <p className="text-gray-300 text-xl font-medium">
               {activeTab === 'live' && 'جاري تحميل المباريات المباشرة...'}
               {activeTab === 'upcoming' && 'جاري تحميل المباريات القادمة...'}
               {activeTab === 'finished' && 'جاري تحميل المباريات المنتهية...'}
@@ -191,19 +203,19 @@ const Matches = () => {
           </div>
         )}
 
-        {/* Matches List */}
+        {/* Enhanced Matches List */}
         {!isLoading && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {matches.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700">
-                  <div className="text-5xl mb-4 opacity-50">⚽</div>
-                  <p className="text-gray-300 text-lg mb-2">
+              <div className="text-center py-20">
+                <div className="bg-gray-800/60 backdrop-blur-sm rounded-3xl p-12 border border-gray-700/50">
+                  <div className="text-6xl mb-6 opacity-50">⚽</div>
+                  <p className="text-gray-300 text-xl mb-3 font-medium">
                     {activeTab === 'live' && 'لا توجد مباريات مباشرة حالياً'}
                     {activeTab === 'upcoming' && 'لا توجد مباريات قادمة'}
                     {activeTab === 'finished' && 'لا توجد مباريات منتهية'}
                   </p>
-                  <p className="text-gray-500">جرب تحديث الصفحة أو العودة لاحقاً</p>
+                  <p className="text-gray-500 text-base">جرب تحديث الصفحة أو العودة لاحقاً</p>
                 </div>
               </div>
             ) : (
@@ -211,61 +223,82 @@ const Matches = () => {
                 <div 
                   key={match.id} 
                   onClick={() => handleMatchClick(match.id)}
-                  className="bg-gray-800 rounded-xl p-4 hover:bg-gray-750 transition-all duration-200 cursor-pointer border border-gray-700/50 hover:border-blue-500/30"
+                  className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 hover:bg-gray-750/80 transition-all duration-300 cursor-pointer border border-gray-700/50 hover:border-blue-500/40 hover:shadow-xl hover:shadow-blue-500/10"
                 >
-                  {/* Competition Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md">{match.competition}</span>
+                  {/* Competition Header with better design */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-3">
                       {match.leagueFlag && (
-                        <img src={match.leagueFlag} alt="" className="w-5 h-4 object-cover rounded" />
+                        <img src={match.leagueFlag} alt="" className="w-8 h-6 object-cover rounded shadow-sm" />
                       )}
+                      <div className="bg-blue-600/20 border border-blue-500/30 rounded-lg px-4 py-2">
+                        <span className="text-blue-300 font-bold text-sm">{match.competition}</span>
+                      </div>
                     </div>
-                    <span className="text-xs text-gray-400">
-                      {formatDate(match.date)} • {formatTime(match.date)}
-                    </span>
+                    <div className="text-left">
+                      <div className="text-xs text-gray-400 mb-1">{formatDate(match.date)}</div>
+                      <div className="text-sm text-gray-300 font-medium">{formatTime(match.date)}</div>
+                    </div>
                   </div>
                   
-                  {/* Match Details */}
+                  {/* Enhanced Match Details */}
                   <div className="flex items-center justify-between">
                     {/* Home Team */}
-                    <div className="flex-1 flex items-center text-right">
-                      {match.homeLogo && (
-                        <img src={match.homeLogo} alt={match.homeTeam} className="w-10 h-10 object-contain ml-3" />
-                      )}
-                      <p className="font-semibold text-white text-base truncate">{match.homeTeam}</p>
+                    <div className="flex-1 flex items-center text-right min-w-0">
+                      <div className="flex items-center space-x-4 flex-1 min-w-0">
+                        {match.homeLogo && (
+                          <div className="w-14 h-14 bg-gray-700/50 rounded-xl p-2 flex items-center justify-center">
+                            <img src={match.homeLogo} alt={match.homeTeam} className="w-full h-full object-contain" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-white text-lg truncate">{match.homeTeam}</p>
+                        </div>
+                      </div>
                     </div>
                     
-                    {/* Score/Status */}
-                    <div className="mx-6 text-center min-w-[100px]">
+                    {/* Enhanced Score/Status */}
+                    <div className="mx-8 text-center min-w-[140px]">
                       {match.status === 'live' && (
-                        <div className="flex items-center justify-center mb-1">
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse ml-1"></div>
-                          <span className="text-red-400 text-xs font-semibold">مباشر</span>
+                        <div className="flex items-center justify-center mb-3">
+                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse ml-2"></div>
+                          <span className="text-red-400 text-sm font-bold">مباشر</span>
                           {match.minute && (
-                            <span className="text-red-400 text-xs mr-1">{match.minute}'</span>
+                            <span className="text-red-400 text-sm mr-2 bg-red-500/20 px-2 py-1 rounded-md">
+                              {match.minute}'
+                            </span>
                           )}
                         </div>
                       )}
                       
                       {match.homeScore !== null && match.homeScore !== undefined && 
                        match.awayScore !== null && match.awayScore !== undefined ? (
-                        <div className="text-2xl font-bold text-white bg-gray-700/50 rounded-lg px-3 py-1">
-                          {match.homeScore} - {match.awayScore}
+                        <div className="bg-gray-700/60 rounded-2xl px-6 py-4 border border-gray-600/50">
+                          <div className="text-3xl font-bold text-white">
+                            {match.homeScore} - {match.awayScore}
+                          </div>
                         </div>
                       ) : (
-                        <div className="text-gray-300 text-base bg-gray-700/30 rounded-lg px-3 py-1">
-                          {match.status === 'upcoming' ? formatTime(match.date) : 'vs'}
+                        <div className="bg-gray-700/40 rounded-2xl px-6 py-4 border border-gray-600/30">
+                          <div className="text-gray-300 text-lg font-medium">
+                            {match.status === 'upcoming' ? formatTime(match.date) : 'vs'}
+                          </div>
                         </div>
                       )}
                     </div>
                     
                     {/* Away Team */}
-                    <div className="flex-1 flex items-center flex-row-reverse text-left">
-                      <p className="font-semibold text-white text-base truncate">{match.awayTeam}</p>
-                      {match.awayLogo && (
-                        <img src={match.awayLogo} alt={match.awayTeam} className="w-10 h-10 object-contain mr-3" />
-                      )}
+                    <div className="flex-1 flex items-center flex-row-reverse text-left min-w-0">
+                      <div className="flex items-center space-x-reverse space-x-4 flex-1 min-w-0">
+                        {match.awayLogo && (
+                          <div className="w-14 h-14 bg-gray-700/50 rounded-xl p-2 flex items-center justify-center">
+                            <img src={match.awayLogo} alt={match.awayTeam} className="w-full h-full object-contain" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-white text-lg truncate">{match.awayTeam}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
