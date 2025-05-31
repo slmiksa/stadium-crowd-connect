@@ -164,8 +164,8 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
 
       console.log('Inserting comment into database...');
       
-      // Prepare the comment data
-      const commentData = {
+      // Prepare the comment data with proper typing
+      const commentData: any = {
         post_id: postId,
         user_id: user.id,
         content: content.trim() || '',
