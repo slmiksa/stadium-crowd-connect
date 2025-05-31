@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Bell, MessageSquare, Users, Heart, UserPlus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -111,15 +110,9 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
       onMarkAsRead(notification.id);
     }
     
-    // للتنبيهات الخاصة بغرف الدردشة، استخدم onRoomClick بدلاً من onNotificationClick
-    if (notification.type === 'chat_room') {
-      // إنشاء حدث وهمي لاستيفاء متطلبات onRoomClick
-      const fakeEvent = { stopPropagation: () => {} } as React.MouseEvent;
-      onRoomClick(notification, fakeEvent);
-    } else {
-      // للتنبيهات الأخرى، استخدم الوظيفة الأصلية
-      onNotificationClick(notification);
-    }
+    // للتنبيهات الخاصة بغرف الدردشة، استخدم onNotificationClick مباشرة
+    // حيث أن onNotificationClick يحتوي على المنطق الصحيح للتنقل
+    onNotificationClick(notification);
   };
 
   return (
