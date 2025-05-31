@@ -341,45 +341,46 @@ const ChatRoom = () => {
   }
 
   return (
-    <Layout showBottomNav={false}>
-      <div className="flex flex-col h-screen">
-        {/* Header */}
-        <div className="bg-zinc-800 border-b border-zinc-700 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <button 
-                onClick={() => navigate('/chat-rooms')}
-                className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
-              >
-                <ArrowLeft size={20} className="text-white" />
-              </button>
-              <div>
-                <h1 className="text-lg font-bold text-white">{roomInfo?.name}</h1>
-                <div className="flex items-center space-x-2 text-sm text-zinc-400">
-                  <Users size={14} />
-                  <span>{roomInfo?.members_count} عضو</span>
-                </div>
+    <div className="min-h-screen bg-zinc-900 flex flex-col">
+      {/* Header */}
+      <div className="bg-zinc-800 border-b border-zinc-700 p-4 fixed top-0 left-0 right-0 z-20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => navigate('/chat-rooms')}
+              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
+            >
+              <ArrowLeft size={20} className="text-white" />
+            </button>
+            <div>
+              <h1 className="text-lg font-bold text-white">{roomInfo?.name}</h1>
+              <div className="flex items-center space-x-2 text-sm text-zinc-400">
+                <Users size={14} />
+                <span>{roomInfo?.members_count} عضو</span>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+          </div>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => setShowMembersModal(true)}
+              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
+            >
+              <Users size={20} className="text-white" />
+            </button>
+            {user?.id === roomInfo?.owner_id && (
               <button 
-                onClick={() => setShowMembersModal(true)}
+                onClick={() => setShowSettingsModal(true)}
                 className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
               >
-                <Users size={20} className="text-white" />
+                <Settings size={20} className="text-white" />
               </button>
-              {user?.id === roomInfo?.owner_id && (
-                <button 
-                  onClick={() => setShowSettingsModal(true)}
-                  className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
-                >
-                  <Settings size={20} className="text-white" />
-                </button>
-              )}
-            </div>
+            )}
           </div>
         </div>
+      </div>
 
+      {/* Content with proper spacing */}
+      <div className="flex-1 flex flex-col pt-20 pb-20">
         {/* Announcement */}
         {roomInfo?.announcement && (
           <ChatRoomAnnouncement announcement={roomInfo.announcement} />
@@ -462,14 +463,14 @@ const ChatRoom = () => {
           })}
           <div ref={messagesEndRef} />
         </div>
-
-        <MediaInput 
-          onSendMessage={sendMessage} 
-          isSending={false}
-          quotedMessage={quotedMessage}
-          onClearQuote={() => setQuotedMessage(null)}
-        />
       </div>
+
+      <MediaInput 
+        onSendMessage={sendMessage} 
+        isSending={false}
+        quotedMessage={quotedMessage}
+        onClearQuote={() => setQuotedMessage(null)}
+      />
 
       {showMembersModal && roomId && (
         <RoomMembersModal
@@ -489,7 +490,7 @@ const ChatRoom = () => {
           onAnnouncementUpdate={handleAnnouncementUpdate}
         />
       )}
-    </Layout>
+    </div>
   );
 };
 
