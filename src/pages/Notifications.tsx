@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -374,36 +375,37 @@ const Notifications = () => {
                         </div>
                       )}
 
-                      {/* أزرار التفاعل */}
-                      <div className="flex items-center gap-2 mt-3">
-                        {/* زر البروفايل */}
-                        {(notification.type === 'follow' || notification.type === 'like' || 
-                          notification.type === 'comment' || notification.type === 'follower_comment' || 
-                          notification.type === 'post') && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => handleProfileClick(notification, e)}
-                            className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
-                          >
-                            البروفايل
-                          </Button>
-                        )}
+                      {/* أزرار التفاعل - مخفية لتنبيهات المنشورات الجديدة */}
+                      {notification.type !== 'post' && (
+                        <div className="flex items-center gap-2 mt-3">
+                          {/* زر البروفايل */}
+                          {(notification.type === 'follow' || notification.type === 'like' || 
+                            notification.type === 'comment' || notification.type === 'follower_comment') && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => handleProfileClick(notification, e)}
+                              className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
+                            >
+                              البروفايل
+                            </Button>
+                          )}
 
-                        {/* زر المنشور */}
-                        {(notification.type === 'like' || notification.type === 'comment' || 
-                          notification.type === 'follower_comment' || notification.type === 'post') && 
-                          notification.data?.post_id && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => handlePostClick(notification, e)}
-                            className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
-                          >
-                            المنشور
-                          </Button>
-                        )}
-                      </div>
+                          {/* زر المنشور */}
+                          {(notification.type === 'like' || notification.type === 'comment' || 
+                            notification.type === 'follower_comment') && 
+                            notification.data?.post_id && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => handlePostClick(notification, e)}
+                              className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
+                            >
+                              المنشور
+                            </Button>
+                          )}
+                        </div>
+                      )}
                       
                       {!notification.is_read && (
                         <div className="mt-2">
