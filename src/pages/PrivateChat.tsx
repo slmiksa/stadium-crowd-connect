@@ -57,7 +57,8 @@ const PrivateChat = () => {
             schema: 'public',
             table: 'private_messages'
           },
-          () => {
+          (payload) => {
+            console.log('Real-time update received:', payload);
             fetchMessages();
           }
         )
@@ -99,6 +100,8 @@ const PrivateChat = () => {
 
   const fetchMessages = async () => {
     try {
+      console.log('Fetching messages for conversation between:', user?.id, 'and', userId);
+      
       const { data, error } = await supabase
         .from('private_messages')
         .select(`
@@ -113,6 +116,7 @@ const PrivateChat = () => {
         return;
       }
 
+      console.log('Fetched messages:', data);
       setMessages(data || []);
       
       // Mark messages as read
@@ -186,7 +190,8 @@ const PrivateChat = () => {
       }
 
       setNewMessage('');
-      fetchMessages();
+      // Refetch messages to ensure we get the latest data
+      await fetchMessages();
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -203,24 +208,35 @@ const PrivateChat = () => {
       const voiceUrl = await uploadVoiceToStorage(audioBlob);
       console.log('Voice uploaded successfully:', voiceUrl);
 
-      const { error } = await supabase
+      const messageData = {
+        sender_id: user.id,
+        receiver_id: userId,
+        content: 'رسالة صوتية',
+        voice_url: voiceUrl,
+        voice_duration: Math.round(duration),
+        is_read: false
+      };
+
+      console.log('Inserting voice message:', messageData);
+
+      const { data, error } = await supabase
         .from('private_messages')
-        .insert({
-          sender_id: user.id,
-          receiver_id: userId,
-          content: 'رسالة صوتية',
-          voice_url: voiceUrl,
-          voice_duration: duration,
-          is_read: false
-        });
+        .insert(messageData)
+        .select(`
+          *,
+          sender_profile:profiles!private_messages_sender_id_fkey(username, avatar_url)
+        `);
 
       if (error) {
         console.error('Error sending voice message:', error);
         throw error;
       }
 
+      console.log('Voice message inserted successfully:', data);
       setShowVoiceRecorder(false);
-      fetchMessages();
+      
+      // Refetch messages to ensure we get the latest data
+      await fetchMessages();
     } catch (error) {
       console.error('Error handling voice recording:', error);
       alert('فشل في إرسال الرسالة الصوتية');
@@ -300,35 +316,38 @@ const PrivateChat = () => {
             <p className="text-zinc-500 text-sm">ابدأ محادثة جديدة!</p>
           </div>
         ) : (
-          messages.map((message) => (
-            <div 
-              key={message.id} 
-              className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-            >
-              {message.voice_url ? (
-                <VoiceMessage
-                  voiceUrl={message.voice_url}
-                  duration={message.voice_duration || 0}
-                  isOwn={message.sender_id === user?.id}
-                />
-              ) : (
-                <div 
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                    message.sender_id === user?.id 
-                      ? 'bg-blue-500 text-white' 
-                      : 'bg-zinc-700 text-white'
-                  }`}
-                >
-                  <p>{message.content}</p>
-                  <p className={`text-xs mt-1 ${
-                    message.sender_id === user?.id ? 'text-blue-100' : 'text-zinc-400'
-                  }`}>
-                    {formatTimestamp(message.created_at)}
-                  </p>
-                </div>
-              )}
-            </div>
-          ))
+          messages.map((message) => {
+            console.log('Rendering message:', message);
+            return (
+              <div 
+                key={message.id} 
+                className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+              >
+                {message.voice_url && message.voice_duration ? (
+                  <VoiceMessage
+                    voiceUrl={message.voice_url}
+                    duration={message.voice_duration}
+                    isOwn={message.sender_id === user?.id}
+                  />
+                ) : (
+                  <div 
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                      message.sender_id === user?.id 
+                        ? 'bg-blue-500 text-white' 
+                        : 'bg-zinc-700 text-white'
+                    }`}
+                  >
+                    <p>{message.content}</p>
+                    <p className={`text-xs mt-1 ${
+                      message.sender_id === user?.id ? 'text-blue-100' : 'text-zinc-400'
+                    }`}>
+                      {formatTimestamp(message.created_at)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>

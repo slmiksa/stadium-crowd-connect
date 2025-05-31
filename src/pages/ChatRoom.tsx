@@ -116,6 +116,8 @@ const ChatRoom = () => {
 
   const fetchMessages = async () => {
     try {
+      console.log('Fetching messages for room:', roomId);
+      
       const { data, error } = await supabase
         .from('room_messages')
         .select(`
@@ -130,6 +132,7 @@ const ChatRoom = () => {
         return;
       }
 
+      console.log('Fetched room messages:', data);
       setMessages(data || []);
     } catch (error) {
       console.error('Error:', error);
@@ -148,6 +151,7 @@ const ChatRoom = () => {
           filter: `room_id=eq.${roomId}`
         },
         (payload) => {
+          console.log('Real-time message received:', payload);
           fetchMessages();
         }
       )
@@ -242,27 +246,36 @@ const ChatRoom = () => {
         finalContent = `> ${quotedMessage.profiles?.username || 'مستخدم مجهول'}: ${quotedMessage.content}\n\n${finalContent}`;
       }
 
-      console.log('ChatRoom: Inserting message with voice_url:', voiceUrl, 'voice_duration:', voiceDuration);
+      const messageData = {
+        room_id: roomId,
+        user_id: user.id,
+        content: finalContent,
+        media_url: mediaUrl,
+        media_type: mediaType,
+        voice_url: voiceUrl,
+        voice_duration: voiceDuration ? Math.round(voiceDuration) : null
+      };
 
-      const { error } = await supabase
+      console.log('ChatRoom: Inserting message with data:', messageData);
+
+      const { data, error } = await supabase
         .from('room_messages')
-        .insert({
-          room_id: roomId,
-          user_id: user.id,
-          content: finalContent,
-          media_url: mediaUrl,
-          media_type: mediaType,
-          voice_url: voiceUrl,
-          voice_duration: voiceDuration
-        });
+        .insert(messageData)
+        .select(`
+          *,
+          profiles (username, avatar_url)
+        `);
 
       if (error) {
         console.error('ChatRoom: Error sending message:', error);
         return;
       }
 
-      console.log('ChatRoom: Message sent successfully');
+      console.log('ChatRoom: Message sent successfully:', data);
       setQuotedMessage(null);
+      
+      // Refetch messages to ensure we get the latest data
+      await fetchMessages();
     } catch (error) {
       console.error('ChatRoom: Error in sendMessage:', error);
     }
@@ -413,91 +426,94 @@ const ChatRoom = () => {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((message) => (
-            <div key={message.id} className="flex items-start space-x-3 group">
-              <div 
-                className="cursor-pointer"
-                onClick={() => navigateToUserProfile(message.user_id)}
-              >
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                    {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span 
-                    className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
-                    onClick={() => navigateToUserProfile(message.user_id)}
-                  >
-                    {message.profiles?.username || 'مستخدم مجهول'}
-                  </span>
-                  <OwnerBadge isOwner={message.user_id === roomInfo?.owner_id} />
-                  <span className="text-xs text-zinc-500">
-                    {formatTimestamp(message.created_at)}
-                  </span>
-                  <button
-                    onClick={() => quoteMessage(message)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
-                  >
-                    <Quote size={14} className="text-zinc-400" />
-                  </button>
+          {messages.map((message) => {
+            console.log('Rendering room message:', message);
+            return (
+              <div key={message.id} className="flex items-start space-x-3 group">
+                <div 
+                  className="cursor-pointer"
+                  onClick={() => navigateToUserProfile(message.user_id)}
+                >
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                      {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
-                
-                {/* Voice Message */}
-                {message.voice_url && message.voice_duration ? (
-                  <div className="mb-2">
-                    <VoiceMessage 
-                      voiceUrl={message.voice_url}
-                      duration={message.voice_duration}
-                      isOwn={message.user_id === user?.id}
-                    />
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span 
+                      className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
+                      onClick={() => navigateToUserProfile(message.user_id)}
+                    >
+                      {message.profiles?.username || 'مستخدم مجهول'}
+                    </span>
+                    <OwnerBadge isOwner={message.user_id === roomInfo?.owner_id} />
+                    <span className="text-xs text-zinc-500">
+                      {formatTimestamp(message.created_at)}
+                    </span>
+                    <button
+                      onClick={() => quoteMessage(message)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
+                    >
+                      <Quote size={14} className="text-zinc-400" />
+                    </button>
                   </div>
-                ) : null}
-                
-                {/* Media Message */}
-                {message.media_url ? (
-                  <div className="mb-2">
-                    {message.media_type?.startsWith('image/') ? (
-                      <img 
-                        src={message.media_url} 
-                        alt="مرفق" 
-                        className="max-w-xs rounded-lg"
+                  
+                  {/* Voice Message */}
+                  {message.voice_url && message.voice_duration ? (
+                    <div className="mb-2">
+                      <VoiceMessage 
+                        voiceUrl={message.voice_url}
+                        duration={message.voice_duration}
+                        isOwn={message.user_id === user?.id}
                       />
-                    ) : (
-                      <a 
-                        href={message.media_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:underline"
-                      >
-                        عرض المرفق
-                      </a>
-                    )}
-                  </div>
-                ) : null}
-                
-                {/* Text Content */}
-                {!message.voice_url && (
-                  <div className="text-zinc-300">
-                    {message.content.split('\n').map((line, index) => (
-                      <div key={index}>
-                        {line.startsWith('> ') ? (
-                          <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic">
-                            {line.substring(2)}
-                          </div>
-                        ) : (
-                          <span>{line}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  ) : null}
+                  
+                  {/* Media Message */}
+                  {message.media_url ? (
+                    <div className="mb-2">
+                      {message.media_type?.startsWith('image/') ? (
+                        <img 
+                          src={message.media_url} 
+                          alt="مرفق" 
+                          className="max-w-xs rounded-lg"
+                        />
+                      ) : (
+                        <a 
+                          href={message.media_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline"
+                        >
+                          عرض المرفق
+                        </a>
+                      )}
+                    </div>
+                  ) : null}
+                  
+                  {/* Text Content */}
+                  {!message.voice_url && (
+                    <div className="text-zinc-300">
+                      {message.content.split('\n').map((line, index) => (
+                        <div key={index}>
+                          {line.startsWith('> ') ? (
+                            <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic">
+                              {line.substring(2)}
+                            </div>
+                          ) : (
+                            <span>{line}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
 
