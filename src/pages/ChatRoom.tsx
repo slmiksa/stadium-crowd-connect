@@ -258,15 +258,6 @@ const ChatRoom = () => {
     navigate(`/user/${userId}`);
   };
 
-  const getCurrentTime = () => {
-    const now = new Date();
-    return now.toLocaleTimeString('ar-SA', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
-  };
-
   const handleAnnouncementUpdate = (announcement: string | null) => {
     if (roomInfo) {
       setRoomInfo({ ...roomInfo, announcement });
@@ -342,9 +333,9 @@ const ChatRoom = () => {
 
   return (
     <Layout showBottomNav={false}>
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-screen bg-zinc-900">
         {/* Header */}
-        <div className="bg-zinc-800 border-b border-zinc-700 p-4">
+        <div className="bg-zinc-800 border-b border-zinc-700 p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <button 
@@ -382,27 +373,28 @@ const ChatRoom = () => {
 
         {/* Announcement */}
         {roomInfo?.announcement && (
-          <ChatRoomAnnouncement announcement={roomInfo.announcement} />
+          <div className="flex-shrink-0">
+            <ChatRoomAnnouncement announcement={roomInfo.announcement} />
+          </div>
         )}
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((message) => {
-            console.log('ChatRoom: Rendering room message:', message);
-            return (
+        {/* Messages Container */}
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full overflow-y-auto p-4 space-y-4">
+            {messages.map((message) => (
               <div key={message.id} className="flex items-start space-x-3 group">
                 <div 
                   className="cursor-pointer"
                   onClick={() => navigateToUserProfile(message.user_id)}
                 >
-                  <Avatar className="w-8 h-8">
+                  <Avatar className="w-8 h-8 flex-shrink-0">
                     <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
                     <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
                       {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
                     <span 
                       className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
@@ -443,11 +435,11 @@ const ChatRoom = () => {
                     </div>
                   ) : null}
                   
-                  <div className="text-zinc-300">
+                  <div className="text-zinc-300 break-words">
                     {message.content.split('\n').map((line, index) => (
                       <div key={index}>
                         {line.startsWith('> ') ? (
-                          <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic">
+                          <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic bg-zinc-800 rounded-r-lg p-2">
                             {line.substring(2)}
                           </div>
                         ) : (
@@ -458,17 +450,20 @@ const ChatRoom = () => {
                   </div>
                 </div>
               </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
 
-        <MediaInput 
-          onSendMessage={sendMessage} 
-          isSending={false}
-          quotedMessage={quotedMessage}
-          onClearQuote={() => setQuotedMessage(null)}
-        />
+        {/* Input Area - Fixed at bottom */}
+        <div className="flex-shrink-0">
+          <MediaInput 
+            onSendMessage={sendMessage} 
+            isSending={false}
+            quotedMessage={quotedMessage}
+            onClearQuote={() => setQuotedMessage(null)}
+          />
+        </div>
       </div>
 
       {showMembersModal && roomId && (
