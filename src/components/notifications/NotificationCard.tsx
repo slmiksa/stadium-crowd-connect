@@ -54,6 +54,9 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   onRoomClick,
   onNotificationClick
 }) => {
+  console.log('NotificationCard - notification type:', notification.type);
+  console.log('NotificationCard - notification data:', notification.data);
+
   return (
     <div
       onClick={() => onNotificationClick(notification)}
@@ -131,7 +134,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             {/* زر البروفايل لجميع أنواع التنبيهات */}
             {(notification.type === 'follow' || notification.type === 'like' || 
               notification.type === 'comment' || notification.type === 'follower_comment' ||
-              notification.type === 'post' || notification.type === 'chat_room') && (
+              notification.type === 'post') && (
               <Button
                 size="sm"
                 variant="outline"
@@ -139,8 +142,33 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
               >
                 <User size={14} className="ml-1" />
-                {notification.type === 'chat_room' ? 'مشاهدة بروفايل المنشئ' : 'البروفايل'}
+                البروفايل
               </Button>
+            )}
+
+            {/* أزرار خاصة بغرف الدردشة */}
+            {notification.type === 'chat_room' && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => onProfileClick(notification, e)}
+                  className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
+                >
+                  <User size={14} className="ml-1" />
+                  مشاهدة بروفايل المنشئ
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => onRoomClick(notification, e)}
+                  className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
+                >
+                  <MessageSquare size={14} className="ml-1" />
+                  الذهاب للغرفة
+                </Button>
+              </>
             )}
 
             {/* زر المنشور للتنبيهات المتعلقة بالمنشورات */}
@@ -155,19 +183,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
               >
                 <FileText size={14} className="ml-1" />
                 المنشور
-              </Button>
-            )}
-
-            {/* زر دخول الغرفة لتنبيهات غرف الدردشة */}
-            {notification.type === 'chat_room' && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => onRoomClick(notification, e)}
-                className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
-              >
-                <MessageSquare size={14} className="ml-1" />
-                الذهاب للغرفة
               </Button>
             )}
           </div>
