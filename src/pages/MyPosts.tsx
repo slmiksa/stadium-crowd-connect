@@ -11,7 +11,6 @@ interface HashtagPostWithProfile {
   id: string;
   content: string;
   hashtags: string[];
-  likes_count: number;
   comments_count: number;
   created_at: string;
   image_url?: string;
@@ -21,9 +20,6 @@ interface HashtagPostWithProfile {
     username: string;
     avatar_url?: string;
   };
-  hashtag_likes: Array<{
-    user_id: string;
-  }>;
 }
 
 const MyPosts = () => {
@@ -51,9 +47,6 @@ const MyPosts = () => {
             id,
             username,
             avatar_url
-          ),
-          hashtag_likes (
-            user_id
           )
         `)
         .eq('user_id', user.id)
