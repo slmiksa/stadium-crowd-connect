@@ -30,14 +30,14 @@ const Matches = () => {
   const [apiStatus, setApiStatus] = useState<'working' | 'error' | 'no-key'>('working');
 
   const fetchMatches = async (status: string) => {
-    console.log('Fetching matches for status:', status);
+    console.log('Starting to fetch matches for status:', status);
     try {
       setIsLoading(true);
       setApiStatus('working');
       
       const today = new Date().toISOString().split('T')[0];
       
-      console.log('Calling edge function with params:', { status, date: today });
+      console.log('Calling Supabase function with:', { status, date: today });
       
       const { data, error } = await supabase.functions.invoke('get-football-matches', {
         body: { 
@@ -46,24 +46,31 @@ const Matches = () => {
         }
       });
 
+      console.log('Supabase function response:', { data, error });
+
       if (error) {
-        console.error('Error calling function:', error);
+        console.error('Supabase function error:', error);
         setApiStatus('error');
         setMatches([]);
         return;
       }
 
-      console.log('Function response:', data);
-      
-      if (data && data.matches) {
-        setMatches(data.matches);
-        console.log(`Set ${data.matches.length} matches for status ${status}`);
-        console.log(`Total available: ${data.totalAvailable}, From target leagues: ${data.fromTargetLeagues}`);
+      if (data) {
+        console.log('Received data:', data);
+        if (data.matches && Array.isArray(data.matches)) {
+          setMatches(data.matches);
+          setApiStatus('working');
+          console.log(`Successfully loaded ${data.matches.length} matches`);
+        } else {
+          console.log('No matches array in response');
+          setMatches([]);
+        }
       } else {
+        console.log('No data received from function');
         setMatches([]);
       }
     } catch (error) {
-      console.error('Error fetching matches:', error);
+      console.error('Error in fetchMatches:', error);
       setApiStatus('error');
       setMatches([]);
     } finally {
@@ -72,16 +79,19 @@ const Matches = () => {
   };
 
   useEffect(() => {
+    console.log('Component mounted, fetching matches for:', activeTab);
     fetchMatches(activeTab);
   }, [activeTab]);
 
   const handleRefresh = async () => {
+    console.log('Manual refresh triggered');
     setIsRefreshing(true);
     await fetchMatches(activeTab);
     setIsRefreshing(false);
   };
 
   const handleTabChange = (newTab: 'live' | 'upcoming' | 'finished') => {
+    console.log('Tab changed to:', newTab);
     setActiveTab(newTab);
   };
 
@@ -107,10 +117,12 @@ const Matches = () => {
     });
   };
 
+  console.log('Current state:', { matches: matches.length, isLoading, apiStatus, activeTab });
+
   return (
     <Layout>
       <div className="min-h-screen bg-gray-900 p-4">
-        {/* Header with better styling */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-white">المباريات</h1>
           <button
@@ -122,8 +134,17 @@ const Matches = () => {
           </button>
         </div>
 
+        {/* Debug Info */}
+        <div className="bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 mb-6 border border-gray-700/50">
+          <p className="text-gray-300 text-sm">
+            الحالة: {isLoading ? 'جاري التحميل...' : apiStatus === 'working' ? 'يعمل' : 'خطأ'} | 
+            عدد المباريات: {matches.length} | 
+            التبويب النشط: {activeTab}
+          </p>
+        </div>
+
         {/* API Status */}
-        {apiStatus === 'working' && !isLoading && (
+        {apiStatus === 'working' && !isLoading && matches.length > 0 && (
           <div className="bg-green-900/30 border border-green-500/40 rounded-xl p-4 mb-6 backdrop-blur-sm">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-green-500 rounded-full mr-3 animate-pulse"></div>
@@ -136,12 +157,12 @@ const Matches = () => {
           <div className="bg-red-900/30 border border-red-500/40 rounded-xl p-4 mb-6 backdrop-blur-sm">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-              <p className="text-red-300 font-medium">خطأ في الـ API - تحقق من المفتاح</p>
+              <p className="text-red-300 font-medium">خطأ في الـ API - تحقق من المفتاح أو الإعدادات</p>
             </div>
           </div>
         )}
 
-        {/* Enhanced Tabs */}
+        {/* Tabs */}
         <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-2 mb-8 border border-gray-700/50">
           <div className="grid grid-cols-3 gap-2">
             <button
@@ -192,7 +213,7 @@ const Matches = () => {
           </div>
         )}
 
-        {/* Enhanced Matches List */}
+        {/* Matches List */}
         {!isLoading && (
           <div className="space-y-6">
             {matches.length === 0 ? (
@@ -204,7 +225,7 @@ const Matches = () => {
                     {activeTab === 'upcoming' && 'لا توجد مباريات قادمة'}
                     {activeTab === 'finished' && 'لا توجد مباريات منتهية'}
                   </p>
-                  <p className="text-gray-500 text-base">جرب تحديث الصفحة أو العودة لاحقاً</p>
+                  <p className="text-gray-500 text-base">جرب تحديث الصفحة أو تغيير مفتاح API</p>
                 </div>
               </div>
             ) : (
