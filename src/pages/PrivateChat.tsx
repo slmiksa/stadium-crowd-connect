@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -170,37 +171,49 @@ const PrivateChat = () => {
 
     setIsSending(true);
     try {
-      console.log('Voice recorded, duration:', duration, 'blob size:', audioBlob.size);
+      console.log('PrivateChat: Voice recorded, duration:', duration, 'blob size:', audioBlob.size);
       
-      // Create unique filename
-      const fileName = `${user.id}_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
-      
-      console.log('Uploading voice file to storage with name:', fileName);
+      if (audioBlob.size === 0) {
+        throw new Error('الملف الصوتي فارغ');
+      }
 
-      // Upload to Supabase Storage
+      if (duration === 0) {
+        throw new Error('مدة التسجيل غير صحيحة');
+      }
+      
+      // إنشاء اسم ملف فريد
+      const fileName = `voice_${user.id}_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
+      
+      console.log('PrivateChat: Uploading voice file to storage with name:', fileName);
+
+      // رفع الملف إلى Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('voice-messages')
         .upload(fileName, audioBlob, {
-          contentType: 'audio/webm',
+          contentType: audioBlob.type || 'audio/webm',
           upsert: false
         });
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
+        console.error('PrivateChat: Upload error:', uploadError);
         throw new Error('فشل في رفع الملف الصوتي: ' + uploadError.message);
       }
 
-      console.log('Voice file uploaded successfully:', uploadData);
+      console.log('PrivateChat: Voice file uploaded successfully:', uploadData);
 
-      // Get public URL
+      // الحصول على الرابط العام
       const { data: urlData } = supabase.storage
         .from('voice-messages')
         .getPublicUrl(fileName);
 
-      const voiceUrl = urlData.publicUrl;
-      console.log('Voice public URL:', voiceUrl);
+      if (!urlData.publicUrl) {
+        throw new Error('فشل في إنشاء رابط الملف الصوتي');
+      }
 
-      // Insert message with voice data
+      const voiceUrl = urlData.publicUrl;
+      console.log('PrivateChat: Voice public URL:', voiceUrl);
+
+      // إدراج الرسالة مع بيانات الصوت
       const messageData = {
         sender_id: user.id,
         receiver_id: userId,
@@ -210,24 +223,31 @@ const PrivateChat = () => {
         is_read: false
       };
 
-      console.log('Inserting voice message:', messageData);
+      console.log('PrivateChat: Inserting voice message:', messageData);
 
       const { data, error } = await supabase
         .from('private_messages')
         .insert(messageData);
 
       if (error) {
-        console.error('Error sending voice message:', error);
+        console.error('PrivateChat: Error sending voice message:', error);
+        
+        // محاولة حذف الملف المرفوع في حالة فشل إدراج الرسالة
+        await supabase.storage
+          .from('voice-messages')
+          .remove([fileName]);
+          
         throw new Error('فشل في إرسال الرسالة الصوتية: ' + error.message);
       }
 
-      console.log('Voice message inserted successfully:', data);
+      console.log('PrivateChat: Voice message inserted successfully:', data);
       setShowVoiceRecorder(false);
       
-      // Refetch messages to ensure we get the latest data
+      // إعادة جلب الرسائل للتأكد من الحصول على أحدث البيانات
       await fetchMessages();
+      
     } catch (error) {
-      console.error('Error handling voice recording:', error);
+      console.error('PrivateChat: Error handling voice recording:', error);
       alert(error.message || 'فشل في إرسال الرسالة الصوتية');
       setShowVoiceRecorder(false);
     } finally {
@@ -306,7 +326,7 @@ const PrivateChat = () => {
           </div>
         ) : (
           messages.map((message) => {
-            console.log('Rendering message:', message);
+            console.log('PrivateChat: Rendering message:', message);
             return (
               <div 
                 key={message.id} 

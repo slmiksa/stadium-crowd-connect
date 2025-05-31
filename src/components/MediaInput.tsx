@@ -60,22 +60,35 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
 
   const handleVoiceRecorded = async (audioBlob: Blob, duration: number) => {
     try {
-      console.log('MediaInput: Voice recorded, blob size:', audioBlob.size);
-      console.log('MediaInput: Voice duration:', duration);
+      console.log('MediaInput: Voice recorded, blob size:', audioBlob.size, 'duration:', duration);
       
-      // Create a File object with proper naming and type
+      if (audioBlob.size === 0) {
+        throw new Error('الملف الصوتي فارغ');
+      }
+
+      if (duration === 0) {
+        throw new Error('مدة التسجيل غير صحيحة');
+      }
+
+      // إنشاء ملف صوتي مع الاسم والنوع الصحيح
       const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, {
-        type: 'audio/webm'
+        type: audioBlob.type || 'audio/webm'
       });
 
-      console.log('MediaInput: Created audio file:', audioFile.name, audioFile.size, audioFile.type);
+      console.log('MediaInput: Created audio file:', {
+        name: audioFile.name,
+        size: audioFile.size,
+        type: audioFile.type,
+        duration: duration
+      });
 
-      // Send the voice message directly with the file
-      await onSendMessage('رسالة صوتية', undefined, undefined, audioFile, Math.round(duration));
+      // إرسال الرسالة الصوتية
+      await onSendMessage('رسالة صوتية', undefined, undefined, audioFile, duration);
       setShowVoiceRecorder(false);
+      
     } catch (error) {
       console.error('MediaInput: Error handling voice recording:', error);
-      alert('فشل في إرسال الرسالة الصوتية');
+      alert('فشل في إرسال الرسالة الصوتية: ' + error.message);
       setShowVoiceRecorder(false);
     }
   };
@@ -107,7 +120,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
   };
 
   const handleVoiceButtonClick = () => {
-    console.log('Voice button clicked');
+    console.log('MediaInput: Voice button clicked');
     setShowVoiceRecorder(true);
   };
 

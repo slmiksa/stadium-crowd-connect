@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -213,23 +214,34 @@ const ChatRoom = () => {
 
       if (voiceFile) {
         console.log('ChatRoom: Uploading voice file to storage...');
-        console.log('ChatRoom: Voice file size:', voiceFile.size);
-        console.log('ChatRoom: Voice file type:', voiceFile.type);
+        console.log('ChatRoom: Voice file details:', {
+          size: voiceFile.size,
+          type: voiceFile.type,
+          name: voiceFile.name,
+          duration: voiceDuration
+        });
         
-        // Create unique filename
-        const fileName = `${user.id}_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
+        if (voiceFile.size === 0) {
+          throw new Error('الملف الصوتي فارغ');
+        }
+
+        if (!voiceDuration || voiceDuration === 0) {
+          throw new Error('مدة التسجيل غير صحيحة');
+        }
+        
+        // إنشاء اسم ملف فريد
+        const fileName = `voice_${user.id}_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
 
         const { data, error: uploadError } = await supabase.storage
           .from('voice-messages')
           .upload(fileName, voiceFile, {
-            contentType: 'audio/webm',
+            contentType: voiceFile.type || 'audio/webm',
             upsert: false
           });
 
         if (uploadError) {
           console.error('ChatRoom: Error uploading voice message:', uploadError);
-          alert('فشل في رفع الملف الصوتي: ' + uploadError.message);
-          return;
+          throw new Error('فشل في رفع الملف الصوتي: ' + uploadError.message);
         }
 
         console.log('ChatRoom: Voice file uploaded successfully:', data);
@@ -238,11 +250,15 @@ const ChatRoom = () => {
           .from('voice-messages')
           .getPublicUrl(fileName);
 
+        if (!publicUrl) {
+          throw new Error('فشل في إنشاء رابط الملف الصوتي');
+        }
+
         voiceUrl = publicUrl;
         console.log('ChatRoom: Voice public URL generated:', voiceUrl);
       }
 
-      let finalContent = content || 'رسالة صوتية';
+      let finalContent = content || (voiceFile ? 'رسالة صوتية' : '');
       if (quotedMessage) {
         finalContent = `> ${quotedMessage.profiles?.username || 'مستخدم مجهول'}: ${quotedMessage.content}\n\n${finalContent}`;
       }
@@ -265,14 +281,26 @@ const ChatRoom = () => {
 
       if (error) {
         console.error('ChatRoom: Error sending message:', error);
+        
+        // محاولة حذف الملف المرفوع في حالة فشل إدراج الرسالة
+        if (voiceUrl) {
+          const fileName = voiceUrl.split('/').pop();
+          if (fileName) {
+            await supabase.storage
+              .from('voice-messages')
+              .remove([fileName]);
+          }
+        }
+        
         throw new Error('فشل في إرسال الرسالة: ' + error.message);
       }
 
       console.log('ChatRoom: Message sent successfully:', data);
       setQuotedMessage(null);
       
-      // Refetch messages to ensure we get the latest data
+      // إعادة جلب الرسائل للتأكد من الحصول على أحدث البيانات
       await fetchMessages();
+      
     } catch (error) {
       console.error('ChatRoom: Error in sendMessage:', error);
       alert(error.message || 'فشل في إرسال الرسالة');
@@ -425,7 +453,7 @@ const ChatRoom = () => {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((message) => {
-            console.log('Rendering room message:', message);
+            console.log('ChatRoom: Rendering room message:', message);
             return (
               <div key={message.id} className="flex items-start space-x-3 group">
                 <div 
@@ -523,23 +551,6 @@ const ChatRoom = () => {
           onClearQuote={() => setQuotedMessage(null)}
         />
       </div>
-
-      {/* Room Members Modal */}
-      <RoomMembersModal 
-        isOpen={showMembersModal}
-        onClose={() => setShowMembersModal(false)}
-        roomId={roomId || ''}
-        isOwner={user?.id === roomInfo?.owner_id}
-      />
-
-      {/* Settings Modal */}
-      <ChatRoomSettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        roomId={roomId || ''}
-        currentAnnouncement={roomInfo?.announcement}
-        onAnnouncementUpdate={handleAnnouncementUpdate}
-      />
     </Layout>
   );
 };
