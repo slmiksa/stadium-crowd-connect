@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,6 +51,7 @@ const UserProfile = () => {
 
   const fetchUserProfile = async () => {
     try {
+      console.log('Fetching profile for userId:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -62,6 +64,7 @@ const UserProfile = () => {
         return;
       }
 
+      console.log('Profile data:', data);
       setProfile(data);
     } catch (error) {
       console.error('Error:', error);
@@ -88,16 +91,30 @@ const UserProfile = () => {
   };
 
   const checkFollowStatus = async () => {
+    if (!user?.id || !userId) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      console.log('Checking follow status for follower:', user.id, 'following:', userId);
       const { data, error } = await supabase
         .from('follows')
         .select('id')
-        .eq('follower_id', user?.id)
+        .eq('follower_id', user.id)
         .eq('following_id', userId)
-        .single();
+        .maybeSingle();
 
-      setIsFollowing(!!data);
+      if (error) {
+        console.error('Error checking follow status:', error);
+        setIsFollowing(false);
+      } else {
+        const followStatus = !!data;
+        console.log('Follow status result:', followStatus, 'data:', data);
+        setIsFollowing(followStatus);
+      }
     } catch (error) {
+      console.error('Error in checkFollowStatus:', error);
       setIsFollowing(false);
     } finally {
       setIsLoading(false);
@@ -109,7 +126,10 @@ const UserProfile = () => {
 
     setIsFollowLoading(true);
     try {
+      console.log('Handle follow - current status:', isFollowing);
+      
       if (isFollowing) {
+        console.log('Unfollowing user...');
         const { error } = await supabase
           .from('follows')
           .delete()
@@ -122,7 +142,9 @@ const UserProfile = () => {
         }
 
         setIsFollowing(false);
+        console.log('Successfully unfollowed');
       } else {
+        console.log('Following user...');
         const { error } = await supabase
           .from('follows')
           .insert({
@@ -136,11 +158,13 @@ const UserProfile = () => {
         }
 
         setIsFollowing(true);
+        console.log('Successfully followed');
       }
 
-      fetchUserProfile();
+      // Refresh the profile to get updated counts
+      await fetchUserProfile();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in handleFollow:', error);
     } finally {
       setIsFollowLoading(false);
     }
@@ -153,6 +177,14 @@ const UserProfile = () => {
 
   const handlePostInteraction = () => {
     fetchUserPosts();
+  };
+
+  const handleFollowersClick = () => {
+    navigate(`/followers-following/${userId}/followers`);
+  };
+
+  const handleFollowingClick = () => {
+    navigate(`/followers-following/${userId}/following`);
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -268,7 +300,10 @@ const UserProfile = () => {
 
                 {/* Enhanced Stats */}
                 <div className="grid grid-cols-3 gap-4 mb-8">
-                  <div className="text-center bg-zinc-800/40 p-4 rounded-xl border border-zinc-700/30 hover:bg-zinc-700/40 transition-all duration-300 cursor-pointer group">
+                  <div 
+                    className="text-center bg-zinc-800/40 p-4 rounded-xl border border-zinc-700/30 hover:bg-zinc-700/40 transition-all duration-300 cursor-pointer group"
+                    onClick={handleFollowersClick}
+                  >
                     <div className="flex items-center justify-center mb-2">
                       <Users className="text-blue-400 group-hover:text-blue-300 transition-colors" size={20} />
                     </div>
@@ -276,7 +311,10 @@ const UserProfile = () => {
                     <div className="text-xs text-zinc-400">متابِع</div>
                   </div>
                   
-                  <div className="text-center bg-zinc-800/40 p-4 rounded-xl border border-zinc-700/30 hover:bg-zinc-700/40 transition-all duration-300 cursor-pointer group">
+                  <div 
+                    className="text-center bg-zinc-800/40 p-4 rounded-xl border border-zinc-700/30 hover:bg-zinc-700/40 transition-all duration-300 cursor-pointer group"
+                    onClick={handleFollowingClick}
+                  >
                     <div className="flex items-center justify-center mb-2">
                       <Heart className="text-pink-400 group-hover:text-pink-300 transition-colors" size={20} />
                     </div>
