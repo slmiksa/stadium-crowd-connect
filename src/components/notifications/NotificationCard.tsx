@@ -54,9 +54,14 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   onRoomClick,
   onNotificationClick
 }) => {
-  console.log('NotificationCard - notification type:', notification.type);
-  console.log('NotificationCard - notification data:', notification.data);
-  console.log('NotificationCard - Is chat_room?:', notification.type === 'chat_room');
+  // Enhanced debugging for chat room notifications
+  console.log('=== NotificationCard Debug ===');
+  console.log('Notification ID:', notification.id);
+  console.log('Notification type:', notification.type);
+  console.log('Is chat_room type?:', notification.type === 'chat_room');
+  console.log('Notification data:', notification.data);
+  console.log('Room ID exists?:', !!notification.data?.room_id);
+  console.log('Creator ID exists?:', !!notification.data?.creator_id);
 
   return (
     <div
@@ -132,14 +137,18 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
           {/* أزرار التفاعل */}
           <div className="flex items-center gap-2 mt-3">
-            {/* أزرار غرف الدردشة - يجب أن تظهر أولاً */}
-            {notification.type === 'chat_room' && (
+            {/* Debug: Show what type we're checking */}
+            {console.log('Rendering buttons for type:', notification.type)}
+            
+            {/* Chat room buttons - should render first */}
+            {notification.type === 'chat_room' ? (
               <>
+                {console.log('Rendering chat room buttons...')}
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={(e) => {
-                    console.log('Profile button clicked for chat room');
+                    console.log('Chat room profile button clicked');
                     onProfileClick(notification, e);
                   }}
                   className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
@@ -152,7 +161,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   size="sm"
                   variant="outline"
                   onClick={(e) => {
-                    console.log('Room button clicked');
+                    console.log('Chat room button clicked');
                     onRoomClick(notification, e);
                   }}
                   className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
@@ -161,36 +170,38 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   الغرفة
                 </Button>
               </>
-            )}
+            ) : (
+              <>
+                {/* Regular notification buttons */}
+                {(notification.type === 'follow' || notification.type === 'like' || 
+                  notification.type === 'comment' || notification.type === 'follower_comment' ||
+                  notification.type === 'post') && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => onProfileClick(notification, e)}
+                    className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
+                  >
+                    <User size={14} className="ml-1" />
+                    البروفايل
+                  </Button>
+                )}
 
-            {/* زر البروفايل للتنبيهات العادية (غير غرف الدردشة) */}
-            {(notification.type === 'follow' || notification.type === 'like' || 
-              notification.type === 'comment' || notification.type === 'follower_comment' ||
-              notification.type === 'post') && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => onProfileClick(notification, e)}
-                className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
-              >
-                <User size={14} className="ml-1" />
-                البروفايل
-              </Button>
-            )}
-
-            {/* زر المنشور للتنبيهات المتعلقة بالمنشورات */}
-            {(notification.type === 'like' || notification.type === 'comment' || 
-              notification.type === 'follower_comment' || notification.type === 'post') && 
-              notification.data?.post_id && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => onPostClick(notification, e)}
-                className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
-              >
-                <FileText size={14} className="ml-1" />
-                المنشور
-              </Button>
+                {/* Post button for post-related notifications */}
+                {(notification.type === 'like' || notification.type === 'comment' || 
+                  notification.type === 'follower_comment' || notification.type === 'post') && 
+                  notification.data?.post_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => onPostClick(notification, e)}
+                    className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
+                  >
+                    <FileText size={14} className="ml-1" />
+                    المنشور
+                  </Button>
+                )}
+              </>
             )}
           </div>
           
