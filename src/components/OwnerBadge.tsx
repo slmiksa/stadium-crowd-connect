@@ -1,0 +1,22 @@
+
+import React from 'react';
+import { Crown } from 'lucide-react';
+
+interface OwnerBadgeProps {
+  isOwner: boolean;
+  size?: number;
+}
+
+const OwnerBadge: React.FC<OwnerBadgeProps> = ({ isOwner, size = 16 }) => {
+  if (!isOwner) return null;
+
+  return (
+    <Crown 
+      size={size} 
+      className="text-yellow-500 ml-1" 
+      title="منشئ الغرفة"
+    />
+  );
+};
+
+export default OwnerBadge;

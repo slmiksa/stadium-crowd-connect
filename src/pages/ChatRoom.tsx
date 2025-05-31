@@ -2,50 +2,53 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import Layout from '@/components/Layout';
 import MediaInput from '@/components/MediaInput';
-
-interface ChatRoom {
-  id: string;
-  name: string;
-  description?: string;
-  is_private: boolean;
-  members_count: number;
-  owner_id: string;
-  avatar_url?: string;
-}
+import OwnerBadge from '@/components/OwnerBadge';
+import { ArrowLeft, Send, Users, Settings } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface Message {
   id: string;
   content: string;
-  created_at: string;
-  user_id: string;
   media_url?: string;
   media_type?: string;
+  created_at: string;
+  user_id: string;
   profiles: {
     username: string;
     avatar_url?: string;
   };
 }
 
+interface RoomInfo {
+  id: string;
+  name: string;
+  description?: string;
+  members_count: number;
+  is_private: boolean;
+  owner_id: string;
+}
+
 const ChatRoom = () => {
   const { roomId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  const [room, setRoom] = useState<ChatRoom | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
   const [isMember, setIsMember] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (roomId && user) {
-      fetchRoomData();
+      fetchRoomInfo();
       checkMembership();
+      fetchMessages();
+      setupRealtimeSubscription();
     }
   }, [roomId, user]);
 
@@ -54,24 +57,24 @@ const ChatRoom = () => {
   }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchRoomData = async () => {
+  const fetchRoomInfo = async () => {
     try {
-      const { data: roomData, error: roomError } = await supabase
+      const { data, error } = await supabase
         .from('chat_rooms')
         .select('*')
         .eq('id', roomId)
         .single();
 
-      if (roomError) {
-        console.error('Error fetching room:', roomError);
+      if (error) {
+        console.error('Error fetching room info:', error);
         navigate('/chat-rooms');
         return;
       }
 
-      setRoom(roomData);
+      setRoomInfo(data);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -87,12 +90,8 @@ const ChatRoom = () => {
         .single();
 
       setIsMember(!!data);
-      
-      if (data) {
-        fetchMessages();
-      }
     } catch (error) {
-      console.error('Error checking membership:', error);
+      setIsMember(false);
     } finally {
       setIsLoading(false);
     }
@@ -104,10 +103,7 @@ const ChatRoom = () => {
         .from('room_messages')
         .select(`
           *,
-          profiles:user_id (
-            username,
-            avatar_url
-          )
+          profiles (username, avatar_url)
         `)
         .eq('room_id', roomId)
         .order('created_at', { ascending: true });
@@ -123,16 +119,35 @@ const ChatRoom = () => {
     }
   };
 
-  const joinRoom = async () => {
-    if (!user || !room) return;
+  const setupRealtimeSubscription = () => {
+    const channel = supabase
+      .channel('room-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'room_messages',
+          filter: `room_id=eq.${roomId}`
+        },
+        (payload) => {
+          fetchMessages();
+        }
+      )
+      .subscribe();
 
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
+  const joinRoom = async () => {
     try {
       const { error } = await supabase
         .from('room_members')
         .insert({
-          room_id: room.id,
-          user_id: user.id,
-          role: 'member'
+          room_id: roomId,
+          user_id: user?.id
         });
 
       if (error) {
@@ -141,238 +156,213 @@ const ChatRoom = () => {
       }
 
       setIsMember(true);
-      fetchMessages();
+      fetchRoomInfo();
     } catch (error) {
       console.error('Error:', error);
     }
   };
 
-  const uploadMedia = async (file: File, messageId: string): Promise<string | null> => {
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !user) return;
+
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${messageId}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('room-messages')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error('Error uploading media:', uploadError);
-        return null;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('room-messages')
-        .getPublicUrl(filePath);
-
-      return publicUrl;
-    } catch (error) {
-      console.error('Error in uploadMedia:', error);
-      return null;
-    }
-  };
-
-  const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
-    if ((!content.trim() && !mediaFile) || !user || isSending) return;
-
-    setIsSending(true);
-    try {
-      // Insert message first to get the ID
-      const { data: messageData, error: insertError } = await supabase
+      const { error } = await supabase
         .from('room_messages')
         .insert({
           room_id: roomId,
           user_id: user.id,
-          content: content || '',
-          media_type: mediaType || null
-        })
-        .select()
-        .single();
+          content: newMessage.trim()
+        });
 
-      if (insertError) {
-        console.error('Error sending message:', insertError);
+      if (error) {
+        console.error('Error sending message:', error);
         return;
       }
 
-      // Upload media if provided
-      let mediaUrl = null;
-      if (mediaFile && messageData) {
-        mediaUrl = await uploadMedia(mediaFile, messageData.id);
-        
-        if (mediaUrl) {
-          // Update message with media URL
-          const { error: updateError } = await supabase
-            .from('room_messages')
-            .update({ media_url: mediaUrl })
-            .eq('id', messageData.id);
-
-          if (updateError) {
-            console.error('Error updating message with media:', updateError);
-          }
-        }
-      }
-
-      fetchMessages();
+      setNewMessage('');
     } catch (error) {
       console.error('Error:', error);
-    } finally {
-      setIsSending(false);
+    }
+  };
+
+  const handleMediaUpload = async (mediaUrl: string, mediaType: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('room_messages')
+        .insert({
+          room_id: roomId,
+          user_id: user.id,
+          content: 'مرفق',
+          media_url: mediaUrl,
+          media_type: mediaType
+        });
+
+      if (error) {
+        console.error('Error sending media:', error);
+        return;
+      }
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('ar-SA', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleTimeString('ar-SA', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
-  };
-
-  const renderMessageContent = (message: Message) => {
-    return (
-      <div className="space-y-2">
-        {message.media_url && (
-          <div className="max-w-xs">
-            {message.media_type === 'image' ? (
-              <img 
-                src={message.media_url} 
-                alt="مرفق" 
-                className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => window.open(message.media_url, '_blank')}
-              />
-            ) : message.media_type === 'video' ? (
-              <video 
-                src={message.media_url} 
-                controls 
-                className="rounded-lg max-w-full h-auto"
-              />
-            ) : null}
-          </div>
-        )}
-        {message.content && (
-          <p className="text-zinc-300">{message.content}</p>
-        )}
-      </div>
-    );
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-      </div>
+      <Layout>
+        <div className="p-4 flex items-center justify-center min-h-64">
+          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </Layout>
     );
   }
 
-  if (!room) {
+  if (!isMember && roomInfo?.is_private) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-zinc-400">الغرفة غير موجودة</p>
-          <Button onClick={() => navigate('/chat-rooms')} className="mt-4">
+      <Layout>
+        <div className="p-4 text-center">
+          <h2 className="text-xl font-bold text-white mb-4">غرفة خاصة</h2>
+          <p className="text-zinc-400 mb-6">هذه غرفة خاصة. تحتاج إلى دعوة للانضمام.</p>
+          <Button
+            onClick={() => navigate('/chat-rooms')}
+            className="bg-blue-500 hover:bg-blue-600"
+          >
             العودة للغرف
           </Button>
         </div>
-      </div>
+      </Layout>
+    );
+  }
+
+  if (!isMember) {
+    return (
+      <Layout>
+        <div className="p-4 text-center">
+          <h2 className="text-xl font-bold text-white mb-4">{roomInfo?.name}</h2>
+          <p className="text-zinc-400 mb-6">{roomInfo?.description}</p>
+          <div className="flex items-center justify-center space-x-4 mb-6">
+            <div className="flex items-center space-x-2 text-zinc-300">
+              <Users size={18} />
+              <span>{roomInfo?.members_count} عضو</span>
+            </div>
+          </div>
+          <Button
+            onClick={joinRoom}
+            className="bg-blue-500 hover:bg-blue-600"
+          >
+            انضمام للغرفة
+          </Button>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 flex flex-col">
-      {/* Header */}
-      <div className="bg-zinc-800 border-b border-zinc-700 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <button 
-              onClick={() => navigate('/chat-rooms')}
-              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
-            >
-              <ArrowLeft size={20} className="text-white" />
-            </button>
-            
-            {/* Room Avatar */}
-            <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
-              {room.avatar_url ? (
-                <img 
-                  src={room.avatar_url} 
-                  alt={room.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                  <span className="text-sm font-bold text-white">
-                    {room.name.charAt(0).toUpperCase()}
-                  </span>
+    <Layout>
+      <div className="flex flex-col h-screen">
+        {/* Header */}
+        <div className="bg-zinc-800 border-b border-zinc-700 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <button 
+                onClick={() => navigate('/chat-rooms')}
+                className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
+              >
+                <ArrowLeft size={20} className="text-white" />
+              </button>
+              <div>
+                <h1 className="text-lg font-bold text-white">{roomInfo?.name}</h1>
+                <div className="flex items-center space-x-2 text-sm text-zinc-400">
+                  <Users size={14} />
+                  <span>{roomInfo?.members_count} عضو</span>
                 </div>
-              )}
-            </div>
-            
-            <div>
-              <h1 className="text-lg font-bold text-white">{room.name}</h1>
-              <div className="flex items-center space-x-2 text-sm text-zinc-400">
-                <Users size={16} />
-                <span>{room.members_count} عضو</span>
               </div>
             </div>
+            <button className="p-2 hover:bg-zinc-700 rounded-lg transition-colors">
+              <Settings size={20} className="text-white" />
+            </button>
           </div>
         </div>
-      </div>
 
-      {!isMember ? (
-        <div className="flex-1 flex items-center justify-center p-4">
-          <div className="text-center">
-            <h2 className="text-xl font-bold text-white mb-2">{room.name}</h2>
-            {room.description && (
-              <p className="text-zinc-400 mb-4">{room.description}</p>
-            )}
-            <Button onClick={joinRoom} className="bg-blue-500 hover:bg-blue-600">
-              انضم للغرفة
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.map((message) => (
+            <div key={message.id} className="flex items-start space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <span className="text-sm font-bold text-white">
+                  {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center space-x-2 mb-1">
+                  <span className="font-medium text-white">
+                    {message.profiles?.username || 'مستخدم مجهول'}
+                  </span>
+                  <OwnerBadge isOwner={message.user_id === roomInfo?.owner_id} />
+                  <span className="text-xs text-zinc-500">
+                    {formatTimestamp(message.created_at)}
+                  </span>
+                </div>
+                
+                {message.media_url ? (
+                  <div className="mb-2">
+                    {message.media_type?.startsWith('image/') ? (
+                      <img 
+                        src={message.media_url} 
+                        alt="مرفق" 
+                        className="max-w-xs rounded-lg"
+                      />
+                    ) : (
+                      <a 
+                        href={message.media_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:underline"
+                      >
+                        عرض المرفق
+                      </a>
+                    )}
+                  </div>
+                ) : null}
+                
+                <p className="text-zinc-300">{message.content}</p>
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Message input */}
+        <div className="bg-zinc-800 border-t border-zinc-700 p-4">
+          <div className="flex items-center space-x-3">
+            <MediaInput onMediaUpload={handleMediaUpload} />
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="اكتب رسالة..."
+              className="flex-1 bg-zinc-700 border-zinc-600 text-white"
+              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+            />
+            <Button
+              onClick={sendMessage}
+              disabled={!newMessage.trim()}
+              className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50"
+            >
+              <Send size={18} />
             </Button>
           </div>
         </div>
-      ) : (
-        <>
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-zinc-400">لا توجد رسائل بعد</p>
-                <p className="text-zinc-500 text-sm">كن أول من يرسل رسالة!</p>
-              </div>
-            ) : (
-              messages.map((message) => (
-                <div key={message.id} className="flex space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-white">
-                      {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-medium text-white text-sm">
-                        {message.profiles?.username || 'مستخدم مجهول'}
-                      </span>
-                      <span className="text-xs text-zinc-500">
-                        {formatTimestamp(message.created_at)}
-                      </span>
-                    </div>
-                    {renderMessageContent(message)}
-                  </div>
-                </div>
-              ))
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Media Input */}
-          <MediaInput 
-            onSendMessage={sendMessage} 
-            isSending={isSending} 
-          />
-        </>
-      )}
-    </div>
+      </div>
+    </Layout>
   );
 };
 

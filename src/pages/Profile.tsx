@@ -1,15 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Layout from '@/components/Layout';
-import { Camera, Edit3, Users, MessageSquare, Hash, Settings, LogOut } from 'lucide-react';
+import { Camera, Edit3, Users, MessageSquare, Hash, Settings, LogOut, Trash2, Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import ImageCropModal from '@/components/ImageCropModal';
+import { useToast } from '@/hooks/use-toast';
 
 interface UserProfile {
   id: string;
@@ -23,13 +23,25 @@ interface UserProfile {
   created_at: string;
 }
 
+interface ChatRoom {
+  id: string;
+  name: string;
+  description: string;
+  members_count: number;
+  created_at: string;
+  avatar_url?: string;
+  is_private: boolean;
+}
+
 const Profile = () => {
   const { user, signOut } = useAuth();
   const { t, isRTL } = useLanguage();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [myRooms, setMyRooms] = useState<ChatRoom[]>([]);
   const [editForm, setEditForm] = useState({
     username: '',
     bio: '',
@@ -41,6 +53,7 @@ const Profile = () => {
   useEffect(() => {
     if (user) {
       fetchProfile();
+      fetchMyRooms();
     }
   }, [user]);
 
@@ -109,6 +122,73 @@ const Profile = () => {
       console.error('Error:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchMyRooms = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_rooms')
+        .select('*')
+        .eq('owner_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching my rooms:', error);
+        return;
+      }
+
+      setMyRooms(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    try {
+      // حذف أعضاء الغرفة أولاً
+      await supabase
+        .from('room_members')
+        .delete()
+        .eq('room_id', roomId);
+
+      // حذف رسائل الغرفة
+      await supabase
+        .from('room_messages')
+        .delete()
+        .eq('room_id', roomId);
+
+      // حذف الغرفة
+      const { error } = await supabase
+        .from('chat_rooms')
+        .delete()
+        .eq('id', roomId)
+        .eq('owner_id', user?.id); // التأكد من أن المستخدم هو المنشئ
+
+      if (error) {
+        console.error('Error deleting room:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في حذف الغرفة",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف الغرفة بنجاح"
+      });
+
+      // تحديث قائمة الغرف
+      fetchMyRooms();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء حذف الغرفة",
+        variant: "destructive"
+      });
     }
   };
 
@@ -384,6 +464,54 @@ const Profile = () => {
                     إلغاء
                   </Button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* My Chat Rooms */}
+          {myRooms.length > 0 && (
+            <div className="bg-zinc-800 rounded-lg p-4 mb-6">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                <Crown size={20} className="text-yellow-500 ml-2" />
+                الغرف التي أنشأتها ({myRooms.length})
+              </h3>
+              
+              <div className="space-y-3">
+                {myRooms.map((room) => (
+                  <div key={room.id} className="bg-zinc-700 rounded-lg p-3 flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h4 className="font-medium text-white">{room.name}</h4>
+                        {room.is_private && (
+                          <span className="text-xs bg-red-500 text-white px-2 py-1 rounded">خاصة</span>
+                        )}
+                      </div>
+                      {room.description && (
+                        <p className="text-sm text-zinc-400 mb-1">{room.description}</p>
+                      )}
+                      <p className="text-xs text-zinc-500">
+                        {room.members_count} عضو • {formatDate(room.created_at)}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        onClick={() => navigate(`/chat-room/${room.id}`)}
+                        size="sm"
+                        className="bg-blue-500 hover:bg-blue-600"
+                      >
+                        دخول
+                      </Button>
+                      <Button
+                        onClick={() => handleDeleteRoom(room.id)}
+                        size="sm"
+                        variant="destructive"
+                        className="bg-red-500 hover:bg-red-600"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
