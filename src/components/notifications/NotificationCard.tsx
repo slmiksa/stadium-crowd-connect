@@ -54,18 +54,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   onRoomClick,
   onNotificationClick
 }) => {
-  // Enhanced debugging for chat room notifications
-  console.log('=== NotificationCard Debug ===');
-  console.log('Notification ID:', notification.id);
-  console.log('Notification type:', notification.type);
-  console.log('Is chat_room type?:', notification.type === 'chat_room');
-  console.log('Notification data:', notification.data);
-  console.log('Room ID exists?:', !!notification.data?.room_id);
-  console.log('Creator ID exists?:', !!notification.data?.creator_id);
-
-  const isChatRoom = notification.type === 'chat_room';
-  console.log('isChatRoom variable:', isChatRoom);
-
   return (
     <div
       onClick={() => onNotificationClick(notification)}
@@ -135,75 +123,61 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   {notification.data?.room_is_private ? 'خاصة' : 'عامة'}
                 </span>
               </div>
-            </div>
-          )}
-
-          {/* أزرار التفاعل */}
-          <div className="flex items-center gap-2 mt-3">
-            {notification.type === 'chat_room' ? (
-              // أزرار غرفة الدردشة
-              <div className="flex items-center gap-2">
+              {/* زر للدردشات فقط لتنبيهات غرف الدردشة */}
+              <div className="mt-3">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={(e) => {
-                    console.log('Chat room profile button clicked for notification:', notification.id);
-                    onProfileClick(notification, e);
+                    e.stopPropagation();
+                    if (!notification.is_read) {
+                      onMarkAsRead(notification.id);
+                    }
+                    window.location.href = '/chat-rooms';
                   }}
+                  className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
+                >
+                  <MessageSquare size={14} className="ml-1" />
+                  الدردشات
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* أزرار التفاعل للتنبيهات العادية */}
+          {notification.type !== 'chat_room' && (
+            <div className="flex items-center gap-2 mt-3">
+              {/* أزرار البروفايل للتنبيهات العادية */}
+              {(notification.type === 'follow' || notification.type === 'like' || 
+                notification.type === 'comment' || notification.type === 'follower_comment' ||
+                notification.type === 'post') && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => onProfileClick(notification, e)}
                   className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
                 >
                   <User size={14} className="ml-1" />
                   البروفايل
                 </Button>
-                
+              )}
+
+              {/* أزرار المنشور للتنبيهات المتعلقة بالمنشورات */}
+              {(notification.type === 'like' || notification.type === 'comment' || 
+                notification.type === 'follower_comment' || notification.type === 'post') && 
+                notification.data?.post_id && (
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={(e) => {
-                    console.log('Chat room button clicked for notification:', notification.id);
-                    onRoomClick(notification, e);
-                  }}
-                  className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
+                  onClick={(e) => onPostClick(notification, e)}
+                  className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
                 >
-                  <MessageSquare size={14} className="ml-1" />
-                  الغرفة
+                  <FileText size={14} className="ml-1" />
+                  المنشور
                 </Button>
-              </div>
-            ) : (
-              // أزرار التنبيهات العادية
-              <div className="flex items-center gap-2">
-                {/* أزرار البروفايل للتنبيهات العادية */}
-                {(notification.type === 'follow' || notification.type === 'like' || 
-                  notification.type === 'comment' || notification.type === 'follower_comment' ||
-                  notification.type === 'post') && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => onProfileClick(notification, e)}
-                    className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
-                  >
-                    <User size={14} className="ml-1" />
-                    البروفايل
-                  </Button>
-                )}
-
-                {/* أزرار المنشور للتنبيهات المتعلقة بالمنشورات */}
-                {(notification.type === 'like' || notification.type === 'comment' || 
-                  notification.type === 'follower_comment' || notification.type === 'post') && 
-                  notification.data?.post_id && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => onPostClick(notification, e)}
-                    className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
-                  >
-                    <FileText size={14} className="ml-1" />
-                    المنشور
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
           
           {!notification.is_read && (
             <div className="mt-2">
