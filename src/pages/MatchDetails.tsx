@@ -4,9 +4,72 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
-import { ArrowRight, Clock, Users, MapPin } from 'lucide-react';
+import { ArrowRight, Clock, Users, MapPin, Target, CreditCard, UserCheck } from 'lucide-react';
 
-interface Match {
+interface Player {
+  id: number;
+  name: string;
+  photo: string;
+  position: string;
+  number: number;
+}
+
+interface Goal {
+  time: {
+    elapsed: number;
+    extra?: number;
+  };
+  team: {
+    id: number;
+    name: string;
+    logo: string;
+  };
+  player: {
+    id: number;
+    name: string;
+  };
+  assist?: {
+    id: number;
+    name: string;
+  };
+  type: string;
+  detail: string;
+}
+
+interface Card {
+  time: {
+    elapsed: number;
+    extra?: number;
+  };
+  team: {
+    id: number;
+    name: string;
+    logo: string;
+  };
+  player: {
+    id: number;
+    name: string;
+  };
+  type: string;
+  detail: string;
+}
+
+interface Lineup {
+  team: {
+    id: number;
+    name: string;
+    logo: string;
+  };
+  formation: string;
+  startXI: Array<{
+    player: Player;
+  }>;
+  substitutes: Array<{
+    player: Player;
+  }>;
+}
+
+interface MatchDetails {
   id: string;
   homeTeam: string;
   awayTeam: string;
@@ -19,14 +82,19 @@ interface Match {
   awayLogo?: string;
   leagueFlag?: string;
   minute?: number;
+  goals?: Goal[];
+  cards?: Card[];
+  lineups?: Lineup[];
+  statistics?: any[];
 }
 
 const MatchDetails = () => {
   const { matchId } = useParams();
   const navigate = useNavigate();
   const { t, isRTL } = useLanguage();
-  const [match, setMatch] = useState<Match | null>(null);
+  const [match, setMatch] = useState<MatchDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'lineups' | 'stats'>('overview');
 
   useEffect(() => {
     fetchMatchDetails();
@@ -35,42 +103,19 @@ const MatchDetails = () => {
   const fetchMatchDetails = async () => {
     try {
       setIsLoading(true);
+      console.log('Fetching details for match ID:', matchId);
       
-      const { data, error } = await supabase.functions.invoke('get-football-matches', {
-        body: JSON.stringify({ 
-          status: 'live',
-          date: new Date().toISOString().split('T')[0]
-        })
+      // جلب المباراة من قائمة المباريات
+      const { data, error } = await supabase.functions.invoke('get-football-match-details', {
+        body: { matchId }
       });
 
-      if (data?.matches) {
-        const foundMatch = data.matches.find((m: Match) => m.id === matchId);
-        if (foundMatch) {
-          setMatch(foundMatch);
-        } else {
-          // البحث في المباريات المنتهية والقادمة
-          const dates = [
-            new Date().toISOString().split('T')[0], // اليوم
-            new Date(Date.now() - 86400000).toISOString().split('T')[0], // أمس
-            new Date(Date.now() + 86400000).toISOString().split('T')[0] // غداً
-          ];
-          
-          for (const date of dates) {
-            for (const status of ['finished', 'upcoming']) {
-              const { data: dateData } = await supabase.functions.invoke('get-football-matches', {
-                body: JSON.stringify({ status, date })
-              });
-              
-              if (dateData?.matches) {
-                const foundMatch = dateData.matches.find((m: Match) => m.id === matchId);
-                if (foundMatch) {
-                  setMatch(foundMatch);
-                  return;
-                }
-              }
-            }
-          }
-        }
+      console.log('Match details response:', data, error);
+
+      if (data && data.match) {
+        setMatch(data.match);
+      } else {
+        console.log('No match details found');
       }
     } catch (error) {
       console.error('Error fetching match details:', error);
@@ -111,13 +156,19 @@ const MatchDetails = () => {
     }
   };
 
+  const getCardIcon = (type: string) => {
+    if (type === 'Yellow Card') return '🟨';
+    if (type === 'Red Card') return '🟥';
+    return '🟨';
+  };
+
   if (isLoading) {
     return (
       <Layout>
-        <div className="p-4">
-          <div className="text-center py-8">
-            <div className="w-8 h-8 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            <p className="text-zinc-400">جاري تحميل تفاصيل المباراة...</p>
+        <div className="min-h-screen bg-gray-900 p-4">
+          <div className="text-center py-16">
+            <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-6"></div>
+            <p className="text-gray-300 text-xl font-medium">جاري تحميل تفاصيل المباراة...</p>
           </div>
         </div>
       </Layout>
@@ -127,17 +178,20 @@ const MatchDetails = () => {
   if (!match) {
     return (
       <Layout>
-        <div className="p-4">
+        <div className="min-h-screen bg-gray-900 p-4">
           <button
             onClick={() => navigate('/matches')}
-            className="flex items-center text-blue-400 mb-4"
+            className="flex items-center text-blue-400 mb-4 hover:text-blue-300 transition-colors"
           >
             <ArrowRight size={20} className="ml-2" />
             العودة للمباريات
           </button>
-          <div className="text-center py-8">
-            <div className="text-4xl mb-4">⚽</div>
-            <p className="text-zinc-400 text-lg">لم يتم العثور على المباراة</p>
+          <div className="text-center py-20">
+            <div className="bg-gray-800/60 backdrop-blur-sm rounded-3xl p-12 border border-gray-700/50">
+              <div className="text-6xl mb-6 opacity-50">⚽</div>
+              <p className="text-gray-300 text-xl mb-3 font-medium">لم يتم العثور على المباراة</p>
+              <p className="text-gray-500 text-base">تحقق من رقم المباراة أو جرب مرة أخرى</p>
+            </div>
           </div>
         </div>
       </Layout>
@@ -146,29 +200,31 @@ const MatchDetails = () => {
 
   return (
     <Layout>
-      <div className="p-4">
+      <div className="min-h-screen bg-gray-900 p-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => navigate('/matches')}
-            className="flex items-center text-blue-400"
+            className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
           >
             <ArrowRight size={20} className="ml-2" />
             العودة
           </button>
-          <h1 className="text-xl font-bold text-white">تفاصيل المباراة</h1>
+          <h1 className="text-2xl font-bold text-white">تفاصيل المباراة</h1>
           <div></div>
         </div>
 
-        {/* Match Card */}
-        <div className="bg-zinc-800 rounded-lg p-6 mb-6">
+        {/* Match Header */}
+        <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-gray-700/50">
           {/* Competition */}
-          <div className="flex items-center justify-center mb-4">
-            <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-center mb-6">
+            <div className="flex items-center space-x-3 space-x-reverse">
               {match.leagueFlag && (
-                <img src={match.leagueFlag} alt="" className="w-6 h-4 object-cover rounded" />
+                <img src={match.leagueFlag} alt="" className="w-8 h-6 object-cover rounded shadow-sm" />
               )}
-              <span className="text-blue-400 font-medium">{match.competition}</span>
+              <div className="bg-blue-600/20 border border-blue-500/30 rounded-lg px-4 py-2">
+                <span className="text-blue-300 font-bold text-sm">{match.competition}</span>
+              </div>
             </div>
           </div>
 
@@ -177,31 +233,39 @@ const MatchDetails = () => {
             {/* Home Team */}
             <div className="flex-1 text-center">
               {match.homeLogo && (
-                <img src={match.homeLogo} alt={match.homeTeam} className="w-16 h-16 object-contain mx-auto mb-2" />
+                <div className="w-20 h-20 bg-gray-700/50 rounded-xl p-3 mx-auto mb-3 flex items-center justify-center">
+                  <img src={match.homeLogo} alt={match.homeTeam} className="w-full h-full object-contain" />
+                </div>
               )}
               <p className="font-bold text-white text-lg">{match.homeTeam}</p>
             </div>
 
             {/* Score */}
-            <div className="mx-8 text-center">
+            <div className="mx-8 text-center min-w-[160px]">
               {match.status === 'live' && (
-                <div className="flex items-center justify-center mb-2">
+                <div className="flex items-center justify-center mb-3">
                   <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse ml-2"></div>
-                  <span className="text-red-400 text-sm font-medium">مباشر</span>
+                  <span className="text-red-400 text-sm font-bold">مباشر</span>
                   {match.minute && (
-                    <span className="text-red-400 text-sm mr-2">{match.minute}'</span>
+                    <span className="text-red-400 text-sm mr-2 bg-red-500/20 px-2 py-1 rounded-md">
+                      {match.minute}'
+                    </span>
                   )}
                 </div>
               )}
               
               {match.homeScore !== null && match.homeScore !== undefined && 
                match.awayScore !== null && match.awayScore !== undefined ? (
-                <div className="text-4xl font-bold text-white">
-                  {match.homeScore} - {match.awayScore}
+                <div className="bg-gray-700/60 rounded-2xl px-6 py-4 border border-gray-600/50">
+                  <div className="text-4xl font-bold text-white">
+                    {match.homeScore} - {match.awayScore}
+                  </div>
                 </div>
               ) : (
-                <div className="text-2xl text-zinc-400">
-                  {match.status === 'upcoming' ? 'vs' : '-'}
+                <div className="bg-gray-700/40 rounded-2xl px-6 py-4 border border-gray-600/30">
+                  <div className="text-gray-300 text-2xl font-medium">
+                    {match.status === 'upcoming' ? formatTime(match.date) : 'vs'}
+                  </div>
                 </div>
               )}
             </div>
@@ -209,42 +273,251 @@ const MatchDetails = () => {
             {/* Away Team */}
             <div className="flex-1 text-center">
               {match.awayLogo && (
-                <img src={match.awayLogo} alt={match.awayTeam} className="w-16 h-16 object-contain mx-auto mb-2" />
+                <div className="w-20 h-20 bg-gray-700/50 rounded-xl p-3 mx-auto mb-3 flex items-center justify-center">
+                  <img src={match.awayLogo} alt={match.awayTeam} className="w-full h-full object-contain" />
+                </div>
               )}
               <p className="font-bold text-white text-lg">{match.awayTeam}</p>
             </div>
           </div>
 
           {/* Match Info */}
-          <div className="border-t border-zinc-700 pt-4">
+          <div className="border-t border-gray-700 pt-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center text-zinc-400">
+              <div className="flex items-center text-gray-400">
                 <Clock size={16} className="ml-2" />
                 <span>التوقيت: {formatTime(match.date)}</span>
               </div>
-              <div className="flex items-center text-zinc-400">
+              <div className="flex items-center text-gray-400">
                 <Users size={16} className="ml-2" />
                 <span>الحالة: {getMatchStatus(match.status)}</span>
               </div>
             </div>
-            <div className="mt-2 text-zinc-500 text-sm">
+            <div className="mt-2 text-gray-500 text-sm">
               التاريخ: {formatDate(match.date)}
             </div>
           </div>
         </div>
 
-        {/* Additional Info */}
-        <div className="bg-zinc-800 rounded-lg p-4">
-          <h3 className="text-white font-medium mb-3">معلومات إضافية</h3>
-          <div className="space-y-2 text-sm text-zinc-400">
-            <p>• معرف المباراة: {match.id}</p>
-            <p>• البطولة: {match.competition}</p>
-            <p>• الحالة: {getMatchStatus(match.status)}</p>
-            {match.minute && match.status === 'live' && (
-              <p>• الدقيقة: {match.minute}</p>
-            )}
+        {/* Tabs */}
+        <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-2 mb-6 border border-gray-700/50">
+          <div className="grid grid-cols-4 gap-2">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`py-3 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${
+                activeTab === 'overview'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
+              نظرة عامة
+            </button>
+            <button
+              onClick={() => setActiveTab('events')}
+              className={`py-3 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${
+                activeTab === 'events'
+                  ? 'bg-green-600 text-white shadow-lg shadow-green-600/30'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
+              الأحداث
+            </button>
+            <button
+              onClick={() => setActiveTab('lineups')}
+              className={`py-3 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${
+                activeTab === 'lineups'
+                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
+              التشكيلة
+            </button>
+            <button
+              onClick={() => setActiveTab('stats')}
+              className={`py-3 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${
+                activeTab === 'stats'
+                  ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
+              الإحصائيات
+            </button>
           </div>
         </div>
+
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
+            <h3 className="text-white font-bold text-lg mb-4 flex items-center">
+              <MapPin size={20} className="ml-2" />
+              معلومات المباراة
+            </h3>
+            <div className="space-y-3 text-sm text-gray-300">
+              <div className="flex justify-between">
+                <span className="text-gray-400">معرف المباراة:</span>
+                <span>{match.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">البطولة:</span>
+                <span>{match.competition}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">الحالة:</span>
+                <span>{getMatchStatus(match.status)}</span>
+              </div>
+              {match.minute && match.status === 'live' && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">الدقيقة:</span>
+                  <span className="text-red-400 font-bold">{match.minute}'</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'events' && (
+          <div className="space-y-4">
+            {/* Goals */}
+            {match.goals && match.goals.length > 0 && (
+              <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
+                <h3 className="text-white font-bold text-lg mb-4 flex items-center">
+                  <Target size={20} className="ml-2" />
+                  الأهداف ({match.goals.length})
+                </h3>
+                <div className="space-y-3">
+                  {match.goals.map((goal, index) => (
+                    <div key={index} className="flex items-center justify-between bg-gray-700/40 rounded-xl p-4">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 rounded-full bg-green-600/20 border border-green-500/40 flex items-center justify-center ml-3">
+                          <span className="text-green-400 text-xs font-bold">⚽</span>
+                        </div>
+                        <div>
+                          <div className="text-white font-medium">{goal.player.name}</div>
+                          {goal.assist && (
+                            <div className="text-gray-400 text-sm">تمريرة: {goal.assist.name}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-left">
+                        <div className="text-white font-bold">{goal.time.elapsed}'</div>
+                        <div className="text-gray-400 text-sm">{goal.type}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Cards */}
+            {match.cards && match.cards.length > 0 && (
+              <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
+                <h3 className="text-white font-bold text-lg mb-4 flex items-center">
+                  <CreditCard size={20} className="ml-2" />
+                  الكروت ({match.cards.length})
+                </h3>
+                <div className="space-y-3">
+                  {match.cards.map((card, index) => (
+                    <div key={index} className="flex items-center justify-between bg-gray-700/40 rounded-xl p-4">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 rounded-full bg-yellow-600/20 border border-yellow-500/40 flex items-center justify-center ml-3">
+                          <span className="text-xl">{getCardIcon(card.type)}</span>
+                        </div>
+                        <div>
+                          <div className="text-white font-medium">{card.player.name}</div>
+                          <div className="text-gray-400 text-sm">{card.detail}</div>
+                        </div>
+                      </div>
+                      <div className="text-left">
+                        <div className="text-white font-bold">{card.time.elapsed}'</div>
+                        <div className="text-gray-400 text-sm">{card.type}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(!match.goals || match.goals.length === 0) && (!match.cards || match.cards.length === 0) && (
+              <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-12 border border-gray-700/50 text-center">
+                <div className="text-4xl mb-4 opacity-50">📝</div>
+                <p className="text-gray-400 text-lg">لا توجد أحداث مسجلة حتى الآن</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'lineups' && (
+          <div className="space-y-6">
+            {match.lineups && match.lineups.length > 0 ? (
+              match.lineups.map((lineup, index) => (
+                <div key={index} className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
+                  <h3 className="text-white font-bold text-lg mb-4 flex items-center">
+                    <UserCheck size={20} className="ml-2" />
+                    {lineup.team.name} - {lineup.formation}
+                  </h3>
+                  
+                  {/* Starting XI */}
+                  <div className="mb-6">
+                    <h4 className="text-blue-400 font-medium mb-3">التشكيلة الأساسية</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {lineup.startXI.map((playerData, playerIndex) => (
+                        <div key={playerIndex} className="flex items-center bg-gray-700/40 rounded-lg p-3">
+                          <div className="w-8 h-8 bg-blue-600/20 border border-blue-500/40 rounded-full flex items-center justify-center ml-3">
+                            <span className="text-blue-400 text-xs font-bold">{playerData.player.number}</span>
+                          </div>
+                          <div>
+                            <div className="text-white font-medium text-sm">{playerData.player.name}</div>
+                            <div className="text-gray-400 text-xs">{playerData.player.position}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Substitutes */}
+                  <div>
+                    <h4 className="text-green-400 font-medium mb-3">البدلاء</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {lineup.substitutes.map((playerData, playerIndex) => (
+                        <div key={playerIndex} className="flex items-center bg-gray-700/40 rounded-lg p-3">
+                          <div className="w-8 h-8 bg-green-600/20 border border-green-500/40 rounded-full flex items-center justify-center ml-3">
+                            <span className="text-green-400 text-xs font-bold">{playerData.player.number}</span>
+                          </div>
+                          <div>
+                            <div className="text-white font-medium text-sm">{playerData.player.name}</div>
+                            <div className="text-gray-400 text-xs">{playerData.player.position}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-12 border border-gray-700/50 text-center">
+                <div className="text-4xl mb-4 opacity-50">👥</div>
+                <p className="text-gray-400 text-lg">التشكيلة غير متوفرة حالياً</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'stats' && (
+          <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
+            {match.statistics && match.statistics.length > 0 ? (
+              <div className="space-y-4">
+                <h3 className="text-white font-bold text-lg mb-4">إحصائيات المباراة</h3>
+                {/* Statistics will be implemented when available from API */}
+                <p className="text-gray-400">الإحصائيات ستكون متوفرة قريباً</p>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-4 opacity-50">📊</div>
+                <p className="text-gray-400 text-lg">الإحصائيات غير متوفرة حالياً</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Layout>
   );
