@@ -139,7 +139,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
               >
                 <User size={14} className="ml-1" />
-                البروفايل
+                {notification.type === 'chat_room' ? 'مشاهدة بروفايل المنشئ' : 'البروفايل'}
               </Button>
             )}
 
@@ -167,7 +167,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto"
               >
                 <MessageSquare size={14} className="ml-1" />
-                دخول الغرفة
+                الذهاب للغرفة
               </Button>
             )}
           </div>
