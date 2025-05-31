@@ -10,11 +10,12 @@ interface ImageCropModalProps {
 }
 
 const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
-  const [cropArea, setCropArea] = useState({ x: 0, y: 0, width: 200, height: 200 });
+  const [cropArea, setCropArea] = useState({ x: 50, y: 50, size: 150 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -22,10 +23,11 @@ const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || !containerRef.current) return;
     
-    const newX = Math.max(0, Math.min(300 - cropArea.width, e.clientX - dragStart.x));
-    const newY = Math.max(0, Math.min(300 - cropArea.height, e.clientY - dragStart.y));
+    const rect = containerRef.current.getBoundingClientRect();
+    const newX = Math.max(0, Math.min(rect.width - cropArea.size, e.clientX - rect.left - dragStart.x));
+    const newY = Math.max(0, Math.min(rect.height - cropArea.size, e.clientY - rect.top - dragStart.y));
     
     setCropArea(prev => ({ ...prev, x: newX, y: newY }));
   };
@@ -42,13 +44,18 @@ const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = cropArea.width;
-    canvas.height = cropArea.height;
+    canvas.width = cropArea.size;
+    canvas.height = cropArea.size;
+
+    // Create circular clipping path
+    ctx.beginPath();
+    ctx.arc(cropArea.size / 2, cropArea.size / 2, cropArea.size / 2, 0, Math.PI * 2);
+    ctx.clip();
 
     ctx.drawImage(
       image,
-      cropArea.x, cropArea.y, cropArea.width, cropArea.height,
-      0, 0, cropArea.width, cropArea.height
+      cropArea.x, cropArea.y, cropArea.size, cropArea.size,
+      0, 0, cropArea.size, cropArea.size
     );
 
     canvas.toBlob((blob) => {
@@ -69,26 +76,36 @@ const ImageCropModal = ({ imageUrl, onSave, onClose }: ImageCropModalProps) => {
           </button>
         </div>
         
-        <div className="relative mb-4">
-          <img
-            ref={imageRef}
-            src={imageUrl}
-            alt="للاقتصاص"
-            className="w-full h-80 object-cover rounded-lg"
-            style={{ maxWidth: '300px', maxHeight: '300px' }}
-          />
-          <div
-            className="absolute border-2 border-blue-500 cursor-move"
-            style={{
-              left: cropArea.x,
-              top: cropArea.y,
-              width: cropArea.width,
-              height: cropArea.height,
-            }}
-            onMouseDown={handleMouseDown}
+        <div className="relative mb-4 text-center">
+          <div 
+            ref={containerRef}
+            className="relative inline-block"
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-          />
+            onMouseLeave={handleMouseUp}
+          >
+            <img
+              ref={imageRef}
+              src={imageUrl}
+              alt="للاقتصاص"
+              className="max-w-full h-auto rounded-lg"
+              style={{ maxWidth: '300px', maxHeight: '300px' }}
+              draggable={false}
+            />
+            <div
+              className="absolute border-2 border-blue-500 cursor-move bg-black/20 rounded-full"
+              style={{
+                left: cropArea.x,
+                top: cropArea.y,
+                width: cropArea.size,
+                height: cropArea.size,
+              }}
+              onMouseDown={handleMouseDown}
+            >
+              <div className="w-full h-full rounded-full border-2 border-white border-dashed opacity-50"></div>
+            </div>
+          </div>
+          <p className="text-sm text-zinc-400 mt-2">اسحب الدائرة لتحديد الجزء المراد اقتصاصه</p>
         </div>
         
         <canvas ref={canvasRef} className="hidden" />
