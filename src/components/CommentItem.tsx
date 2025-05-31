@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Reply, Heart, MoreVertical, Clock, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,6 +38,43 @@ const CommentItem: React.FC<CommentItemProps> = ({
   const [isLiking, setIsLiking] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
 
+  // Check if comment is liked and get likes count
+  useEffect(() => {
+    if (user) {
+      checkCommentLike();
+    }
+  }, [comment.id, user]);
+
+  const checkCommentLike = async () => {
+    if (!user) return;
+    
+    try {
+      // Check if user liked this comment
+      const { data: likeData, error: likeError } = await supabase
+        .from('hashtag_comment_likes')
+        .select('id')
+        .eq('comment_id', comment.id)
+        .eq('user_id', user.id)
+        .single();
+      
+      if (!likeError && likeData) {
+        setIsLiked(true);
+      }
+
+      // Get total likes count for this comment
+      const { data: countData, error: countError } = await supabase
+        .from('hashtag_comment_likes')
+        .select('id', { count: 'exact' })
+        .eq('comment_id', comment.id);
+      
+      if (!countError && countData) {
+        setLikesCount(countData.length);
+      }
+    } catch (error) {
+      console.error('Error checking comment like:', error);
+    }
+  };
+
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -68,13 +105,30 @@ const CommentItem: React.FC<CommentItemProps> = ({
     setIsLiking(true);
     try {
       if (isLiked) {
-        // Unlike logic would go here - for now just toggle state
-        setIsLiked(false);
-        setLikesCount(prev => Math.max(0, prev - 1));
+        // Unlike
+        const { error } = await supabase
+          .from('hashtag_comment_likes')
+          .delete()
+          .eq('comment_id', comment.id)
+          .eq('user_id', user.id);
+
+        if (!error) {
+          setIsLiked(false);
+          setLikesCount(prev => Math.max(0, prev - 1));
+        }
       } else {
-        // Like logic would go here - for now just toggle state
-        setIsLiked(true);
-        setLikesCount(prev => prev + 1);
+        // Like
+        const { error } = await supabase
+          .from('hashtag_comment_likes')
+          .insert({
+            comment_id: comment.id,
+            user_id: user.id
+          });
+
+        if (!error) {
+          setIsLiked(true);
+          setLikesCount(prev => prev + 1);
+        }
       }
     } catch (error) {
       console.error('Error handling like:', error);

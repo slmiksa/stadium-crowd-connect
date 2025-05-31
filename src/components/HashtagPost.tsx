@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, MoreVertical, Clock, User, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,6 +56,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
   const [showImageModal, setShowImageModal] = useState(false);
   const [localLikesCount, setLocalLikesCount] = useState(post.likes_count);
   const [localIsLiked, setLocalIsLiked] = useState(isLiked);
+  const [isLiking, setIsLiking] = useState(false);
 
   // Check if we're on the hashtags page to determine comment display style
   const isHashtagsPage = location.pathname === '/hashtags' || location.pathname.startsWith('/hashtag/');
@@ -232,12 +232,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
   };
 
   const handleLike = async () => {
-    if (!user) {
-      console.log('User not logged in');
+    if (!user || isLiking) {
+      console.log('User not logged in or already liking');
       return;
     }
 
     console.log('Handling like for post:', post.id, 'Current liked state:', localIsLiked);
+    setIsLiking(true);
 
     try {
       if (localIsLiked) {
@@ -278,6 +279,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
       }
     } catch (error) {
       console.error('Error handling like:', error);
+    } finally {
+      setIsLiking(false);
     }
 
     if (onLike) {
@@ -376,12 +379,12 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
           <div className="flex items-center gap-6">
             <button 
               onClick={handleLike}
-              disabled={!user}
+              disabled={!user || isLiking}
               className={`flex items-center gap-2 transition-all duration-200 group disabled:opacity-50 disabled:cursor-not-allowed ${
                 localIsLiked 
                   ? 'text-red-400 hover:text-red-300' 
                   : 'text-gray-400 hover:text-red-400'
-              }`}
+              } ${isLiking ? 'opacity-50' : ''}`}
             >
               <Heart 
                 size={20} 
@@ -507,7 +510,31 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
                           <img 
                             src={comment.image_url} 
                             alt="Comment image" 
-                            className="mt-2 max-w-full h-auto rounded-lg border border-gray-600/50"
+                            className="mt-2 max-w-full h-auto rounded-lg border border-gray-600/50 cursor-pointer hover:scale-105 transition-transform duration-300"
+                            onClick={() => {
+                              // Create a modal for comment image
+                              const modal = document.createElement('div');
+                              modal.className = 'fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+                              modal.innerHTML = `
+                                <div class="relative max-w-full max-h-full">
+                                  <button class="absolute top-4 right-4 p-2 bg-gray-800/80 hover:bg-gray-700 rounded-full text-white transition-colors z-10">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                  </button>
+                                  <img src="${comment.image_url}" alt="Comment image" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl" />
+                                </div>
+                              `;
+                              document.body.appendChild(modal);
+                              
+                              // Close modal on click
+                              modal.addEventListener('click', (e) => {
+                                if (e.target === modal || e.target?.closest('button')) {
+                                  document.body.removeChild(modal);
+                                }
+                              });
+                            }}
                           />
                         )}
                         {/* Show replies if any */}
@@ -551,7 +578,31 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
                                       <img 
                                         src={reply.image_url} 
                                         alt="Reply image" 
-                                        className="mt-1 max-w-full h-auto rounded-lg border border-gray-600/50"
+                                        className="mt-1 max-w-full h-auto rounded-lg border border-gray-600/50 cursor-pointer hover:scale-105 transition-transform duration-300"
+                                        onClick={() => {
+                                          // Create a modal for reply image
+                                          const modal = document.createElement('div');
+                                          modal.className = 'fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+                                          modal.innerHTML = `
+                                            <div class="relative max-w-full max-h-full">
+                                              <button class="absolute top-4 right-4 p-2 bg-gray-800/80 hover:bg-gray-700 rounded-full text-white transition-colors z-10">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                </svg>
+                                              </button>
+                                              <img src="${reply.image_url}" alt="Reply image" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl" />
+                                            </div>
+                                          `;
+                                          document.body.appendChild(modal);
+                                          
+                                          // Close modal on click
+                                          modal.addEventListener('click', (e) => {
+                                            if (e.target === modal || e.target?.closest('button')) {
+                                              document.body.removeChild(modal);
+                                            }
+                                          });
+                                        }}
                                       />
                                     )}
                                   </div>
@@ -603,4 +654,3 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, onLike, onLikeChange, i
 };
 
 export default HashtagPost;
-
