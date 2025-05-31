@@ -201,6 +201,34 @@ serve(async (req) => {
     
     console.log('Using API Key:', apiKey.substring(0, 8) + '...')
 
+    // Test the API key first with a simple call
+    const testResponse = await fetch('https://v3.football.api-sports.io/status', {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': apiKey,
+        'X-RapidAPI-Host': 'v3.football.api-sports.io'
+      }
+    })
+    
+    console.log('API Status Response:', testResponse.status)
+    
+    if (!testResponse.ok) {
+      console.error('API Key test failed:', testResponse.status, testResponse.statusText)
+      return new Response(
+        JSON.stringify({ 
+          error: 'مفتاح API غير صالح أو منتهي الصلاحية',
+          matches: []
+        }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    const statusData = await testResponse.json()
+    console.log('API Status Data:', statusData)
+
     // قراءة المعاملات من الطلب
     let requestBody: any = {}
     try {
@@ -345,7 +373,7 @@ serve(async (req) => {
     // إذا لم توجد مباريات في الدوريات المستهدفة، أظهر المباريات الشائعة
     if (filteredMatches.length === 0 && allMatches.length > 0) {
       console.log('No matches in target leagues, showing popular matches')
-      filteredMatches = allMatches.slice(0, 50) // زيادة العدد لعرض مباريات أكثر
+      filteredMatches = allMatches.slice(0, 50)
     }
 
     // تحويل البيانات إلى التنسيق المطلوب مع الترجمة
