@@ -39,14 +39,53 @@ const UserProfile = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [realFollowersCount, setRealFollowersCount] = useState(0);
+  const [realFollowingCount, setRealFollowingCount] = useState(0);
 
   useEffect(() => {
     if (userId && user) {
       fetchUserProfile();
       fetchUserPosts();
       checkFollowStatus();
+      fetchRealCounts();
     }
   }, [userId, user]);
+
+  const fetchRealCounts = async () => {
+    try {
+      console.log('Fetching real counts for userId:', userId);
+      
+      // Get followers count
+      const { data: followersData, error: followersError } = await supabase
+        .from('follows')
+        .select('id')
+        .eq('following_id', userId);
+
+      // Get following count
+      const { data: followingData, error: followingError } = await supabase
+        .from('follows')
+        .select('id')
+        .eq('follower_id', userId);
+
+      if (followersError) {
+        console.error('Error fetching followers count:', followersError);
+      } else {
+        const followersCount = followersData?.length || 0;
+        console.log('Real followers count:', followersCount);
+        setRealFollowersCount(followersCount);
+      }
+
+      if (followingError) {
+        console.error('Error fetching following count:', followingError);
+      } else {
+        const followingCount = followingData?.length || 0;
+        console.log('Real following count:', followingCount);
+        setRealFollowingCount(followingCount);
+      }
+    } catch (error) {
+      console.error('Error fetching real counts:', error);
+    }
+  };
 
   const fetchUserProfile = async () => {
     try {
@@ -64,47 +103,7 @@ const UserProfile = () => {
       }
 
       console.log('Profile data:', data);
-      
-      // Fetch actual follower and following counts from the database
-      const { data: followersData, error: followersError } = await supabase
-        .from('follows')
-        .select('id')
-        .eq('following_id', userId);
-
-      const { data: followingData, error: followingError } = await supabase
-        .from('follows')
-        .select('id')
-        .eq('follower_id', userId);
-
-      if (followersError) {
-        console.error('Error fetching followers count:', followersError);
-      }
-
-      if (followingError) {
-        console.error('Error fetching following count:', followingError);
-      }
-
-      // Update profile with actual counts
-      const updatedProfile = {
-        ...data,
-        followers_count: followersData?.length || 0,
-        following_count: followingData?.length || 0,
-      };
-
-      console.log('Updated profile with counts:', updatedProfile);
-      setProfile(updatedProfile);
-
-      // Update the profile counts in the database if they're different
-      if (data.followers_count !== (followersData?.length || 0) || 
-          data.following_count !== (followingData?.length || 0)) {
-        await supabase
-          .from('profiles')
-          .update({
-            followers_count: followersData?.length || 0,
-            following_count: followingData?.length || 0,
-          })
-          .eq('id', userId);
-      }
+      setProfile(data);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -200,8 +199,8 @@ const UserProfile = () => {
         console.log('Successfully followed');
       }
 
-      // Refresh the profile to get updated counts
-      await fetchUserProfile();
+      // Refresh counts after follow/unfollow
+      await fetchRealCounts();
     } catch (error) {
       console.error('Error in handleFollow:', error);
     } finally {
@@ -346,7 +345,7 @@ const UserProfile = () => {
                     <div className="flex items-center justify-center mb-2">
                       <Users className="text-blue-400 group-hover:text-blue-300 transition-colors" size={20} />
                     </div>
-                    <div className="text-2xl font-bold text-white mb-1">{profile?.followers_count || 0}</div>
+                    <div className="text-2xl font-bold text-white mb-1">{realFollowersCount}</div>
                     <div className="text-xs text-zinc-400">متابِع</div>
                   </div>
                   
@@ -357,7 +356,7 @@ const UserProfile = () => {
                     <div className="flex items-center justify-center mb-2">
                       <Heart className="text-pink-400 group-hover:text-pink-300 transition-colors" size={20} />
                     </div>
-                    <div className="text-2xl font-bold text-white mb-1">{profile?.following_count || 0}</div>
+                    <div className="text-2xl font-bold text-white mb-1">{realFollowingCount}</div>
                     <div className="text-xs text-zinc-400">متابَع</div>
                   </div>
                   
