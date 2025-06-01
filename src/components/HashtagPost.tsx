@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Share2, MoreVertical } from 'lucide-react';
+import { Share2, MoreVertical } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import LikeButton from './LikeButton';
 
@@ -98,29 +98,62 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
     }
   };
 
-  const handleCommentsClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onCommentClick) {
-      onCommentClick();
-    } else {
-      navigate(`/comments/${post.id}`);
-    }
-  };
-
   const handlePostClick = () => {
     if (!preventClick) {
       navigate(`/post/${post.id}`);
     }
   };
 
-  const handleShareClick = (e: React.MouseEvent) => {
+  const handleShareClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Copy post link to clipboard
+    
     const postUrl = `${window.location.origin}/post/${post.id}`;
-    navigator.clipboard.writeText(postUrl).then(() => {
-      // You could add a toast notification here
-      console.log('تم نسخ رابط المنشور');
-    });
+    const shareData = {
+      title: `منشور من ${post.profiles?.username || 'مستخدم'}`,
+      text: post.content.slice(0, 100) + (post.content.length > 100 ? '...' : ''),
+      url: postUrl
+    };
+
+    try {
+      // Check if Web Share API is supported and has files capability
+      if (navigator.share && post.image_url) {
+        // Try to fetch the image and share it
+        try {
+          const response = await fetch(post.image_url);
+          const blob = await response.blob();
+          const file = new File([blob], 'post-image.jpg', { type: blob.type });
+          
+          await navigator.share({
+            ...shareData,
+            files: [file]
+          });
+          console.log('تم مشاركة المنشور مع الصورة بنجاح');
+          return;
+        } catch (imageError) {
+          console.log('فشل في مشاركة الصورة، سيتم مشاركة الرابط فقط');
+        }
+      }
+
+      // Fallback: share without image or use Web Share API without files
+      if (navigator.share) {
+        await navigator.share(shareData);
+        console.log('تم مشاركة المنشور بنجاح');
+      } else {
+        // Final fallback: copy to clipboard
+        await navigator.clipboard.writeText(postUrl);
+        console.log('تم نسخ رابط المنشور');
+        // You could add a toast notification here
+      }
+    } catch (error) {
+      console.error('خطأ في المشاركة:', error);
+      // Fallback to copying URL
+      try {
+        await navigator.clipboard.writeText(postUrl);
+        console.log('تم نسخ رابط المنشور كبديل');
+      } catch (clipboardError) {
+        console.error('فشل في نسخ الرابط:', clipboardError);
+      }
+    }
   };
 
   return (
@@ -182,16 +215,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
               onLikeChange={onLikeChange}
             />
           </div>
-          
-          {!hideCommentsButton && (
-            <button
-              onClick={handleCommentsClick}
-              className="flex items-center space-x-2 space-x-reverse text-gray-400 hover:text-blue-400 transition-colors group"
-            >
-              <MessageCircle size={18} className="group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-medium">{post.comments_count}</span>
-            </button>
-          )}
           
           <button 
             onClick={handleShareClick}
