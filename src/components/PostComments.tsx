@@ -249,7 +249,9 @@ const PostComments: React.FC<PostCommentsProps> = ({
       }
       
       await updateCommentsCount();
-      onCommentAdded();
+      
+      // Don't call onCommentAdded() to prevent page refresh
+      // onCommentAdded();
       
     } catch (error) {
       console.error('Error in handleSubmitComment:', error);
@@ -303,7 +305,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         </div>
 
         {/* Comments List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent" style={{ paddingBottom: '160px' }}>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent pb-32">
           {isLoading ? (
             <div className="flex justify-center py-12">
               <div className="relative">
@@ -332,9 +334,9 @@ const PostComments: React.FC<PostCommentsProps> = ({
           )}
         </div>
 
-        {/* Comment Input - Fixed to bottom with proper spacing */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-lg shadow-2xl">
-          <div className="p-4 pb-6 safe-area-bottom">
+        {/* Comment Input - Compact and fixed */}
+        <div className="border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-lg flex-shrink-0">
+          <div className="p-3">
             <CommentInput
               onSubmit={handleSubmitComment}
               isSubmitting={isSubmitting}

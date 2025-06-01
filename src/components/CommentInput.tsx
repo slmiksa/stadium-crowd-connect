@@ -125,7 +125,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
   };
 
   return (
-    <div className="space-y-2 bg-gray-800/30 backdrop-blur-sm rounded-lg p-3 border border-gray-700/40">
+    <div className="space-y-2">
       {/* Reply indicator */}
       {replyTo && (
         <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-700/30 p-2 rounded">
@@ -143,16 +143,6 @@ const CommentInput: React.FC<CommentInputProps> = ({
         </div>
       )}
 
-      {/* Live Preview */}
-      {comment && (
-        <div className="bg-gray-700/30 p-2 rounded">
-          <p className="text-xs text-gray-400 mb-1">معاينة:</p>
-          <div className="text-white text-xs">
-            {renderContentWithHashtags(comment)}
-          </div>
-        </div>
-      )}
-
       {/* Media Preview */}
       {mediaPreview && (
         <div className="relative inline-block">
@@ -160,75 +150,70 @@ const CommentInput: React.FC<CommentInputProps> = ({
             <img 
               src={mediaPreview} 
               alt="Preview" 
-              className="w-16 h-16 object-cover rounded border border-gray-600"
+              className="w-12 h-12 object-cover rounded border border-gray-600"
             />
           ) : (
             <video 
               src={mediaPreview} 
-              className="w-24 h-16 object-cover rounded border border-gray-600"
+              className="w-16 h-12 object-cover rounded border border-gray-600"
               controls
             />
           )}
           <button
             type="button"
             onClick={removeMedia}
-            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+            className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
           >
-            <X size={10} className="text-white" />
+            <X size={8} className="text-white" />
           </button>
         </div>
       )}
 
-      {/* Comment Input Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-2">
-        <div className="flex space-x-2 space-x-reverse gap-2">
+      {/* Comment Input Form - Compact */}
+      <form onSubmit={handleSubmit} className="flex items-end gap-2">
+        <div className="flex-1">
           <Textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={replyTo ? `رد على ${replyTo.username}...` : placeholder}
-            className="flex-1 bg-gray-700/30 border-gray-600 text-white placeholder:text-gray-400 resize-none min-h-[50px] max-h-[100px] focus:border-blue-500 focus:ring-blue-500/20 text-sm"
+            className="bg-gray-700/30 border-gray-600 text-white placeholder:text-gray-400 resize-none min-h-[36px] max-h-[80px] focus:border-blue-500 focus:ring-blue-500/20 text-sm py-2"
             disabled={isSubmitting}
-            rows={2}
+            rows={1}
           />
-          <div className="flex flex-col space-y-1">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="p-2 bg-gray-700/30 rounded hover:bg-gray-600 transition-colors border border-gray-600 hover:border-gray-500"
-              disabled={isSubmitting}
-            >
-              <Image size={14} className="text-gray-300" />
-            </button>
-            <button
-              type="button"
-              onClick={() => videoInputRef.current?.click()}
-              className="p-2 bg-gray-700/30 rounded hover:bg-gray-600 transition-colors border border-gray-600 hover:border-gray-500"
-              disabled={isSubmitting}
-            >
-              <Video size={14} className="text-gray-300" />
-            </button>
-            <button
-              type="button"
-              onClick={insertHashtag}
-              className="p-2 bg-gray-700/30 rounded hover:bg-gray-600 transition-colors border border-gray-600 hover:border-gray-500"
-              disabled={isSubmitting}
-            >
-              <Hash size={14} className="text-gray-300" />
-            </button>
-            <Button
-              type="submit"
-              disabled={(!comment.trim() && !selectedMedia) || isSubmitting}
-              className="p-2 bg-blue-500 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-0"
-              size="sm"
-            >
-              {isSubmitting ? (
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Send size={14} className="text-white" />
-              )}
-            </Button>
-          </div>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="p-1.5 bg-gray-700/30 rounded hover:bg-gray-600 transition-colors border border-gray-600 hover:border-gray-500"
+            disabled={isSubmitting}
+          >
+            <Image size={16} className="text-gray-300" />
+          </button>
+          
+          <button
+            type="button"
+            onClick={insertHashtag}
+            className="p-1.5 bg-gray-700/30 rounded hover:bg-gray-600 transition-colors border border-gray-600 hover:border-gray-500"
+            disabled={isSubmitting}
+          >
+            <Hash size={16} className="text-gray-300" />
+          </button>
+          
+          <Button
+            type="submit"
+            disabled={(!comment.trim() && !selectedMedia) || isSubmitting}
+            className="p-1.5 bg-blue-500 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-0 h-8 w-8"
+            size="sm"
+          >
+            {isSubmitting ? (
+              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Send size={14} className="text-white" />
+            )}
+          </Button>
         </div>
       </form>
 
