@@ -5,8 +5,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import HashtagPost from '@/components/HashtagPost';
 import HashtagTabs from '@/components/HashtagTabs';
-import { TrendingUp, Hash } from 'lucide-react';
+import { TrendingUp, Hash, Search, RefreshCw, Plus } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import VerificationBadge from '@/components/VerificationBadge';
 
 interface TrendingHashtag {
@@ -37,10 +39,35 @@ const Hashtags = () => {
   const [popularPosts, setPopularPosts] = useState<PopularPost[]>([]);
   const [trendingHashtags, setTrendingHashtags] = useState<TrendingHashtag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredPosts, setFilteredPosts] = useState<PopularPost[]>([]);
+  const [filteredHashtags, setFilteredHashtags] = useState<TrendingHashtag[]>([]);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    // تصفية النتائج بناءً على البحث
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      
+      const filtered = popularPosts.filter(post => 
+        post.content.toLowerCase().includes(query) ||
+        post.hashtags.some(tag => tag.toLowerCase().includes(query)) ||
+        post.profiles.username.toLowerCase().includes(query)
+      );
+      setFilteredPosts(filtered);
+
+      const filteredHashtagsList = trendingHashtags.filter(hashtag =>
+        hashtag.hashtag.toLowerCase().includes(query)
+      );
+      setFilteredHashtags(filteredHashtagsList);
+    } else {
+      setFilteredPosts(popularPosts);
+      setFilteredHashtags(trendingHashtags);
+    }
+  }, [searchQuery, popularPosts, trendingHashtags]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -66,22 +93,40 @@ const Hashtags = () => {
         setPopularPosts(popularPostsData || []);
       }
 
-      // Fetch trending hashtags
-      const { data: trendsData, error: trendsError } = await supabase
-        .from('hashtag_trends')
-        .select('hashtag, posts_count')
-        .eq('is_trending', true)
-        .order('posts_count', { ascending: false })
-        .limit(10);
+      // Fetch trending hashtags - فقط من آخر 24 ساعة
+      const twentyFourHoursAgo = new Date();
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
-      if (trendsError) {
-        console.error('Error fetching trending hashtags:', trendsError);
+      // احصل على الهاشتاقات من المنشورات في آخر 24 ساعة
+      const { data: recentPostsData, error: recentPostsError } = await supabase
+        .from('hashtag_posts')
+        .select('hashtags')
+        .gte('created_at', twentyFourHoursAgo.toISOString());
+
+      if (recentPostsError) {
+        console.error('Error fetching recent posts:', recentPostsError);
+        setTrendingHashtags([]);
       } else {
-        const formattedTrends = (trendsData || []).map(trend => ({
-          hashtag: trend.hashtag,
-          post_count: trend.posts_count
-        }));
-        setTrendingHashtags(formattedTrends);
+        // احسب عدد المنشورات لكل هاشتاق في آخر 24 ساعة
+        const hashtagCounts: { [key: string]: number } = {};
+        
+        recentPostsData?.forEach(post => {
+          post.hashtags?.forEach((hashtag: string) => {
+            hashtagCounts[hashtag] = (hashtagCounts[hashtag] || 0) + 1;
+          });
+        });
+
+        // فلتر الهاشتاقات التي لديها 35+ منشور في آخر 24 ساعة
+        const trendingList = Object.entries(hashtagCounts)
+          .filter(([_, count]) => count >= 35)
+          .map(([hashtag, count]) => ({
+            hashtag,
+            post_count: count
+          }))
+          .sort((a, b) => b.post_count - a.post_count)
+          .slice(0, 10);
+
+        setTrendingHashtags(trendingList);
       }
 
     } catch (error) {
@@ -131,7 +176,7 @@ const Hashtags = () => {
               </h3>
             </div>
             <p className="text-gray-400 text-sm">
-              {hashtagData.post_count} منشور
+              {hashtagData.post_count} منشور (آخر 24 ساعة)
             </p>
           </div>
         </div>
@@ -156,7 +201,8 @@ const Hashtags = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       <div className="container mx-auto px-4 py-6 pb-20">
-        <div className="text-center mb-8">
+        {/* Header */}
+        <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full mb-4 border border-blue-500/20">
             <Hash size={40} className="text-blue-400" />
           </div>
@@ -168,9 +214,39 @@ const Hashtags = () => {
           </p>
         </div>
 
+        {/* Search and Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6 px-6">
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Input
+              type="text"
+              placeholder="ابحث في الهاشتاقات والمنشورات..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-gray-800/50 border-gray-700/50 text-white pr-10 pl-4 py-3 rounded-xl focus:border-blue-500/50 focus:ring-blue-500/20"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={fetchData}
+              variant="outline"
+              className="bg-gray-800/50 border-gray-700/50 text-white hover:bg-gray-700/50 px-4"
+            >
+              <RefreshCw size={18} />
+            </Button>
+            <Button
+              onClick={() => navigate('/create-hashtag-post')}
+              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-6"
+            >
+              <Plus size={18} className="ml-2" />
+              إنشاء منشور
+            </Button>
+          </div>
+        </div>
+
         <HashtagTabs 
-          popularPosts={popularPosts}
-          trendingHashtags={trendingHashtags}
+          popularPosts={filteredPosts}
+          trendingHashtags={filteredHashtags}
           onPostLikeChange={fetchData}
           renderPost={renderPost}
           renderTrendingHashtag={renderTrendingHashtag}

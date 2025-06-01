@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -56,6 +55,8 @@ const Comments = () => {
 
   const fetchPost = async () => {
     try {
+      console.log('Fetching post with ID:', postId);
+      
       const { data, error } = await supabase
         .from('hashtag_posts')
         .select(`
@@ -71,18 +72,26 @@ const Comments = () => {
 
       if (error) {
         console.error('Error fetching post:', error);
+        if (error.code === 'PGRST116') {
+          console.log('Post not found, navigating back');
+          navigate('/hashtags');
+        }
         return;
       }
 
+      console.log('Post fetched successfully:', data);
       setPost(data);
     } catch (error) {
       console.error('Error:', error);
+      navigate('/hashtags');
     }
   };
 
   const fetchComments = async () => {
     try {
       setIsLoading(true);
+      
+      console.log('Fetching comments for post:', postId);
       
       const { data: commentsData, error: commentsError } = await supabase
         .from('hashtag_comments')
@@ -95,6 +104,8 @@ const Comments = () => {
         setComments([]);
         return;
       }
+
+      console.log('Comments data:', commentsData);
 
       if (commentsData && commentsData.length > 0) {
         const userIds = [...new Set(commentsData.map(comment => comment.user_id))];
@@ -261,6 +272,25 @@ const Comments = () => {
         <div className="min-h-screen bg-gray-900">
           <div className="flex items-center justify-center min-h-screen">
             <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!post) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-white mb-2">المنشور غير موجود</h2>
+            <p className="text-gray-400 mb-4">لم نتمكن من العثور على هذا المنشور</p>
+            <button
+              onClick={() => navigate('/hashtags')}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+            >
+              العودة للهاشتاقات
+            </button>
           </div>
         </div>
       </Layout>
