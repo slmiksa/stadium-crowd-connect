@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import MediaInput from '@/components/MediaInput';
 import OwnerBadge from '@/components/OwnerBadge';
+import ModeratorBadge from '@/components/ModeratorBadge';
 import RoomMembersModal from '@/components/RoomMembersModal';
 import ChatRoomSettingsModal from '@/components/ChatRoomSettingsModal';
 import ChatRoomAnnouncement from '@/components/ChatRoomAnnouncement';
@@ -35,12 +36,18 @@ interface RoomInfo {
   announcement?: string;
 }
 
+interface UserRole {
+  user_id: string;
+  role: string;
+}
+
 const ChatRoom = () => {
   const { roomId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
@@ -56,6 +63,7 @@ const ChatRoom = () => {
       fetchRoomInfo();
       checkMembership();
       fetchMessages();
+      fetchUserRoles();
       setupRealtimeSubscription();
     }
   }, [roomId, user]);
@@ -66,6 +74,37 @@ const ChatRoom = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const fetchUserRoles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('room_members')
+        .select('user_id, role')
+        .eq('room_id', roomId);
+
+      if (error) {
+        console.error('Error fetching user roles:', error);
+        return;
+      }
+
+      setUserRoles(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const getUserRole = (userId: string): string => {
+    const userRole = userRoles.find(role => role.user_id === userId);
+    return userRole?.role || 'member';
+  };
+
+  const isOwner = (userId: string): boolean => {
+    return userId === roomInfo?.owner_id;
+  };
+
+  const isModerator = (userId: string): boolean => {
+    return getUserRole(userId) === 'moderator';
   };
 
   const fetchRoomInfo = async () => {
@@ -483,7 +522,8 @@ const ChatRoom = () => {
                     >
                       {message.profiles?.username || 'مستخدم مجهول'}
                     </span>
-                    <OwnerBadge isOwner={message.user_id === roomInfo?.owner_id} />
+                    <OwnerBadge isOwner={isOwner(message.user_id)} />
+                    <ModeratorBadge isModerator={isModerator(message.user_id)} />
                     <span className="text-xs text-zinc-500">
                       {formatTimestamp(message.created_at)}
                     </span>
@@ -594,7 +634,10 @@ const ChatRoom = () => {
           isOpen={showMembersModal}
           onClose={() => setShowMembersModal(false)}
           isOwner={user?.id === roomInfo?.owner_id}
-          onMembershipChange={fetchRoomInfo}
+          onMembershipChange={() => {
+            fetchRoomInfo();
+            fetchUserRoles();
+          }}
         />
       )}
       

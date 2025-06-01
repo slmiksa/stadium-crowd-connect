@@ -1,15 +1,18 @@
+
 import React, { useState, useEffect } from 'react';
-import { X, Crown, UserX, Ban } from 'lucide-react';
+import { X, Crown, UserX, Ban, Shield, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import ModeratorBadge from './ModeratorBadge';
 
 interface Member {
   id: string;
   user_id: string;
   joined_at: string;
   is_banned: boolean;
+  role: string;
   profiles: {
     username: string;
     avatar_url?: string;
@@ -87,8 +90,56 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
     }
   };
 
-  const banMember = async (userId: string) => {
+  const promoteToModerator = async (userId: string) => {
     if (!isOwner || userId === roomOwner) return;
+
+    try {
+      const { data, error } = await supabase.rpc('promote_to_moderator', {
+        room_id_param: roomId,
+        user_id_param: userId,
+        promoter_id_param: (await supabase.auth.getUser()).data.user?.id
+      });
+
+      if (error) {
+        console.error('Error promoting to moderator:', error);
+        return;
+      }
+
+      if (data) {
+        fetchMembers();
+        onMembershipChange?.();
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const demoteFromModerator = async (userId: string) => {
+    if (!isOwner || userId === roomOwner) return;
+
+    try {
+      const { data, error } = await supabase.rpc('demote_from_moderator', {
+        room_id_param: roomId,
+        user_id_param: userId,
+        demoter_id_param: (await supabase.auth.getUser()).data.user?.id
+      });
+
+      if (error) {
+        console.error('Error demoting from moderator:', error);
+        return;
+      }
+
+      if (data) {
+        fetchMembers();
+        onMembershipChange?.();
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const banMember = async (userId: string) => {
+    if ((!isOwner && !isCurrentUserModerator()) || userId === roomOwner) return;
 
     try {
       const { error } = await supabase
@@ -103,7 +154,6 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       }
 
       fetchMembers();
-      // Notify parent component to refresh member count
       onMembershipChange?.();
     } catch (error) {
       console.error('Error:', error);
@@ -111,7 +161,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   };
 
   const unbanMember = async (userId: string) => {
-    if (!isOwner || userId === roomOwner) return;
+    if ((!isOwner && !isCurrentUserModerator()) || userId === roomOwner) return;
 
     try {
       const { error } = await supabase
@@ -126,7 +176,6 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       }
 
       fetchMembers();
-      // Notify parent component to refresh member count
       onMembershipChange?.();
     } catch (error) {
       console.error('Error:', error);
@@ -134,7 +183,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   };
 
   const kickMember = async (userId: string) => {
-    if (!isOwner || userId === roomOwner) return;
+    if ((!isOwner && !isCurrentUserModerator()) || userId === roomOwner) return;
 
     try {
       const { error } = await supabase
@@ -149,11 +198,17 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       }
 
       fetchMembers();
-      // Notify parent component to refresh member count
       onMembershipChange?.();
     } catch (error) {
       console.error('Error:', error);
     }
+  };
+
+  const isCurrentUserModerator = (): boolean => {
+    const currentUser = supabase.auth.getUser();
+    return members.some(member => 
+      member.user_id === currentUser && member.role === 'moderator'
+    );
   };
 
   const navigateToProfile = (userId: string) => {
@@ -171,6 +226,9 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  const activemembers = members.filter(member => !member.is_banned);
+  const bannedMembers = members.filter(member => member.is_banned);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -193,58 +251,127 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
               <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : (
-            <div className="space-y-3">
-              {members.filter(member => !member.is_banned).map((member) => (
-                <div key={member.id} className="flex items-center justify-between">
-                  <div 
-                    className="flex items-center space-x-3 cursor-pointer hover:bg-zinc-800 rounded-lg p-2 transition-colors flex-1"
-                    onClick={() => navigateToProfile(member.user_id)}
-                  >
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={member.profiles?.avatar_url} alt={member.profiles?.username} />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                        {member.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium text-white">
-                          {member.profiles?.username || 'مستخدم مجهول'}
+            <div className="space-y-4">
+              {/* Active Members */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-zinc-400">الأعضاء النشطون</h3>
+                {activemembers.map((member) => (
+                  <div key={member.id} className="flex items-center justify-between">
+                    <div 
+                      className="flex items-center space-x-3 cursor-pointer hover:bg-zinc-800 rounded-lg p-2 transition-colors flex-1"
+                      onClick={() => navigateToProfile(member.user_id)}
+                    >
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={member.profiles?.avatar_url} alt={member.profiles?.username} />
+                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                          {member.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium text-white">
+                            {member.profiles?.username || 'مستخدم مجهول'}
+                          </span>
+                          {member.user_id === roomOwner && (
+                            <Crown size={16} className="text-yellow-500" />
+                          )}
+                          <ModeratorBadge isModerator={member.role === 'moderator'} />
+                        </div>
+                        <span className="text-xs text-zinc-500">
+                          انضم في {formatJoinDate(member.joined_at)}
                         </span>
-                        {member.user_id === roomOwner && (
-                          <Crown size={16} className="text-yellow-500" />
-                        )}
                       </div>
-                      <span className="text-xs text-zinc-500">
-                        انضم في {formatJoinDate(member.joined_at)}
-                      </span>
                     </div>
+                    
+                    {(isOwner || isCurrentUserModerator()) && member.user_id !== roomOwner && (
+                      <div className="flex items-center space-x-2">
+                        {/* Promote/Demote to Moderator - Only owners can do this */}
+                        {isOwner && (
+                          <>
+                            {member.role === 'moderator' ? (
+                              <button
+                                onClick={() => demoteFromModerator(member.user_id)}
+                                className="p-2 text-blue-400 hover:bg-blue-900/20 rounded-lg transition-colors"
+                                title="إزالة صلاحيات المشرف"
+                              >
+                                <ShieldOff size={16} />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => promoteToModerator(member.user_id)}
+                                className="p-2 text-blue-400 hover:bg-blue-900/20 rounded-lg transition-colors"
+                                title="ترقية لمشرف"
+                              >
+                                <Shield size={16} />
+                              </button>
+                            )}
+                          </>
+                        )}
+                        
+                        {/* Ban/Kick buttons - Both owners and moderators can do this */}
+                        <button
+                          onClick={() => banMember(member.user_id)}
+                          className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="حظر"
+                        >
+                          <Ban size={16} />
+                        </button>
+                        <button
+                          onClick={() => kickMember(member.user_id)}
+                          className="p-2 text-orange-400 hover:bg-orange-900/20 rounded-lg transition-colors"
+                          title="طرد"
+                        >
+                          <UserX size={16} />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  
-                  {isOwner && member.user_id !== roomOwner && (
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => banMember(member.user_id)}
-                        className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
-                        title="حظر"
+                ))}
+                
+                {activemembers.length === 0 && (
+                  <div className="text-center text-zinc-500 py-4">
+                    لا يوجد أعضاء نشطون في الغرفة
+                  </div>
+                )}
+              </div>
+
+              {/* Banned Members - Only show if there are any and user has permission */}
+              {bannedMembers.length > 0 && (isOwner || isCurrentUserModerator()) && (
+                <div className="space-y-3 pt-4 border-t border-zinc-700">
+                  <h3 className="text-sm font-semibold text-zinc-400">الأعضاء المحظورون</h3>
+                  {bannedMembers.map((member) => (
+                    <div key={member.id} className="flex items-center justify-between">
+                      <div 
+                        className="flex items-center space-x-3 cursor-pointer hover:bg-zinc-800 rounded-lg p-2 transition-colors flex-1 opacity-60"
+                        onClick={() => navigateToProfile(member.user_id)}
                       >
-                        <Ban size={16} />
-                      </button>
-                      <button
-                        onClick={() => kickMember(member.user_id)}
-                        className="p-2 text-orange-400 hover:bg-orange-900/20 rounded-lg transition-colors"
-                        title="طرد"
-                      >
-                        <UserX size={16} />
-                      </button>
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={member.profiles?.avatar_url} alt={member.profiles?.username} />
+                          <AvatarFallback className="bg-gradient-to-br from-red-500 to-red-600 text-white">
+                            {member.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium text-white line-through">
+                              {member.profiles?.username || 'مستخدم مجهول'}
+                            </span>
+                            <span className="text-xs text-red-400 bg-red-900/20 px-2 py-1 rounded">محظور</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {(isOwner || isCurrentUserModerator()) && (
+                        <button
+                          onClick={() => unbanMember(member.user_id)}
+                          className="p-2 text-green-400 hover:bg-green-900/20 rounded-lg transition-colors"
+                          title="إلغاء الحظر"
+                        >
+                          <ShieldOff size={16} />
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
-              ))}
-              
-              {members.filter(member => !member.is_banned).length === 0 && (
-                <div className="text-center text-zinc-500 py-8">
-                  لا يوجد أعضاء في الغرفة
+                  ))}
                 </div>
               )}
             </div>

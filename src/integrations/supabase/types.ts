@@ -527,12 +527,28 @@ export type Database = {
         Args: { room_id_param: string; user_id_param: string }
         Returns: boolean
       }
+      demote_from_moderator: {
+        Args: {
+          room_id_param: string
+          user_id_param: string
+          demoter_id_param: string
+        }
+        Returns: boolean
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: string
       }
       is_room_owner: {
         Args: { room_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
+      promote_to_moderator: {
+        Args: {
+          room_id_param: string
+          user_id_param: string
+          promoter_id_param: string
+        }
         Returns: boolean
       }
     }
