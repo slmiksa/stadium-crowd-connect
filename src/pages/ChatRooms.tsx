@@ -177,7 +177,7 @@ const ChatRooms = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-        <div className="p-6">
+        <div className="p-6 pb-32">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-white">غرف الدردشة</h1>
@@ -205,7 +205,7 @@ const ChatRooms = () => {
           </div>
 
           {/* Rooms List */}
-          <div className="space-y-4">
+          <div className="space-y-4 mb-8">
             {filteredRooms.length === 0 ? (
               <div className="text-center py-16">
                 <div className="bg-gray-800/30 backdrop-blur-sm rounded-3xl p-12 border border-gray-700/30">
