@@ -180,19 +180,30 @@ const PostComments: React.FC<PostCommentsProps> = ({
   };
 
   const extractHashtags = (text: string) => {
-    console.log('=== Extracting hashtags from text ===');
+    console.log('=== EXTRACTING HASHTAGS ===');
     console.log('Input text:', text);
     
-    const hashtagRegex = /#[\u0600-\u06FF\w]+/g;
-    const matches = text.match(hashtagRegex);
+    // إزالة الأسطر الفارغة والمسافات الزائدة
+    const cleanText = text.replace(/\s+/g, ' ').trim();
+    console.log('Clean text:', cleanText);
+    
+    // البحث عن الهاشتاقات بنمط محسن يدعم العربية والإنجليزية
+    const hashtagRegex = /#([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\w\d_]+)/g;
+    const matches = [];
+    let match;
+    
+    while ((match = hashtagRegex.exec(cleanText)) !== null) {
+      matches.push(match[0]); // الهاشتاق كاملاً مع #
+    }
     
     console.log('Regex matches:', matches);
     
-    const hashtags = matches ? matches.map(tag => {
-      const cleanTag = tag.slice(1); // Remove # symbol
-      console.log('Clean hashtag:', cleanTag);
+    // استخراج النص بدون رمز #
+    const hashtags = matches.map(tag => {
+      const cleanTag = tag.slice(1); // إزالة رمز #
+      console.log('Processing hashtag:', tag, '-> clean:', cleanTag);
       return cleanTag;
-    }) : [];
+    });
     
     console.log('Final extracted hashtags:', hashtags);
     return hashtags;
@@ -222,107 +233,108 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
       if (mediaFile && mediaType) {
         console.log('Uploading media...');
-        mediaUrl = await uploadMedia(mediaFile, mediaType);
-        
-        if (!mediaUrl) {
-          throw new Error('Failed to upload media');
+        const fileExt = mediaFile.name.split('.').pop();
+        const fileName = `comment-${Date.now()}.${fileExt}`;
+        const filePath = `comment-media/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('hashtag-images')
+          .upload(filePath, mediaFile);
+
+        if (uploadError) {
+          console.error('Error uploading media:', uploadError);
+          throw new Error('فشل في رفع الملف');
         }
+
+        const { data } = supabase.storage
+          .from('hashtag-images')
+          .getPublicUrl(filePath);
+
+        mediaUrl = data.publicUrl;
         console.log('Media uploaded successfully:', mediaUrl);
       }
 
-      // استخراج الهاشتاقات من محتوى التعليق
+      // استخراج الهاشتاقات من النص
       const hashtags = extractHashtags(content);
-      console.log('=== HASHTAGS EXTRACTED ===');
-      console.log('Extracted hashtags:', hashtags);
-      console.log('Hashtags count:', hashtags.length);
+      console.log('=== HASHTAGS FOR DATABASE ===');
+      console.log('Extracted hashtags array:', hashtags);
 
-      console.log('=== PREPARING DATABASE INSERT ===');
-      
-      // إعداد بيانات التعليق مع مصفوفة هاشتاقات واضحة
+      // إعداد بيانات التعليق
       const commentData: any = {
         post_id: postId,
         user_id: user.id,
-        content: content.trim() || '',
-        hashtags: hashtags // Always include hashtags array, even if empty
+        content: content.trim(),
+        hashtags: hashtags // مصفوفة الهاشتاقات
       };
 
-      // إضافة parent_id إذا كان يرد على تعليق
+      // إضافة parent_id إذا كان رد على تعليق
       if (replyTo) {
         commentData.parent_id = replyTo.id;
       }
 
-      // إضافة حقول الوسائط إذا كانت متوفرة
+      // إضافة حقول الوسائط
       if (mediaUrl && mediaType) {
         commentData.media_url = mediaUrl;
         commentData.media_type = mediaType;
       }
 
-      console.log('=== COMMENT DATA TO INSERT ===');
-      console.log('Comment data:', JSON.stringify(commentData, null, 2));
+      console.log('=== FINAL COMMENT DATA ===');
+      console.log('Data to insert:', JSON.stringify(commentData, null, 2));
 
+      // إدراج التعليق في قاعدة البيانات
       const { data: insertData, error: insertError } = await supabase
         .from('hashtag_comments')
         .insert(commentData)
-        .select();
+        .select(`
+          *,
+          profiles (
+            id,
+            username,
+            avatar_url
+          )
+        `);
 
       if (insertError) {
-        console.error('=== DATABASE INSERT ERROR ===');
-        console.error('Insert error:', insertError);
-        throw insertError;
+        console.error('=== INSERT ERROR ===');
+        console.error('Error details:', insertError);
+        throw new Error('فشل في حفظ التعليق: ' + insertError.message);
       }
 
-      console.log('=== DATABASE INSERT SUCCESS ===');
+      console.log('=== INSERT SUCCESS ===');
       console.log('Inserted data:', insertData);
 
-      // التحقق من الإدراج
+      // التحقق من الحفظ
       if (insertData && insertData[0]) {
-        console.log('=== VERIFYING INSERT ===');
-        console.log('Inserted comment ID:', insertData[0].id);
-        console.log('Inserted hashtags:', insertData[0].hashtags);
-        
-        // فحص إضافي للتأكد من حفظ الهاشتاقات
-        const { data: verifyData, error: verifyError } = await supabase
-          .from('hashtag_comments')
-          .select('id, content, hashtags')
-          .eq('id', insertData[0].id)
-          .single();
-        
-        if (verifyError) {
-          console.error('Verification error:', verifyError);
-        } else {
-          console.log('=== VERIFICATION RESULT ===');
-          console.log('Verified comment:', verifyData);
-          console.log('Verified hashtags:', verifyData.hashtags);
-        }
-      }
+        console.log('=== VERIFICATION ===');
+        console.log('Saved comment ID:', insertData[0].id);
+        console.log('Saved hashtags:', insertData[0].hashtags);
 
-      // مسح حالة الرد بعد الإرسال الناجح
-      setReplyTo(null);
-      
-      // إضافة التعليق الجديد إلى أعلى القائمة
-      if (insertData && insertData[0]) {
+        // إضافة التعليق الجديد للقائمة
         const newComment = {
           ...insertData[0],
-          profiles: {
+          profiles: insertData[0].profiles || {
             id: user.id,
             username: user.email?.split('@')[0] || 'مستخدم',
             avatar_url: null
           }
         };
+
         setComments(prevComments => [newComment, ...prevComments]);
-        
-        // إشعار المكون الأب بالتعليق الجديد
         onCommentAdded();
       }
+
+      // مسح حالة الرد
+      setReplyTo(null);
       
+      // تحديث عداد التعليقات
       await updateCommentsCount();
       
-      console.log('=== COMMENT SUBMISSION COMPLETED SUCCESSFULLY ===');
+      console.log('=== COMMENT SUBMISSION COMPLETED ===');
       
     } catch (error) {
-      console.error('=== COMMENT SUBMISSION FAILED ===');
-      console.error('Error in handleSubmitComment:', error);
-      alert('حدث خطأ أثناء إضافة التعليق');
+      console.error('=== SUBMISSION FAILED ===');
+      console.error('Error:', error);
+      alert(error.message || 'حدث خطأ أثناء إضافة التعليق');
     } finally {
       setIsSubmitting(false);
     }

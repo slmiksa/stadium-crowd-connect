@@ -186,12 +186,14 @@ const HashtagPage = () => {
   const fetchHashtagComments = async () => {
     try {
       console.log('=== FETCHING HASHTAG COMMENTS ===');
-      console.log('Searching for hashtag:', hashtag);
+      console.log('Target hashtag:', hashtag);
       setIsLoadingComments(true);
       
-      // Method 1: Search in hashtags array (most reliable)
-      console.log('=== METHOD 1: Searching in hashtags array ===');
-      const { data: arrayComments, error: arrayError } = await supabase
+      // طريقة محسنة للبحث عن التعليقات
+      console.log('=== SEARCHING FOR COMMENTS WITH HASHTAG ===');
+      
+      // البحث في مصفوفة الهاشتاقات
+      const { data: hashtagComments, error: hashtagError } = await supabase
         .from('hashtag_comments')
         .select(`
           *,
@@ -204,14 +206,13 @@ const HashtagPage = () => {
         .contains('hashtags', [hashtag])
         .order('created_at', { ascending: false });
 
-      console.log('Method 1 result:', {
-        count: arrayComments?.length || 0,
-        error: arrayError,
-        data: arrayComments
+      console.log('Hashtag array search result:', {
+        count: hashtagComments?.length || 0,
+        error: hashtagError,
+        data: hashtagComments?.slice(0, 3) // أول 3 تعليقات للمراجعة
       });
 
-      // Method 2: Search in content text (backup method)
-      console.log('=== METHOD 2: Searching in content ===');
+      // البحث في النص كطريقة احتياطية
       const searchPattern = `#${hashtag}`;
       const { data: contentComments, error: contentError } = await supabase
         .from('hashtag_comments')
@@ -226,83 +227,45 @@ const HashtagPage = () => {
         .ilike('content', `%${searchPattern}%`)
         .order('created_at', { ascending: false });
 
-      console.log('Method 2 result:', {
+      console.log('Content search result:', {
         searchPattern,
         count: contentComments?.length || 0,
         error: contentError,
-        data: contentComments
+        data: contentComments?.slice(0, 3)
       });
 
-      // Method 3: Get ALL comments to see what's in the database
-      console.log('=== METHOD 3: Getting ALL comments for debugging ===');
-      const { data: allComments, error: allError } = await supabase
-        .from('hashtag_comments')
-        .select(`
-          id,
-          content,
-          hashtags,
-          created_at,
-          profiles (
-            id,
-            username,
-            avatar_url
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      console.log('All comments (last 20):', {
-        count: allComments?.length || 0,
-        error: allError,
-        data: allComments
-      });
-
-      if (allComments) {
-        allComments.forEach((comment, index) => {
-          console.log(`Comment ${index + 1}:`, {
-            id: comment.id,
-            content: comment.content.substring(0, 100),
-            hashtags: comment.hashtags,
-            hasHashtag: comment.hashtags?.includes(hashtag),
-            contentHasHashtag: comment.content.includes(`#${hashtag}`)
-          });
+      // دمج النتائج وإزالة المكررات
+      const allComments = new Map();
+      
+      // إضافة تعليقات البحث في المصفوفة (أولوية عالية)
+      if (hashtagComments) {
+        hashtagComments.forEach(comment => {
+          allComments.set(comment.id, comment);
         });
       }
-
-      if (arrayError) console.error('Error fetching hashtag array comments:', arrayError);
-      if (contentError) console.error('Error fetching content comments:', contentError);
-
-      // Combine and deduplicate comments using a Map for better performance
-      const commentMap = new Map();
-
-      // Add array-based comments (highest priority)
-      if (arrayComments) {
-        arrayComments.forEach(comment => {
-          commentMap.set(comment.id, comment);
-        });
-      }
-
-      // Add content-based comments (medium priority)
+      
+      // إضافة تعليقات البحث في النص (أولوية منخفضة)
       if (contentComments) {
         contentComments.forEach(comment => {
-          if (!commentMap.has(comment.id)) {
-            commentMap.set(comment.id, comment);
+          if (!allComments.has(comment.id)) {
+            allComments.set(comment.id, comment);
           }
         });
       }
 
-      const finalComments = Array.from(commentMap.values());
+      const finalComments = Array.from(allComments.values());
       
       console.log('=== FINAL COMMENTS RESULT ===');
-      console.log('Total unique comments found:', finalComments.length);
-      console.log('Final comments:', finalComments);
+      console.log('Total unique comments:', finalComments.length);
+      console.log('Sample comments:', finalComments.slice(0, 2));
       
-      // Sort by created_at descending
+      // ترتيب حسب تاريخ الإنشاء
       const sortedComments = finalComments.sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
       return sortedComments.map(comment => ({ ...comment, type: 'comment' as const }));
+      
     } catch (error) {
       console.error('Error in fetchHashtagComments:', error);
       return [];

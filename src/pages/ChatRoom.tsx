@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -184,28 +185,35 @@ const ChatRoom = () => {
     if (!user) return;
 
     try {
-      console.log('ChatRoom sendMessage called with:', { content, mediaFile: !!mediaFile });
+      console.log('ChatRoom sendMessage called with:', { content, mediaFile: !!mediaFile, mediaType });
       
       let mediaUrl = null;
       
       if (mediaFile) {
+        console.log('Starting media upload...');
         const fileExt = mediaFile.name.split('.').pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        const filePath = `chat-media/${fileName}`;
 
+        console.log('Uploading to path:', filePath);
+
+        // First ensure the bucket exists by trying to upload
         const { error: uploadError } = await supabase.storage
-          .from('chat-media')
-          .upload(fileName, mediaFile);
+          .from('hashtag-images') // Using existing bucket instead of chat-media
+          .upload(filePath, mediaFile);
 
         if (uploadError) {
           console.error('Error uploading media:', uploadError);
+          alert('فشل في رفع الملف: ' + uploadError.message);
           return;
         }
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('chat-media')
-          .getPublicUrl(fileName);
+        const { data: urlData } = supabase.storage
+          .from('hashtag-images')
+          .getPublicUrl(filePath);
 
-        mediaUrl = publicUrl;
+        mediaUrl = urlData.publicUrl;
+        console.log('Media uploaded successfully:', mediaUrl);
       }
 
       let finalContent = content || '';
@@ -229,7 +237,7 @@ const ChatRoom = () => {
 
       if (error) {
         console.error('Message insert error:', error);
-        throw new Error('فشل في إرسال الرسالة');
+        throw new Error('فشل في إرسال الرسالة: ' + error.message);
       }
 
       console.log('Message sent successfully');
