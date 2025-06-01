@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -231,9 +230,9 @@ const CreateChatRoom = () => {
 
   return (
     <Layout>
-      <div className="p-4">
+      <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between p-4 pb-2">
           <div className="flex items-center space-x-3">
             <button 
               onClick={() => navigate('/chat-rooms')}
@@ -245,160 +244,166 @@ const CreateChatRoom = () => {
           </div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Room Avatar */}
-          <div className="bg-zinc-800 rounded-lg p-4">
-            <label className="block text-sm font-medium text-zinc-300 mb-3">
-              أيقونة الغرفة (اختياري)
-            </label>
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-zinc-700 rounded-lg flex items-center justify-center overflow-hidden">
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="معاينة الأيقونة" className="w-full h-full object-cover" />
-                ) : (
-                  <Camera size={24} className="text-zinc-400" />
-                )}
-              </div>
-              <div className="flex-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full bg-zinc-700 border-zinc-600 hover:bg-zinc-600"
-                >
-                  <Upload size={18} className="mr-2" />
-                  اختيار صورة
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarSelect}
-                  className="hidden"
-                />
-                <p className="text-xs text-zinc-500 mt-1">الحد الأقصى 5 ميجابايت</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Room Name */}
-          <div className="bg-zinc-800 rounded-lg p-4">
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
-              اسم الغرفة *
-            </label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="أدخل اسم الغرفة"
-              className="bg-zinc-900 border-zinc-700 text-white"
-              maxLength={100}
-              required
-            />
-          </div>
-
-          {/* Description */}
-          <div className="bg-zinc-800 rounded-lg p-4">
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
-              وصف الغرفة
-            </label>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="أدخل وصفاً للغرفة (اختياري)"
-              className="bg-zinc-900 border-zinc-700 text-white resize-none"
-              rows={3}
-              maxLength={500}
-            />
-          </div>
-
-          {/* Privacy Settings */}
-          <div className="bg-zinc-800 rounded-lg p-4">
-            <label className="block text-sm font-medium text-zinc-300 mb-3">
-              إعدادات الخصوصية
-            </label>
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => setIsPrivate(false)}
-                className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                  !isPrivate ? 'bg-blue-600' : 'bg-zinc-700 hover:bg-zinc-600'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <Globe size={20} className="text-white" />
-                  <div className="text-right">
-                    <p className="font-medium text-white">عامة</p>
-                    <p className="text-sm text-zinc-300">يمكن لأي شخص الانضمام</p>
-                  </div>
-                </div>
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setIsPrivate(true)}
-                className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                  isPrivate ? 'bg-blue-600' : 'bg-zinc-700 hover:bg-zinc-600'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <Lock size={20} className="text-white" />
-                  <div className="text-right">
-                    <p className="font-medium text-white">خاصة</p>
-                    <p className="text-sm text-zinc-300">بكلمة سر ودعوات للمتابعين</p>
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Password for Private Rooms */}
-          {isPrivate && (
-            <div className="bg-zinc-800 rounded-lg p-4">
-              <label className="block text-sm font-medium text-zinc-300 mb-2">
-                <Key size={16} className="inline mr-2" />
-                كلمة سر الغرفة *
-              </label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="أدخل كلمة سر قوية"
-                className="bg-zinc-900 border-zinc-700 text-white"
-                required={isPrivate}
-              />
-              <p className="text-xs text-zinc-500 mt-1">
-                ستُرسل كلمة السر للمتابعين المدعوين
-              </p>
-            </div>
-          )}
-
-          {/* Follower Selection for Private Rooms */}
-          {isPrivate && user && (
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-4 pb-24">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Room Avatar */}
             <div className="bg-zinc-800 rounded-lg p-4">
               <label className="block text-sm font-medium text-zinc-300 mb-3">
-                <Users size={16} className="inline mr-2" />
-                اختيار المتابعين للدعوة *
+                أيقونة الغرفة (اختياري)
               </label>
-              <FollowerSelector
-                userId={user.id}
-                selectedFollowers={selectedFollowers}
-                onFollowersChange={setSelectedFollowers}
-                selectAll={selectAllFollowers}
-                onSelectAllChange={setSelectAllFollowers}
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-zinc-700 rounded-lg flex items-center justify-center overflow-hidden">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="معاينة الأيقونة" className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera size={24} className="text-zinc-400" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full bg-zinc-700 border-zinc-600 hover:bg-zinc-600"
+                  >
+                    <Upload size={18} className="mr-2" />
+                    اختيار صورة
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarSelect}
+                    className="hidden"
+                  />
+                  <p className="text-xs text-zinc-500 mt-1">الحد الأقصى 5 ميجابايت</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Room Name */}
+            <div className="bg-zinc-800 rounded-lg p-4">
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
+                اسم الغرفة *
+              </label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="أدخل اسم الغرفة"
+                className="bg-zinc-900 border-zinc-700 text-white"
+                maxLength={100}
+                required
               />
             </div>
-          )}
 
-          {/* Submit Button */}
+            {/* Description */}
+            <div className="bg-zinc-800 rounded-lg p-4">
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
+                وصف الغرفة
+              </label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="أدخل وصفاً للغرفة (اختياري)"
+                className="bg-zinc-900 border-zinc-700 text-white resize-none"
+                rows={3}
+                maxLength={500}
+              />
+            </div>
+
+            {/* Privacy Settings */}
+            <div className="bg-zinc-800 rounded-lg p-4">
+              <label className="block text-sm font-medium text-zinc-300 mb-3">
+                إعدادات الخصوصية
+              </label>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPrivate(false)}
+                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                    !isPrivate ? 'bg-blue-600' : 'bg-zinc-700 hover:bg-zinc-600'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Globe size={20} className="text-white" />
+                    <div className="text-right">
+                      <p className="font-medium text-white">عامة</p>
+                      <p className="text-sm text-zinc-300">يمكن لأي شخص الانضمام</p>
+                    </div>
+                  </div>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setIsPrivate(true)}
+                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                    isPrivate ? 'bg-blue-600' : 'bg-zinc-700 hover:bg-zinc-600'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Lock size={20} className="text-white" />
+                    <div className="text-right">
+                      <p className="font-medium text-white">خاصة</p>
+                      <p className="text-sm text-zinc-300">بكلمة سر ودعوات للمتابعين</p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Password for Private Rooms */}
+            {isPrivate && (
+              <div className="bg-zinc-800 rounded-lg p-4">
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                  <Key size={16} className="inline mr-2" />
+                  كلمة سر الغرفة *
+                </label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="أدخل كلمة سر قوية"
+                  className="bg-zinc-900 border-zinc-700 text-white"
+                  required={isPrivate}
+                />
+                <p className="text-xs text-zinc-500 mt-1">
+                  ستُرسل كلمة السر للمتابعين المدعوين
+                </p>
+              </div>
+            )}
+
+            {/* Follower Selection for Private Rooms */}
+            {isPrivate && user && (
+              <div className="bg-zinc-800 rounded-lg p-4">
+                <label className="block text-sm font-medium text-zinc-300 mb-3">
+                  <Users size={16} className="inline mr-2" />
+                  اختيار المتابعين للدعوة *
+                </label>
+                <FollowerSelector
+                  userId={user.id}
+                  selectedFollowers={selectedFollowers}
+                  onFollowersChange={setSelectedFollowers}
+                  selectAll={selectAllFollowers}
+                  onSelectAllChange={setSelectAllFollowers}
+                />
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* Fixed Submit Button */}
+        <div className="fixed bottom-20 left-0 right-0 p-4 bg-zinc-950/95 backdrop-blur-sm border-t border-zinc-800">
           <Button
             type="submit"
+            onClick={handleSubmit}
             disabled={!name.trim() || isSubmitting || (isPrivate && (!password.trim() || selectedFollowers.length === 0))}
-            className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50"
+            className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 h-12 text-base font-medium"
           >
             {isSubmitting ? 'جاري الإنشاء...' : 'إنشاء الغرفة'}
           </Button>
-        </form>
+        </div>
       </div>
     </Layout>
   );
