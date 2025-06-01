@@ -59,10 +59,50 @@ const HashtagPage = () => {
   const [postContent, setPostContent] = useState(`#${hashtag} `);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingComments, setIsLoadingComments] = useState(true);
 
   useEffect(() => {
     if (hashtag) {
       fetchHashtagContent();
+      
+      // Set up real-time subscription for comments
+      const commentsChannel = supabase
+        .channel('hashtag-comments-channel')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'hashtag_comments'
+          },
+          (payload) => {
+            console.log('Real-time comment update:', payload);
+            fetchHashtagComments(); // Refetch comments on any change
+          }
+        )
+        .subscribe();
+
+      // Set up real-time subscription for posts
+      const postsChannel = supabase
+        .channel('hashtag-posts-channel')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'hashtag_posts'
+          },
+          (payload) => {
+            console.log('Real-time post update:', payload);
+            fetchHashtagPosts(); // Refetch posts on any change
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(commentsChannel);
+        supabase.removeChannel(postsChannel);
+      };
     }
   }, [hashtag]);
 
@@ -86,111 +126,153 @@ const HashtagPage = () => {
   };
 
   const fetchHashtagPosts = async () => {
-    const { data: postsData, error: postsError } = await supabase
-      .from('hashtag_posts')
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          username,
-          avatar_url
-        ),
-        hashtag_likes (
-          user_id
-        )
-      `)
-      .contains('hashtags', [hashtag])
-      .order('created_at', { ascending: false });
+    try {
+      console.log('Fetching posts for hashtag:', hashtag);
+      
+      const { data: postsData, error: postsError } = await supabase
+        .from('hashtag_posts')
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            username,
+            avatar_url
+          ),
+          hashtag_likes (
+            user_id
+          )
+        `)
+        .contains('hashtags', [hashtag])
+        .order('created_at', { ascending: false });
 
-    if (postsError) {
-      console.error('Error fetching hashtag posts:', postsError);
-      return [];
-    }
+      if (postsError) {
+        console.error('Error fetching hashtag posts:', postsError);
+        return [];
+      }
 
-    if (postsData) {
-      for (const post of postsData) {
-        const { count } = await supabase
-          .from('hashtag_comments')
-          .select('*', { count: 'exact', head: true })
-          .eq('post_id', post.id);
-        
-        if (count !== null) {
-          post.comments_count = count;
+      console.log('Found posts:', postsData?.length || 0);
+
+      if (postsData) {
+        for (const post of postsData) {
+          const { count } = await supabase
+            .from('hashtag_comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          if (count !== null) {
+            post.comments_count = count;
+          }
         }
       }
-    }
 
-    return postsData?.map(post => ({ ...post, type: 'post' as const })) || [];
+      return postsData?.map(post => ({ ...post, type: 'post' as const })) || [];
+    } catch (error) {
+      console.error('Error in fetchHashtagPosts:', error);
+      return [];
+    }
   };
 
   const fetchHashtagComments = async () => {
-    console.log('Fetching comments for hashtag:', hashtag);
-    
-    // First, fetch comments that have the hashtag in their hashtags array
-    const { data: hashtagArrayComments, error: arrayError } = await supabase
-      .from('hashtag_comments')
-      .select(`
-        *,
-        profiles (
-          id,
-          username,
-          avatar_url
-        )
-      `)
-      .contains('hashtags', [hashtag])
-      .order('created_at', { ascending: false });
+    try {
+      console.log('Fetching comments for hashtag:', hashtag);
+      setIsLoadingComments(true);
+      
+      // Method 1: Search in hashtags array (more reliable)
+      const { data: arrayComments, error: arrayError } = await supabase
+        .from('hashtag_comments')
+        .select(`
+          *,
+          profiles (
+            id,
+            username,
+            avatar_url
+          )
+        `)
+        .contains('hashtags', [hashtag])
+        .order('created_at', { ascending: false });
 
-    console.log('Comments with hashtag in array:', hashtagArrayComments);
+      console.log('Comments from hashtags array:', arrayComments?.length || 0, arrayComments);
 
-    // Also fetch comments that mention the hashtag in content but might not have it in hashtags array
-    const { data: contentComments, error: contentError } = await supabase
-      .from('hashtag_comments')
-      .select(`
-        *,
-        profiles (
-          id,
-          username,
-          avatar_url
-        )
-      `)
-      .ilike('content', `%#${hashtag}%`)
-      .order('created_at', { ascending: false });
+      // Method 2: Search in content text (backup method)
+      const { data: contentComments, error: contentError } = await supabase
+        .from('hashtag_comments')
+        .select(`
+          *,
+          profiles (
+            id,
+            username,
+            avatar_url
+          )
+        `)
+        .ilike('content', `%#${hashtag}%`)
+        .order('created_at', { ascending: false });
 
-    console.log('Comments with hashtag in content:', contentComments);
+      console.log('Comments from content search:', contentComments?.length || 0, contentComments);
 
-    if (arrayError) {
-      console.error('Error fetching hashtag array comments:', arrayError);
+      // Method 3: Search for exact hashtag pattern in content
+      const { data: exactComments, error: exactError } = await supabase
+        .from('hashtag_comments')
+        .select(`
+          *,
+          profiles (
+            id,
+            username,
+            avatar_url
+          )
+        `)
+        .or(`content.ilike.%#${hashtag} %,content.ilike.%#${hashtag},content.ilike.#${hashtag} %,content.ilike.#${hashtag}`)
+        .order('created_at', { ascending: false });
+
+      console.log('Comments from exact pattern search:', exactComments?.length || 0, exactComments);
+
+      if (arrayError) console.error('Error fetching hashtag array comments:', arrayError);
+      if (contentError) console.error('Error fetching content comments:', contentError);
+      if (exactError) console.error('Error fetching exact comments:', exactError);
+
+      // Combine and deduplicate comments using a Map for better performance
+      const commentMap = new Map();
+
+      // Add array-based comments (highest priority)
+      if (arrayComments) {
+        arrayComments.forEach(comment => {
+          commentMap.set(comment.id, comment);
+        });
+      }
+
+      // Add content-based comments (medium priority)
+      if (contentComments) {
+        contentComments.forEach(comment => {
+          if (!commentMap.has(comment.id)) {
+            commentMap.set(comment.id, comment);
+          }
+        });
+      }
+
+      // Add exact pattern comments (lowest priority)
+      if (exactComments) {
+        exactComments.forEach(comment => {
+          if (!commentMap.has(comment.id)) {
+            commentMap.set(comment.id, comment);
+          }
+        });
+      }
+
+      const allComments = Array.from(commentMap.values());
+      
+      console.log('Total unique comments found:', allComments.length);
+      
+      // Sort by created_at descending
+      const sortedComments = allComments.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      return sortedComments.map(comment => ({ ...comment, type: 'comment' as const }));
+    } catch (error) {
+      console.error('Error in fetchHashtagComments:', error);
+      return [];
+    } finally {
+      setIsLoadingComments(false);
     }
-    if (contentError) {
-      console.error('Error fetching content comments:', contentError);
-    }
-
-    // Combine and deduplicate comments
-    const allComments = [];
-    const commentIds = new Set();
-
-    // Add array-based comments
-    if (hashtagArrayComments) {
-      hashtagArrayComments.forEach(comment => {
-        if (!commentIds.has(comment.id)) {
-          allComments.push(comment);
-          commentIds.add(comment.id);
-        }
-      });
-    }
-
-    // Add content-based comments (avoiding duplicates)
-    if (contentComments) {
-      contentComments.forEach(comment => {
-        if (!commentIds.has(comment.id)) {
-          allComments.push(comment);
-          commentIds.add(comment.id);
-        }
-      });
-    }
-
-    console.log('Found hashtag comments total:', allComments.length);
-    return allComments.map(comment => ({ ...comment, type: 'comment' as const }));
   };
 
   const combinedContent = useMemo(() => {
@@ -259,7 +341,10 @@ const HashtagPage = () => {
     return (
       <Layout>
         <div className="p-4 flex items-center justify-center min-h-64">
-          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-gray-400">جاري تحميل محتوى الهاشتاق...</p>
+          </div>
         </div>
       </Layout>
     );
@@ -298,6 +383,9 @@ const HashtagPage = () => {
               <div>
                 <p className="text-sm text-zinc-400">عدد التعليقات</p>
                 <p className="text-lg font-bold text-green-400">{commentsCount}</p>
+                {isLoadingComments && (
+                  <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin mt-1"></div>
+                )}
               </div>
               <div>
                 <p className="text-sm text-zinc-400">المجموع</p>
@@ -350,9 +438,20 @@ const HashtagPage = () => {
           </div>
         )}
 
+        {/* Debug Info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-gray-900 rounded-lg p-4 mb-6 text-sm">
+            <p className="text-gray-400">Debug Info:</p>
+            <p className="text-white">Posts: {postsCount}</p>
+            <p className="text-white">Comments: {commentsCount}</p>
+            <p className="text-white">Total Content: {totalContent}</p>
+            <p className="text-white">Loading Comments: {isLoadingComments.toString()}</p>
+          </div>
+        )}
+
         {/* Combined Content Feed */}
         <div className="space-y-6">
-          {combinedContent.length === 0 ? (
+          {combinedContent.length === 0 && !isLoadingComments ? (
             <div className="text-center py-8">
               <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
               <p className="text-zinc-400">لا يوجد محتوى لهذا الهاشتاق بعد</p>
@@ -398,6 +497,13 @@ const HashtagPage = () => {
                 );
               }
             })
+          )}
+          
+          {isLoadingComments && combinedContent.length > 0 && (
+            <div className="text-center py-4">
+              <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p className="text-gray-400 text-sm mt-2">جاري تحميل المزيد من التعليقات...</p>
+            </div>
           )}
         </div>
       </div>
