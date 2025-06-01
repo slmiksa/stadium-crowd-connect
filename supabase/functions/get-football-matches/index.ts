@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -5,28 +6,41 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// خريطة الدوريات مع ترجمتها العربية
+// ترجمات محسنة للدوريات
 const leagueTranslations: { [key: string]: string } = {
   'Saudi Pro League': 'دوري روشن السعودي',
+  'Saudi Professional League': 'دوري روشن السعودي',
   'King Cup': 'كأس الملك',
   'Saudi Super Cup': 'كأس السوبر السعودي',
   'Arab Club Champions Cup': 'كأس العرب للأندية الأبطال',
   'AFC Champions League': 'دوري أبطال آسيا',
+  'AFC Champions League Elite': 'دوري أبطال آسيا النخبة',
   'World Cup': 'كأس العالم',
-  'Champions League': 'دوري الأبطال',
+  'FIFA World Cup': 'كأس العالم فيفا',
+  'Champions League': 'دوري الأبطال الأوروبي',
+  'UEFA Champions League': 'دوري أبطال أوروبا',
   'Premier League': 'الدوري الإنجليزي الممتاز',
+  'English Premier League': 'الدوري الإنجليزي الممتاز',
   'La Liga': 'الليغا الإسبانية',
+  'LaLiga': 'الليغا الإسبانية',
   'Bundesliga': 'الدوري الألماني',
+  'German Bundesliga': 'الدوري الألماني',
   'Serie A': 'الدوري الإيطالي',
+  'Italian Serie A': 'الدوري الإيطالي',
   'Ligue 1': 'الدوري الفرنسي',
+  'French Ligue 1': 'الدوري الفرنسي',
   'Copa America': 'كوبا أمريكا',
   'UEFA Euro': 'بطولة أوروبا',
+  'European Championship': 'بطولة أوروبا',
   'CAF Champions League': 'دوري أبطال أفريقيا',
   'Egypt Cup': 'كأس مصر',
   'Egyptian Premier League': 'الدوري المصري الممتاز',
   'UAE Pro League': 'دوري أدنوك الإماراتي',
+  'UAE Arabian Gulf League': 'دوري الخليج العربي الإماراتي',
   'Qatar Stars League': 'دوري نجوم قطر',
+  'Qatari Stars League': 'دوري نجوم قطر',
   'Moroccan Botola Pro': 'البطولة الاحترافية المغربية',
+  'Botola Pro': 'البطولة الاحترافية المغربية',
   'Tunisian Ligue 1': 'الرابطة التونسية المحترفة الأولى',
   'Algerian Ligue 1': 'الرابطة الجزائرية المحترفة الأولى',
   'Iraqi Premier League': 'الدوري العراقي الممتاز',
@@ -37,108 +51,210 @@ const leagueTranslations: { [key: string]: string } = {
   'Copa del Rey': 'كأس ملك إسبانيا',
   'DFB Pokal': 'كأس ألمانيا',
   'Coppa Italia': 'كأس إيطاليا',
-  'Coupe de France': 'كأس فرنسا'
+  'Coupe de France': 'كأس فرنسا',
+  'Europa League': 'الدوري الأوروبي',
+  'UEFA Europa League': 'الدوري الأوروبي',
+  'Conference League': 'دوري المؤتمر الأوروبي',
+  'UEFA Conference League': 'دوري المؤتمر الأوروبي',
+  'Nations League': 'دوري الأمم',
+  'UEFA Nations League': 'دوري الأمم الأوروبي'
 }
 
-// ترجمة أسماء الفرق - تحديث وتوسيع القائمة
+// ترجمات محسنة للفرق مع إضافات جديدة
 const teamTranslations: { [key: string]: string } = {
-  // الفرق السعودية
+  // الفرق السعودية - كاملة ومحسنة
   'Al Hilal': 'الهلال',
-  'Al Nassr': 'النصر', 
+  'Al-Hilal': 'الهلال', 
+  'Al Hilal Saudi FC': 'الهلال',
+  'Al Nassr': 'النصر',
+  'Al-Nassr': 'النصر',
+  'Al Nassr Saudi FC': 'النصر',
   'Al Ahli': 'الأهلي',
+  'Al-Ahli': 'الأهلي',
+  'Al Ahli Saudi FC': 'الأهلي',
   'Al Ittihad': 'الاتحاد',
+  'Al-Ittihad': 'الاتحاد',
+  'Al Ittihad Jeddah': 'الاتحاد',
   'Al Shabab': 'الشباب',
+  'Al-Shabab': 'الشباب',
+  'Al Shabab Saudi FC': 'الشباب',
   'Al Ettifaq': 'الاتفاق',
+  'Al-Ettifaq': 'الاتفاق',
   'Al Taawoun': 'التعاون',
+  'Al-Taawoun': 'التعاون',
   'Al Fayha': 'الفيحاء',
+  'Al-Fayha': 'الفيحاء',
   'Al Riyadh': 'الرياض',
+  'Al-Riyadh': 'الرياض',
   'Al Khaleej': 'الخليج',
+  'Al-Khaleej': 'الخليج',
   'Damac': 'ضمك',
+  'Damac FC': 'ضمك',
   'Al Fateh': 'الفتح',
+  'Al-Fateh': 'الفتح',
   'Al Raed': 'الرائد',
+  'Al-Raed': 'الرائد',
   'Al Tai': 'التائي',
+  'Al-Tai': 'التائي',
   'Al Hazem': 'الحزم',
+  'Al-Hazem': 'الحزم',
   'Al Wehda': 'الوحدة',
+  'Al-Wehda': 'الوحدة',
   'Al Qadsiah': 'القادسية',
+  'Al-Qadsiah': 'القادسية',
   'Al Okhdood': 'الأخدود',
+  'Al-Okhdood': 'الأخدود',
   
-  // الفرق المصرية
-  'Al Ahly': 'الأهلي',
+  // الفرق المصرية - محسنة
+  'Al Ahly': 'الأهلي المصري',
+  'Al-Ahly': 'الأهلي المصري',
+  'Al Ahly Cairo': 'الأهلي المصري',
   'Zamalek': 'الزمالك',
+  'Zamalek SC': 'الزمالك',
   'Pyramids FC': 'بيراميدز',
+  'Pyramids': 'بيراميدز',
   'Ismaily': 'الإسماعيلي',
+  'Ismaily SC': 'الإسماعيلي',
   'Al Masry': 'المصري',
+  'Al-Masry': 'المصري',
   'ENPPI': 'إنبي',
+  'ENPPI Club': 'إنبي',
   'El Gouna': 'الجونة',
+  'El Gouna FC': 'الجونة',
   'Ceramica Cleopatra': 'سيراميكا كليوباترا',
   'National Bank of Egypt': 'البنك الأهلي',
+  'NBE Club': 'البنك الأهلي',
   'Pharco FC': 'فاركو',
+  'Pharco': 'فاركو',
   'ZED FC': 'زيد',
+  'ZED': 'زيد',
   'Smouha': 'سموحة',
+  'Smouha SC': 'سموحة',
   'Al Ittihad Alexandria': 'الاتحاد السكندري',
   'Al Mokawloon': 'المقاولون العرب',
+  'Arab Contractors': 'المقاولون العرب',
   'Ghazl El Mahalla': 'غزل المحلة',
   'Haras El Hodoud': 'حرس الحدود',
   'Al Dakhliya': 'الداخلية',
   'Aswan SC': 'أسوان',
   
   // الفرق الإماراتية
-  'Al Ain': 'العين',
+  'Al Ain': 'العين الإماراتي',
+  'Al-Ain': 'العين الإماراتي',
+  'Al Ain FC': 'العين الإماراتي',
   'Al Wasl': 'الوصل',
+  'Al-Wasl': 'الوصل',
   'Shabab Al Ahli Dubai': 'شباب الأهلي دبي',
-  'Al Jazira': 'الجزيرة',
-  'Al Wahda': 'الوحدة',
+  'Shabab Al-Ahli': 'شباب الأهلي دبي',
+  'Al Jazira': 'الجزيرة الإماراتي',
+  'Al-Jazira': 'الجزيرة الإماراتي',
+  'Al Wahda': 'الوحدة الإماراتي',
+  'Al-Wahda UAE': 'الوحدة الإماراتي',
   'Sharjah': 'الشارقة',
-  'Al Nasr': 'النصر',
+  'Sharjah FC': 'الشارقة',
+  'Al Nasr Dubai': 'النصر الإماراتي',
+  'Al-Nasr Dubai': 'النصر الإماراتي',
   'Ajman': 'عجمان',
+  'Ajman Club': 'عجمان',
   'Emirates': 'الإمارات',
+  'Emirates Club': 'الإمارات',
   'Al Dhafra': 'الظفرة',
+  'Al-Dhafra': 'الظفرة',
   'Khorfakkan': 'خورفكان',
+  'Khorfakkan Club': 'خورفكان',
   'Al Bataeh': 'البطائح',
+  'Al-Bataeh': 'البطائح',
   'Kalba': 'كلباء',
-  'Ittihad Kalba': 'اتحاد كلباء',
+  'Kalba FC': 'كلباء',
   
   // الفرق القطرية
-  'Al Sadd': 'السد',
+  'Al Sadd': 'السد القطري',
+  'Al-Sadd': 'السد القطري',
   'Al Duhail': 'الدحيل',
-  'Al Rayyan': 'الريان',
+  'Al-Duhail': 'الدحيل',
+  'Al Rayyan': 'الريان القطري',
+  'Al-Rayyan': 'الريان القطري',
   'Al Gharafa': 'الغرافة',
-  'Al Arabi': 'العربي',
+  'Al-Gharafa': 'الغرافة',
+  'Al Arabi': 'العربي القطري',
+  'Al-Arabi Qatar': 'العربي القطري',
   'Al Wakrah': 'الوكرة',
+  'Al-Wakrah': 'الوكرة',
   'Qatar SC': 'قطر',
-  'Al Ahli Doha': 'الأهلي',
+  'Qatar Sports Club': 'قطر',
+  'Al Ahli Doha': 'الأهلي القطري',
+  'Al-Ahli Qatar': 'الأهلي القطري',
   'Al Sailiya': 'السيلية',
+  'Al-Sailiya': 'السيلية',
   'Al Markhiya': 'المرخية',
+  'Al-Markhiya': 'المرخية',
   'Al Shamal': 'الشمال',
+  'Al-Shamal': 'الشمال',
   'Umm Salal': 'أم صلال',
+  'Umm-Salal': 'أم صلال',
   
-  // الفرق العالمية الشهيرة
+  // الفرق العالمية الشهيرة - محسنة
   'Real Madrid': 'ريال مدريد',
+  'Real Madrid CF': 'ريال مدريد',
   'Barcelona': 'برشلونة',
+  'FC Barcelona': 'برشلونة',
   'Manchester United': 'مانشستر يونايتد',
+  'Manchester United FC': 'مانشستر يونايتد',
   'Manchester City': 'مانشستر سيتي',
+  'Manchester City FC': 'مانشستر سيتي',
   'Liverpool': 'ليفربول',
+  'Liverpool FC': 'ليفربول',
   'Chelsea': 'تشيلسي',
+  'Chelsea FC': 'تشيلسي',
   'Arsenal': 'آرسنال',
+  'Arsenal FC': 'آرسنال',
   'Tottenham': 'توتنهام',
+  'Tottenham Hotspur': 'توتنهام',
   'Bayern Munich': 'بايرن ميونيخ',
+  'FC Bayern Munich': 'بايرن ميونيخ',
   'Borussia Dortmund': 'بوروسيا دورتمند',
+  'BV Borussia Dortmund': 'بوروسيا دورتمند',
   'Paris Saint-Germain': 'باريس سان جيرمان',
+  'PSG': 'باريس سان جيرمان',
   'Juventus': 'يوفنتوس',
+  'Juventus FC': 'يوفنتوس',
+  'AC Milan': 'إيه سي ميلان',
   'AC Milan': 'إيه سي ميلان',
   'Inter Milan': 'إنتر ميلان',
+  'FC Internazionale': 'إنتر ميلان',
   'Atletico Madrid': 'أتلتيكو مدريد',
+  'Atlético Madrid': 'أتلتيكو مدريد',
   'Sevilla': 'إشبيلية',
+  'Sevilla FC': 'إشبيلية',
   'Valencia': 'فالنسيا',
+  'Valencia CF': 'فالنسيا',
   'Villarreal': 'فياريال',
+  'Villarreal CF': 'فياريال',
   'Newcastle United': 'نيوكاسل يونايتد',
+  'Newcastle United FC': 'نيوكاسل يونايتد',
   'West Ham United': 'وست هام يونايتد',
+  'West Ham United FC': 'وست هام يونايتد',
   'Brighton': 'برايتون',
+  'Brighton & Hove Albion': 'برايتون',
   'Aston Villa': 'أستون فيلا',
-  'Crystal Palace': 'كريستال بالاس'
+  'Aston Villa FC': 'أستون فيلا',
+  'Crystal Palace': 'كريستال بالاس',
+  'Crystal Palace FC': 'كريستال بالاس',
+  'Brentford': 'برينتفورد',
+  'Brentford FC': 'برينتفورد',
+  'Leeds United': 'ليدز يونايتد',
+  'Leeds United FC': 'ليدز يونايتد',
+  'Leicester City': 'ليستر سيتي',
+  'Leicester City FC': 'ليستر سيتي',
+  'Everton': 'إيفرتون',
+  'Everton FC': 'إيفرتون',
+  'Wolves': 'وولفرهامبتون',
+  'Wolverhampton Wanderers': 'وولفرهامبتون',
+  'Southampton': 'ساوثهامبتون',
+  'Southampton FC': 'ساوثهامبتون'
 }
 
-// معرفات الدوريات المهمة
+// معرفات الدوريات المهمة - محدثة
 const targetLeagues = [
   // السعودية
   307, // Saudi Pro League
@@ -166,9 +282,9 @@ const targetLeagues = [
   78,  // Bundesliga
   135, // Serie A
   61,  // Ligue 1
-  9,   // Copa America
-  4,   // UEFA Euro
-  12,  // CAF Champions League
+  3,   // Europa League
+  848, // Conference League
+  5,   // Nations League
   
   // كؤوس محلية
   48,  // FA Cup
@@ -188,40 +304,11 @@ serve(async (req) => {
   }
 
   try {
-    // استخدام مفتاح API الجديد
     const apiKey = 'cc800cbaffd9f1c8a39ba4cd742815c0'
     
-    console.log('Using new API Key:', apiKey.substring(0, 8) + '...')
+    console.log('Using API Key:', apiKey.substring(0, 8) + '...')
 
-    // Test the API key first with a simple call
-    const testResponse = await fetch('https://v3.football.api-sports.io/status', {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': 'v3.football.api-sports.io'
-      }
-    })
-    
-    console.log('API Status Response:', testResponse.status)
-    
-    if (!testResponse.ok) {
-      console.error('API Key test failed:', testResponse.status, testResponse.statusText)
-      return new Response(
-        JSON.stringify({ 
-          error: 'مفتاح API غير صالح أو منتهي الصلاحية',
-          matches: []
-        }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    const statusData = await testResponse.json()
-    console.log('API Status Data:', statusData)
-
-    // قراءة المعاملات من الطلب أو URL
+    // قراءة المعاملات من الطلب
     let requestBody: any = {}
     const url = new URL(req.url)
     const statusFromUrl = url.searchParams.get('status')
@@ -247,7 +334,6 @@ serve(async (req) => {
     let allMatches: any[] = []
     let apiUrl = ''
 
-    // تحديد URL API حسب الحالة المطلوبة مع تحسين المعالجة
     try {
       if (status === 'live') {
         apiUrl = 'https://v3.football.api-sports.io/fixtures?live=all'
@@ -272,16 +358,12 @@ serve(async (req) => {
           })
           
           allMatches = data.response || []
-        } else {
-          console.error('Live matches API error:', response.status, response.statusText)
-          const errorText = await response.text()
-          console.error('Error details:', errorText)
         }
       } 
       else if (status === 'finished') {
         // للمباريات المنتهية - جلب مباريات الأيام الماضية
         const dates = []
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 3; i++) {
           const pastDate = new Date(Date.now() - (i * 86400000))
           dates.push(pastDate.toISOString().split('T')[0])
         }
@@ -302,28 +384,24 @@ serve(async (req) => {
             if (response.ok) {
               const data = await response.json()
               console.log(`API response for ${searchDate}:`, {
-                results: data.response?.length || 0,
-                paging: data.paging
+                results: data.response?.length || 0
               })
               
               if (data.response && data.response.length > 0) {
                 allMatches = [...allMatches, ...data.response]
               }
-            } else {
-              console.error(`API error for ${searchDate}:`, response.status, response.statusText)
             }
             
-            // إضافة تأخير قصير بين الطلبات
             await new Promise(resolve => setTimeout(resolve, 100))
           } catch (error) {
-            console.error(`Network error for ${searchDate}:`, error)
+            console.error(`Error for ${searchDate}:`, error)
           }
         }
       } 
       else if (status === 'upcoming') {
         // للمباريات القادمة - جلب مباريات الأيام القادمة
         const dates = []
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < 5; i++) {
           const futureDate = new Date(Date.now() + (i * 86400000))
           dates.push(futureDate.toISOString().split('T')[0])
         }
@@ -344,21 +422,17 @@ serve(async (req) => {
             if (response.ok) {
               const data = await response.json()
               console.log(`API response for ${searchDate}:`, {
-                results: data.response?.length || 0,
-                paging: data.paging
+                results: data.response?.length || 0
               })
               
               if (data.response && data.response.length > 0) {
                 allMatches = [...allMatches, ...data.response]
               }
-            } else {
-              console.error(`API error for ${searchDate}:`, response.status, response.statusText)
             }
             
-            // إضافة تأخير قصير بين الطلبات
             await new Promise(resolve => setTimeout(resolve, 100))
           } catch (error) {
-            console.error(`Network error for ${searchDate}:`, error)
+            console.error(`Error for ${searchDate}:`, error)
           }
         }
       }

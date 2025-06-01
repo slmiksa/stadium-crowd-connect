@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -36,37 +37,21 @@ const HashtagPage = () => {
   const [postContent, setPostContent] = useState(`#${hashtag} `);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  useEffect(() => {
-    if (hashtag) {
-      fetchHashtagPosts();
-      
-      // Set up real-time subscription for posts
-      const postsChannel = supabase
-        .channel('hashtag-posts-channel')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'hashtag_posts'
-          },
-          () => {
-            fetchHashtagPosts();
-          }
-        )
-        .subscribe();
+  const POSTS_PER_PAGE = 10;
 
-      return () => {
-        supabase.removeChannel(postsChannel);
-      };
-    }
-  }, [hashtag]);
-
-  const fetchHashtagPosts = async () => {
+  // تحسين جلب البيانات مع pagination
+  const fetchHashtagPosts = useCallback(async (pageNum = 1, append = false) => {
     try {
-      setIsLoading(true);
+      if (pageNum === 1) setIsLoading(true);
+      else setIsLoadingMore(true);
       
+      const from = (pageNum - 1) * POSTS_PER_PAGE;
+      const to = from + POSTS_PER_PAGE - 1;
+
       const { data: postsData, error: postsError } = await supabase
         .from('hashtag_posts')
         .select(`
@@ -81,7 +66,8 @@ const HashtagPage = () => {
           )
         `)
         .contains('hashtags', [hashtag])
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (postsError) {
         console.error('Error fetching hashtag posts:', postsError);
@@ -89,32 +75,100 @@ const HashtagPage = () => {
       }
 
       if (postsData) {
-        for (const post of postsData) {
-          const { count } = await supabase
-            .from('hashtag_comments')
-            .select('*', { count: 'exact', head: true })
-            .eq('post_id', post.id);
-          
-          if (count !== null) {
-            post.comments_count = count;
-          }
-        }
-      }
+        // تحسين جلب عدد التعليقات - جلب جميع الأعداد دفعة واحدة
+        const postIds = postsData.map(post => post.id);
+        const { data: commentsData } = await supabase
+          .from('hashtag_comments')
+          .select('post_id')
+          .in('post_id', postIds);
 
-      const postsWithType = postsData?.map(post => ({ ...post, type: 'post' as const })) || [];
-      setPosts(postsWithType);
+        // حساب عدد التعليقات لكل منشور
+        const commentsCounts = postIds.reduce((acc, postId) => {
+          acc[postId] = commentsData?.filter(comment => comment.post_id === postId).length || 0;
+          return acc;
+        }, {} as Record<string, number>);
+
+        // تحديث عدد التعليقات
+        postsData.forEach(post => {
+          post.comments_count = commentsCounts[post.id] || 0;
+        });
+
+        const postsWithType = postsData.map(post => ({ ...post, type: 'post' as const }));
+        
+        if (append) {
+          setPosts(prev => [...prev, ...postsWithType]);
+        } else {
+          setPosts(postsWithType);
+        }
+
+        setHasMore(postsData.length === POSTS_PER_PAGE);
+      }
     } catch (error) {
       console.error('Error in fetchHashtagPosts:', error);
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
-  };
+  }, [hashtag]);
 
-  const extractHashtags = (text: string) => {
+  // تحميل البيانات الأولية
+  useEffect(() => {
+    if (hashtag) {
+      fetchHashtagPosts(1, false);
+      setPage(1);
+      
+      // إعداد الاشتراك في التحديثات الفورية
+      const postsChannel = supabase
+        .channel('hashtag-posts-channel')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'hashtag_posts'
+          },
+          (payload) => {
+            // تحديث فقط إذا كان المنشور يحتوي على هاشتاق الصفحة الحالية
+            if (payload.new && Array.isArray(payload.new.hashtags) && payload.new.hashtags.includes(hashtag)) {
+              fetchHashtagPosts(1, false);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(postsChannel);
+      };
+    }
+  }, [hashtag, fetchHashtagPosts]);
+
+  // تحميل المزيد من المنشورات
+  const loadMore = useCallback(() => {
+    if (!isLoadingMore && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchHashtagPosts(nextPage, true);
+    }
+  }, [page, isLoadingMore, hasMore, fetchHashtagPosts]);
+
+  // معالجة اللولبة للتحميل التلقائي
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + document.documentElement.scrollTop !== document.documentElement.offsetHeight || isLoadingMore) {
+        return;
+      }
+      loadMore();
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadMore, isLoadingMore]);
+
+  const extractHashtags = useCallback((text: string) => {
     const hashtagRegex = /#[\u0600-\u06FF\w]+/g;
     const matches = text.match(hashtagRegex);
     return matches ? matches.map(tag => tag.slice(1)) : [];
-  };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +192,9 @@ const HashtagPage = () => {
       }
 
       setPostContent(`#${hashtag} `);
-      await fetchHashtagPosts();
+      // إعادة تحميل المنشورات بعد الإضافة
+      await fetchHashtagPosts(1, false);
+      setPage(1);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -146,26 +202,22 @@ const HashtagPage = () => {
     }
   };
 
-  const handlePostLikeChange = () => {
-    fetchHashtagPosts();
-  };
+  const handlePostLikeChange = useCallback(() => {
+    // تحديث محدود - لا نعيد تحميل كل البيانات
+    // يمكن تحسين هذا لاحقاً بتحديث المنشور المحدد فقط
+  }, []);
 
-  const handleProfileClick = (userId: string) => {
-    if (userId === user?.id) {
-      navigate('/profile');
-    } else {
-      navigate(`/user-profile/${userId}`);
-    }
-  };
+  const handleRefresh = useCallback(() => {
+    setPage(1);
+    fetchHashtagPosts(1, false);
+  }, [fetchHashtagPosts]);
 
-  const handleRefresh = () => {
-    fetchHashtagPosts();
-  };
-
+  // حساب الإحصائيات
   const postsCount = posts.length;
   const isTrending = postsCount >= 35;
 
-  if (isLoading) {
+  // عرض التحميل الأولي
+  if (isLoading && posts.length === 0) {
     return (
       <Layout>
         <div className="p-4 flex items-center justify-center min-h-64">
@@ -225,16 +277,6 @@ const HashtagPage = () => {
           </div>
         </div>
 
-        {/* Info Note */}
-        <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 mb-6">
-          <div className="flex items-center space-x-3">
-            <Info size={20} className="text-blue-400" />
-            <p className="text-blue-100 text-sm">
-              <strong>ملاحظة:</strong> يعرض هنا فقط المنشورات التي تحتوي على هذا الهاشتاق. التعليقات لا تعرض في هذه الصفحة.
-            </p>
-          </div>
-        </div>
-
         {/* Create Post */}
         {user && (
           <div className="bg-zinc-800 rounded-lg p-4 mb-6">
@@ -281,18 +323,36 @@ const HashtagPage = () => {
               <p className="text-zinc-500 text-sm">كن أول من ينشر!</p>
             </div>
           ) : (
-            posts.map((post) => (
-              <HashtagPost 
-                key={`post-${post.id}`}
-                post={{
-                  ...post,
-                  hashtag: hashtag || ''
-                }} 
-                onLikeChange={handlePostLikeChange}
-                hideCommentsButton={true}
-                preventClick={true}
-              />
-            ))
+            <>
+              {posts.map((post) => (
+                <HashtagPost 
+                  key={`post-${post.id}`}
+                  post={{
+                    ...post,
+                    hashtag: hashtag || ''
+                  }} 
+                  onLikeChange={handlePostLikeChange}
+                  hideCommentsButton={false}
+                  preventClick={false}
+                />
+              ))}
+              
+              {/* تحميل المزيد */}
+              {hasMore && (
+                <div className="text-center py-4">
+                  {isLoadingMore ? (
+                    <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  ) : (
+                    <button
+                      onClick={loadMore}
+                      className="text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      تحميل المزيد
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
-import { Clock, Users, MapPin, RefreshCw } from 'lucide-react';
+import { Clock, Users, MapPin, RefreshCw, Newspaper } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -21,48 +21,97 @@ interface Match {
   minute?: number;
 }
 
+interface NewsItem {
+  id: string;
+  title: string;
+  description: string;
+  image?: string;
+  video?: string;
+  date: string;
+  source: string;
+}
+
 const Matches = () => {
   const navigate = useNavigate();
   const { t, isRTL } = useLanguage();
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [allMatches, setAllMatches] = useState<{
+    live: Match[];
+    upcoming: Match[];
+    finished: Match[];
+  }>({
+    live: [],
+    upcoming: [],
+    finished: []
+  });
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'finished'>('live');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'finished' | 'news'>('live');
 
   useEffect(() => {
-    fetchMatches();
-  }, [activeTab]);
+    fetchAllData();
+  }, []);
 
-  const fetchMatches = async () => {
+  const fetchAllData = async () => {
     try {
       setIsLoading(true);
-      console.log(`Fetching ${activeTab} matches...`);
+      console.log('Fetching all matches data...');
       
-      const { data, error } = await supabase.functions.invoke('get-football-matches', {
+      // جلب المباريات المباشرة
+      const { data: liveData } = await supabase.functions.invoke('get-football-matches', {
         body: { 
-          status: activeTab,
+          status: 'live',
           date: new Date().toISOString().split('T')[0]
         }
       });
 
-      console.log('Matches response:', data, error);
+      // جلب المباريات القادمة
+      const { data: upcomingData } = await supabase.functions.invoke('get-football-matches', {
+        body: { 
+          status: 'upcoming',
+          date: new Date().toISOString().split('T')[0]
+        }
+      });
 
-      if (data && data.matches) {
-        console.log(`Received ${data.matches.length} ${activeTab} matches`);
-        setMatches(data.matches);
-      } else {
-        console.log(`No ${activeTab} matches found`);
-        setMatches([]);
-      }
+      // جلب المباريات المنتهية
+      const { data: finishedData } = await supabase.functions.invoke('get-football-matches', {
+        body: { 
+          status: 'finished',
+          date: new Date().toISOString().split('T')[0]
+        }
+      });
+
+      // جلب الأخبار
+      const { data: newsData } = await supabase.functions.invoke('get-football-news', {
+        body: { limit: 20 }
+      });
+
+      setAllMatches({
+        live: liveData?.matches || [],
+        upcoming: upcomingData?.matches || [],
+        finished: finishedData?.matches || []
+      });
+
+      setNews(newsData?.news || []);
+
+      console.log('All data fetched:', {
+        live: liveData?.matches?.length || 0,
+        upcoming: upcomingData?.matches?.length || 0,
+        finished: finishedData?.matches?.length || 0,
+        news: newsData?.news?.length || 0
+      });
+
     } catch (error) {
-      console.error('Error fetching matches:', error);
-      setMatches([]);
+      console.error('Error fetching data:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleRefresh = () => {
-    fetchMatches();
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchAllData();
+    setIsRefreshing(false);
   };
 
   const handleMatchClick = (matchId: string) => {
@@ -195,6 +244,34 @@ const Matches = () => {
     </div>
   );
 
+  const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => (
+    <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300">
+      {/* News Image/Video */}
+      {newsItem.image && (
+        <div className="mb-4 rounded-xl overflow-hidden">
+          <img 
+            src={newsItem.image} 
+            alt={newsItem.title} 
+            className="w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+      )}
+
+      {/* News Content */}
+      <div className="space-y-3">
+        <h3 className="text-lg font-bold text-white leading-relaxed">{newsItem.title}</h3>
+        <p className="text-gray-300 text-sm leading-relaxed">{newsItem.description}</p>
+        
+        <div className="flex items-center justify-between pt-3 border-t border-gray-700/30">
+          <span className="text-xs text-gray-400">{newsItem.source}</span>
+          <span className="text-xs text-gray-400">{formatDate(newsItem.date)}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const currentMatches = allMatches[activeTab as keyof typeof allMatches] || [];
+
   if (isLoading) {
     return (
       <Layout>
@@ -202,7 +279,7 @@ const Matches = () => {
           <div className="flex items-center justify-center min-h-screen">
             <div className="text-center">
               <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-6"></div>
-              <p className="text-gray-300 text-xl font-medium">جاري تحميل المباريات...</p>
+              <p className="text-gray-300 text-xl font-medium">جاري تحميل البيانات...</p>
             </div>
           </div>
         </div>
@@ -221,74 +298,99 @@ const Matches = () => {
               <h1 className="text-3xl font-bold text-white">المباريات</h1>
               <button
                 onClick={handleRefresh}
-                disabled={isLoading}
+                disabled={isRefreshing}
                 className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors"
               >
-                <RefreshCw size={20} className={`text-white ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw size={20} className={`text-white ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
-            <p className="text-gray-400">تابع أحدث المباريات والنتائج</p>
+            <p className="text-gray-400">تابع أحدث المباريات والنتائج والأخبار</p>
           </div>
 
           {/* Tabs */}
           <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-1 border border-gray-700/50">
-            <div className="grid grid-cols-3 gap-1">
+            <div className="grid grid-cols-4 gap-1">
               <button
                 onClick={() => setActiveTab('live')}
-                className={`py-3 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${
+                className={`py-3 px-2 rounded-xl text-xs font-bold transition-all duration-300 ${
                   activeTab === 'live'
                     ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                مباشر ({activeTab === 'live' ? matches.length : 0})
+                مباشر ({allMatches.live.length})
               </button>
               <button
                 onClick={() => setActiveTab('upcoming')}
-                className={`py-3 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${
+                className={`py-3 px-2 rounded-xl text-xs font-bold transition-all duration-300 ${
                   activeTab === 'upcoming'
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                قادمة ({activeTab === 'upcoming' ? matches.length : 0})
+                قادمة ({allMatches.upcoming.length})
               </button>
               <button
                 onClick={() => setActiveTab('finished')}
-                className={`py-3 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${
+                className={`py-3 px-2 rounded-xl text-xs font-bold transition-all duration-300 ${
                   activeTab === 'finished'
                     ? 'bg-green-600 text-white shadow-lg shadow-green-600/30'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                انتهت ({activeTab === 'finished' ? matches.length : 0})
+                انتهت ({allMatches.finished.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('news')}
+                className={`py-3 px-2 rounded-xl text-xs font-bold transition-all duration-300 ${
+                  activeTab === 'news'
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                    : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+                }`}
+              >
+                أخبار ({news.length})
               </button>
             </div>
           </div>
 
-          {/* Matches Content */}
+          {/* Content */}
           <div className="space-y-4">
-            {matches.length === 0 ? (
-              <div className="text-center py-12">
-                <div className={`w-16 h-16 bg-gradient-to-r ${
-                  activeTab === 'live' ? 'from-red-600 to-red-400' :
-                  activeTab === 'upcoming' ? 'from-blue-600 to-blue-400' :
-                  'from-green-600 to-green-400'
-                } rounded-full flex items-center justify-center mx-auto mb-4`}>
-                  <span className="text-2xl">
-                    {activeTab === 'live' ? '🔴' : activeTab === 'upcoming' ? '⏰' : '✅'}
-                  </span>
+            {activeTab === 'news' ? (
+              news.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Newspaper size={24} className="text-white" />
+                  </div>
+                  <p className="text-gray-400 text-lg">لا توجد أخبار متاحة حالياً</p>
                 </div>
-                <p className="text-gray-400 text-lg">
-                  {activeTab === 'live' ? 'لا توجد مباريات مباشرة الآن' :
-                   activeTab === 'upcoming' ? 'لا توجد مباريات قادمة' :
-                   'لا توجد مباريات منتهية'}
-                </p>
-              </div>
+              ) : (
+                news.map((newsItem) => (
+                  <NewsCard key={newsItem.id} newsItem={newsItem} />
+                ))
+              )
             ) : (
-              matches.map((match) => (
-                <MatchCard key={match.id} match={match} />
-              ))
+              currentMatches.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className={`w-16 h-16 bg-gradient-to-r ${
+                    activeTab === 'live' ? 'from-red-600 to-red-400' :
+                    activeTab === 'upcoming' ? 'from-blue-600 to-blue-400' :
+                    'from-green-600 to-green-400'
+                  } rounded-full flex items-center justify-center mx-auto mb-4`}>
+                    <span className="text-2xl">
+                      {activeTab === 'live' ? '🔴' : activeTab === 'upcoming' ? '⏰' : '✅'}
+                    </span>
+                  </div>
+                  <p className="text-gray-400 text-lg">
+                    {activeTab === 'live' ? 'لا توجد مباريات مباشرة الآن' :
+                     activeTab === 'upcoming' ? 'لا توجد مباريات قادمة' :
+                     'لا توجد مباريات منتهية'}
+                  </p>
+                </div>
+              ) : (
+                currentMatches.map((match) => (
+                  <MatchCard key={match.id} match={match} />
+                ))
+              )
             )}
           </div>
         </div>
