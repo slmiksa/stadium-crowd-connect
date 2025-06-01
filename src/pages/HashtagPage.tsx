@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -59,12 +60,9 @@ const HashtagPage = () => {
   const [postContent, setPostContent] = useState(`#${hashtag} `);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingComments, setIsLoadingComments] = useState(true);
 
   useEffect(() => {
     if (hashtag) {
-      console.log('=== HASHTAG PAGE LOADED ===');
-      console.log('Current hashtag:', hashtag);
       fetchHashtagContent();
       
       // Set up real-time subscription for comments
@@ -77,10 +75,8 @@ const HashtagPage = () => {
             schema: 'public',
             table: 'hashtag_comments'
           },
-          (payload) => {
-            console.log('=== REAL-TIME COMMENT UPDATE ===');
-            console.log('Payload:', payload);
-            fetchHashtagComments(); // Refetch comments on any change
+          () => {
+            fetchHashtagComments();
           }
         )
         .subscribe();
@@ -95,10 +91,8 @@ const HashtagPage = () => {
             schema: 'public',
             table: 'hashtag_posts'
           },
-          (payload) => {
-            console.log('=== REAL-TIME POST UPDATE ===');
-            console.log('Payload:', payload);
-            fetchHashtagPosts(); // Refetch posts on any change
+          () => {
+            fetchHashtagPosts();
           }
         )
         .subscribe();
@@ -112,17 +106,12 @@ const HashtagPage = () => {
 
   const fetchHashtagContent = async () => {
     try {
-      console.log('=== FETCHING HASHTAG CONTENT ===');
-      console.log('Hashtag:', hashtag);
       setIsLoading(true);
       
       const [postsResult, commentsResult] = await Promise.all([
         fetchHashtagPosts(),
         fetchHashtagComments()
       ]);
-
-      console.log('Posts result:', postsResult.length);
-      console.log('Comments result:', commentsResult.length);
 
       setPosts(postsResult);
       setComments(commentsResult);
@@ -135,9 +124,6 @@ const HashtagPage = () => {
 
   const fetchHashtagPosts = async () => {
     try {
-      console.log('=== FETCHING HASHTAG POSTS ===');
-      console.log('Searching for hashtag:', hashtag);
-      
       const { data: postsData, error: postsError } = await supabase
         .from('hashtag_posts')
         .select(`
@@ -158,10 +144,6 @@ const HashtagPage = () => {
         console.error('Error fetching hashtag posts:', postsError);
         return [];
       }
-
-      console.log('=== POSTS FETCH RESULT ===');
-      console.log('Found posts:', postsData?.length || 0);
-      console.log('Posts data:', postsData);
 
       if (postsData) {
         for (const post of postsData) {
@@ -185,13 +167,6 @@ const HashtagPage = () => {
 
   const fetchHashtagComments = async () => {
     try {
-      console.log('=== FETCHING HASHTAG COMMENTS ===');
-      console.log('Target hashtag:', hashtag);
-      setIsLoadingComments(true);
-      
-      // طريقة محسنة للبحث عن التعليقات
-      console.log('=== SEARCHING FOR COMMENTS WITH HASHTAG ===');
-      
       // البحث في مصفوفة الهاشتاقات
       const { data: hashtagComments, error: hashtagError } = await supabase
         .from('hashtag_comments')
@@ -205,12 +180,6 @@ const HashtagPage = () => {
         `)
         .contains('hashtags', [hashtag])
         .order('created_at', { ascending: false });
-
-      console.log('Hashtag array search result:', {
-        count: hashtagComments?.length || 0,
-        error: hashtagError,
-        data: hashtagComments?.slice(0, 3) // أول 3 تعليقات للمراجعة
-      });
 
       // البحث في النص كطريقة احتياطية
       const searchPattern = `#${hashtag}`;
@@ -227,24 +196,15 @@ const HashtagPage = () => {
         .ilike('content', `%${searchPattern}%`)
         .order('created_at', { ascending: false });
 
-      console.log('Content search result:', {
-        searchPattern,
-        count: contentComments?.length || 0,
-        error: contentError,
-        data: contentComments?.slice(0, 3)
-      });
-
       // دمج النتائج وإزالة المكررات
       const allComments = new Map();
       
-      // إضافة تعليقات البحث في المصفوفة (أولوية عالية)
       if (hashtagComments) {
         hashtagComments.forEach(comment => {
           allComments.set(comment.id, comment);
         });
       }
       
-      // إضافة تعليقات البحث في النص (أولوية منخفضة)
       if (contentComments) {
         contentComments.forEach(comment => {
           if (!allComments.has(comment.id)) {
@@ -255,11 +215,6 @@ const HashtagPage = () => {
 
       const finalComments = Array.from(allComments.values());
       
-      console.log('=== FINAL COMMENTS RESULT ===');
-      console.log('Total unique comments:', finalComments.length);
-      console.log('Sample comments:', finalComments.slice(0, 2));
-      
-      // ترتيب حسب تاريخ الإنشاء
       const sortedComments = finalComments.sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
@@ -269,8 +224,6 @@ const HashtagPage = () => {
     } catch (error) {
       console.error('Error in fetchHashtagComments:', error);
       return [];
-    } finally {
-      setIsLoadingComments(false);
     }
   };
 
@@ -382,9 +335,6 @@ const HashtagPage = () => {
               <div>
                 <p className="text-sm text-zinc-400">عدد التعليقات</p>
                 <p className="text-lg font-bold text-green-400">{commentsCount}</p>
-                {isLoadingComments && (
-                  <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin mt-1"></div>
-                )}
               </div>
               <div>
                 <p className="text-sm text-zinc-400">المجموع</p>
@@ -437,18 +387,9 @@ const HashtagPage = () => {
           </div>
         )}
 
-        {/* Debug Info */}
-        <div className="bg-gray-900 rounded-lg p-4 mb-6 text-sm">
-          <p className="text-gray-400">Debug Info:</p>
-          <p className="text-white">Posts: {postsCount}</p>
-          <p className="text-white">Comments: {commentsCount}</p>
-          <p className="text-white">Total Content: {totalContent}</p>
-          <p className="text-white">Loading Comments: {isLoadingComments.toString()}</p>
-        </div>
-
         {/* Combined Content Feed */}
         <div className="space-y-6">
-          {combinedContent.length === 0 && !isLoadingComments ? (
+          {combinedContent.length === 0 ? (
             <div className="text-center py-8">
               <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
               <p className="text-zinc-400">لا يوجد محتوى لهذا الهاشتاق بعد</p>
@@ -494,13 +435,6 @@ const HashtagPage = () => {
                 );
               }
             })
-          )}
-          
-          {isLoadingComments && combinedContent.length > 0 && (
-            <div className="text-center py-4">
-              <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
-              <p className="text-gray-400 text-sm mt-2">جاري تحميل المزيد من التعليقات...</p>
-            </div>
           )}
         </div>
       </div>
