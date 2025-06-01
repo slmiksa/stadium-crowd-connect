@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Bell, MessageSquare, Users, Heart, UserPlus, Plus, Key, LogIn, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -179,7 +178,10 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
           </div>
 
           <p className={`text-sm mb-3 leading-relaxed ${!notification.is_read ? 'text-gray-200' : 'text-gray-400'}`}>
-            {notification.message}
+            {notification.type === 'room_invitation' 
+              ? 'تم دعوتكم لغرفة دردشة خاصة - للدخول عبر بروفايلكم'
+              : notification.message
+            }
           </p>
 
           {/* Additional content based on notification type */}
@@ -241,7 +243,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 <div className="mt-4 p-3 bg-blue-800/70 rounded-lg border-2 border-blue-400/50">
                   <div className="flex items-center gap-2 mb-2">
                     <User size={16} className="text-blue-400" />
-                    <p className="text-sm text-blue-300 font-bold">للانضمام للغرفة:</p>
+                    <p className="text-sm text-blue-300 font-bold">لانضمام للغرفة:</p>
                   </div>
                   <p className="text-sm text-blue-100 text-center">
                     اذهب إلى بروفايلك لرؤية تفاصيل الدعوة وكلمة المرور
