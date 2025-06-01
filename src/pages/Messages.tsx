@@ -172,7 +172,16 @@ const Messages = () => {
       }
 
       console.log('Fetched notifications:', data);
-      setNotifications(data || []);
+      
+      // Apply the same text transformation logic as useNotifications.ts
+      const transformedNotifications = (data || []).map(notif => ({
+        ...notif,
+        message: notif.type === 'room_invitation' 
+          ? 'تم دعوتكم لغرفة دردشة خاصة - للدخول من خلال بروفايلكم الخاص' 
+          : notif.message
+      }));
+      
+      setNotifications(transformedNotifications);
     } catch (error) {
       console.error('Error:', error);
     }
