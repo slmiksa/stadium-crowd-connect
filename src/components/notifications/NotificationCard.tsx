@@ -123,6 +123,15 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
     onNotificationClick(notification);
   };
 
+  // Debug log to check notification data
+  console.log('NotificationCard data:', {
+    type: notification.type,
+    data: notification.data,
+    room_password: notification.data?.room_password,
+    room_name: notification.data?.room_name,
+    room_description: notification.data?.room_description
+  });
+
   return (
     <div
       onClick={handleNotificationClick}
@@ -200,29 +209,41 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             </div>
           )}
 
-          {/* Room invitation special content with password */}
+          {/* Room invitation special content - Enhanced with better display */}
           {notification.type === 'room_invitation' && (
-            <div className="bg-gray-700/50 rounded-lg p-3 mb-3">
-              <p className="text-xs text-gray-400 mb-1">اسم الغرفة:</p>
-              <p className="text-sm text-pink-300 font-medium">{notification.data.room_name}</p>
-              {notification.data.room_description && (
-                <>
-                  <p className="text-xs text-gray-400 mb-1 mt-2">الوصف:</p>
-                  <p className="text-sm text-gray-300">{notification.data.room_description}</p>
-                </>
-              )}
-              {notification.data.room_password && (
-                <div className="mt-3 p-2 bg-gray-600/50 rounded-lg border border-yellow-500/30">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Key size={14} className="text-yellow-400" />
-                    <p className="text-xs text-yellow-400 font-medium">كلمة السر:</p>
-                  </div>
-                  <p className="text-sm text-yellow-200 font-mono bg-gray-800/50 px-2 py-1 rounded select-all">
-                    {notification.data.room_password}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">اضغط لتحديد ونسخ كلمة السر</p>
+            <div className="bg-gradient-to-r from-pink-900/30 to-purple-900/30 rounded-lg p-4 mb-3 border border-pink-500/30">
+              <div className="flex items-center gap-2 mb-3">
+                <Users size={16} className="text-pink-400" />
+                <p className="text-sm font-semibold text-pink-300">دعوة لغرفة خاصة</p>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">اسم الغرفة:</p>
+                  <p className="text-lg text-pink-200 font-bold">{notification.data?.room_name || 'غير محدد'}</p>
                 </div>
-              )}
+                
+                {notification.data?.room_description && (
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">الوصف:</p>
+                    <p className="text-sm text-gray-200">{notification.data.room_description}</p>
+                  </div>
+                )}
+                
+                {/* Password section - Always show for room invitations */}
+                <div className="mt-4 p-3 bg-gray-800/70 rounded-lg border-2 border-yellow-400/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Key size={16} className="text-yellow-400" />
+                    <p className="text-sm text-yellow-300 font-bold">كلمة السر المطلوبة:</p>
+                  </div>
+                  <div className="bg-gray-900/80 rounded-md p-3 border border-yellow-300/30">
+                    <p className="text-lg text-yellow-100 font-mono text-center select-all tracking-wider">
+                      {notification.data?.room_password || 'غير متوفرة'}
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2 text-center">انقر على كلمة السر لتحديدها ونسخها</p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -257,16 +278,20 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
               </Button>
             )}
 
-            {/* Room button for chat room notifications */}
+            {/* Room button for chat room notifications - Enhanced for invitations */}
             {(notification.type === 'chat_room' || notification.type === 'room_invitation') && notification.data?.room_id && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={(e) => onRoomClick(notification, e)}
-                className="bg-cyan-600/20 border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/30 hover:text-cyan-300 text-xs px-3 py-1 h-auto flex items-center gap-1"
+                className={`text-xs px-4 py-2 h-auto flex items-center gap-2 font-medium ${
+                  notification.type === 'room_invitation' 
+                    ? 'bg-pink-600/30 border-pink-400/50 text-pink-200 hover:bg-pink-600/50 hover:text-pink-100' 
+                    : 'bg-cyan-600/20 border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/30 hover:text-cyan-300'
+                }`}
               >
-                <LogIn size={14} />
-                {notification.type === 'room_invitation' ? 'دخول الغرفة' : 'الغرفة'}
+                <LogIn size={16} />
+                {notification.type === 'room_invitation' ? 'دخول الغرفة الآن' : 'الغرفة'}
               </Button>
             )}
           </div>
