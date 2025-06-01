@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Bell, MessageSquare, Users, Heart, UserPlus, Plus, Key, LogIn, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -112,14 +113,11 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   };
 
   const handleNotificationClick = () => {
-    // تعليم التنبيه كمقروء أولاً
     if (!notification.is_read) {
       onMarkAsRead(notification.id);
     }
     
-    // للتنبيهات الخاصة بدعوات الغرف، توجيه المستخدم للبروفايل
     if (notification.type === 'room_invitation') {
-      // الذهاب إلى البروفايل لرؤية الدعوات
       onNotificationClick({
         ...notification,
         type: 'profile_redirect' as any
@@ -128,15 +126,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
       onNotificationClick(notification);
     }
   };
-
-  // Debug log to check notification data
-  console.log('NotificationCard data:', {
-    type: notification.type,
-    data: notification.data,
-    room_password: notification.data?.room_password,
-    room_name: notification.data?.room_name,
-    room_description: notification.data?.room_description
-  });
 
   return (
     <div
@@ -179,7 +168,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
           <p className={`text-sm mb-3 leading-relaxed ${!notification.is_read ? 'text-gray-200' : 'text-gray-400'}`}>
             {notification.type === 'room_invitation' 
-              ? 'تم دعوتكم لغرفة دردشة خاصة - للدخول عبر بروفايلكم'
+              ? 'تم دعوتكم لغرفة دردشة خاصة - للدخول من خلال بروفايلكم'
               : notification.message
             }
           </p>
@@ -218,7 +207,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             </div>
           )}
 
-          {/* Room invitation special content - Simplified to direct to profile */}
+          {/* Room invitation special content */}
           {notification.type === 'room_invitation' && (
             <div className="bg-gradient-to-r from-pink-900/30 to-purple-900/30 rounded-lg p-4 mb-3 border border-pink-500/30">
               <div className="flex items-center gap-2 mb-3">
@@ -243,7 +232,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 <div className="mt-4 p-3 bg-blue-800/70 rounded-lg border-2 border-blue-400/50">
                   <div className="flex items-center gap-2 mb-2">
                     <User size={16} className="text-blue-400" />
-                    <p className="text-sm text-blue-300 font-bold">لانضمام للغرفة:</p>
+                    <p className="text-sm text-blue-300 font-bold">للانضمام للغرفة:</p>
                   </div>
                   <p className="text-sm text-blue-100 text-center">
                     اذهب إلى بروفايلك لرؤية تفاصيل الدعوة وكلمة المرور
@@ -266,7 +255,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   if (notification.type === 'room_invitation') {
-                    // للدعوات، الذهاب إلى البروفايل مباشرة
                     window.location.href = '/profile';
                   } else {
                     onProfileClick(notification, e);

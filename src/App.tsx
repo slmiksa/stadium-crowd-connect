@@ -1,3 +1,4 @@
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
@@ -16,6 +17,7 @@ import ChatRoom from '@/pages/ChatRoom';
 import Messages from '@/pages/Messages';
 import PrivateChat from '@/pages/PrivateChat';
 import Notifications from '@/pages/Notifications';
+import Matches from '@/pages/Matches';
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,7 @@ function AppContent() {
       <Route path="/messages" element={<AuthGuard><Messages /></AuthGuard>} />
       <Route path="/private-chat/:receiverId" element={<AuthGuard><PrivateChat /></AuthGuard>} />
       <Route path="/notifications" element={<AuthGuard><Notifications /></AuthGuard>} />
+      <Route path="/matches" element={<AuthGuard><Matches /></AuthGuard>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

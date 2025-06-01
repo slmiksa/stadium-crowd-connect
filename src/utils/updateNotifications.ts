@@ -6,7 +6,7 @@ export const updateRoomInvitationNotifications = async () => {
     const { error } = await supabase
       .from('notifications')
       .update({ 
-        message: 'تم دعوتكم لغرفة دردشة خاصة - للدخول من خلال بروفايلكم الخاص' 
+        message: 'تم دعوتكم لغرفة دردشة خاصة - للدخول من خلال بروفايلكم' 
       })
       .eq('type', 'room_invitation');
 
