@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Share2, MoreVertical } from 'lucide-react';
@@ -161,7 +160,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
         <div className="flex items-center space-x-6 space-x-reverse">
           <LikeButton
             postId={post.id}
-            initialLikes={post.likes_count}
+            initialLikesCount={post.likes_count}
             onLikeChange={onLikeChange}
           />
           

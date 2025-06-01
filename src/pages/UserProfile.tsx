@@ -437,8 +437,7 @@ const UserProfile = () => {
                         profiles: {
                           id: profile.id,
                           username: profile.username,
-                          avatar_url: profile.avatar_url,
-                          verification_status: profile.verification_status
+                          avatar_url: profile.avatar_url
                         }
                       }}
                       onLikeChange={handlePostInteraction}
