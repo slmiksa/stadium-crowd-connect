@@ -166,7 +166,7 @@ const Profile = () => {
         .select(`
           *,
           chat_rooms (*),
-          inviter_profile:inviter_id (id, username, avatar_url, verification_status)
+          profiles!room_invitations_inviter_id_fkey (id, username, avatar_url, verification_status, email, bio, favorite_team, followers_count, following_count, created_at)
         `)
         .eq('invitee_id', user?.id)
         .eq('status', 'pending')
@@ -177,7 +177,13 @@ const Profile = () => {
         return;
       }
 
-      setRoomInvitations(data || []);
+      // Transform the data to match our interface
+      const transformedData = data?.map(invitation => ({
+        ...invitation,
+        inviter_profile: invitation.profiles
+      })) || [];
+
+      setRoomInvitations(transformedData);
     } catch (error) {
       console.error('Error:', error);
     }
