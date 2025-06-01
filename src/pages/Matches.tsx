@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
-import { Clock, Users, MapPin, RefreshCw, Newspaper } from 'lucide-react';
+import { Clock, Users, MapPin, RefreshCw, Newspaper, ExternalLink } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -29,6 +29,9 @@ interface NewsItem {
   video?: string;
   date: string;
   source: string;
+  url?: string;
+  category?: string;
+  content?: string;
 }
 
 const Matches = () => {
@@ -47,6 +50,7 @@ const Matches = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'finished' | 'news'>('live');
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
 
   useEffect(() => {
     fetchAllData();
@@ -83,7 +87,7 @@ const Matches = () => {
 
       // جلب الأخبار
       const { data: newsData } = await supabase.functions.invoke('get-football-news', {
-        body: { limit: 20 }
+        body: { limit: 50 }
       });
 
       setAllMatches({
@@ -117,6 +121,16 @@ const Matches = () => {
   const handleMatchClick = (matchId: string) => {
     console.log('Navigating to match details:', matchId);
     navigate(`/match-details/${matchId}`);
+  };
+
+  const handleNewsClick = (newsItem: NewsItem) => {
+    setSelectedNews(newsItem);
+  };
+
+  const handleNewsUrlClick = (url: string) => {
+    if (url && url !== '#') {
+      window.open(url, '_blank');
+    }
   };
 
   const formatTime = (dateString: string) => {
@@ -245,9 +259,12 @@ const Matches = () => {
   );
 
   const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => (
-    <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300">
-      {/* News Image/Video */}
-      {newsItem.image && (
+    <div 
+      onClick={() => handleNewsClick(newsItem)}
+      className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+    >
+      {/* News Image */}
+      {newsItem.image && newsItem.image !== '/placeholder.svg' && (
         <div className="mb-4 rounded-xl overflow-hidden">
           <img 
             src={newsItem.image} 
@@ -259,16 +276,97 @@ const Matches = () => {
 
       {/* News Content */}
       <div className="space-y-3">
-        <h3 className="text-lg font-bold text-white leading-relaxed">{newsItem.title}</h3>
-        <p className="text-gray-300 text-sm leading-relaxed">{newsItem.description}</p>
+        {/* Category Badge */}
+        {newsItem.category && (
+          <div className="inline-block">
+            <span className="bg-purple-600/20 text-purple-300 px-2 py-1 rounded-lg text-xs font-medium">
+              {newsItem.category}
+            </span>
+          </div>
+        )}
+
+        <h3 className="text-lg font-bold text-white leading-relaxed line-clamp-2">{newsItem.title}</h3>
+        <p className="text-gray-300 text-sm leading-relaxed line-clamp-3">{newsItem.description}</p>
         
         <div className="flex items-center justify-between pt-3 border-t border-gray-700/30">
           <span className="text-xs text-gray-400">{newsItem.source}</span>
-          <span className="text-xs text-gray-400">{formatDate(newsItem.date)}</span>
+          <div className="flex items-center space-x-2 space-x-reverse">
+            <span className="text-xs text-gray-400">{formatDate(newsItem.date)}</span>
+            {newsItem.url && newsItem.url !== '#' && (
+              <ExternalLink size={12} className="text-gray-400" />
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
+
+  // News Modal
+  const NewsModal = () => {
+    if (!selectedNews) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">{selectedNews.title}</h2>
+              <button
+                onClick={() => setSelectedNews(null)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Image */}
+            {selectedNews.image && selectedNews.image !== '/placeholder.svg' && (
+              <div className="mb-4 rounded-xl overflow-hidden">
+                <img 
+                  src={selectedNews.image} 
+                  alt={selectedNews.title} 
+                  className="w-full h-64 object-cover"
+                />
+              </div>
+            )}
+
+            {/* Content */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-sm text-gray-400">
+                <span>{selectedNews.source}</span>
+                <span>{formatDate(selectedNews.date)}</span>
+              </div>
+
+              {selectedNews.category && (
+                <span className="inline-block bg-purple-600/20 text-purple-300 px-3 py-1 rounded-lg text-sm font-medium">
+                  {selectedNews.category}
+                </span>
+              )}
+
+              <p className="text-gray-300 leading-relaxed">{selectedNews.description}</p>
+              
+              {selectedNews.content && selectedNews.content !== selectedNews.description && (
+                <div className="bg-gray-700/30 rounded-xl p-4">
+                  <p className="text-gray-300 leading-relaxed">{selectedNews.content}</p>
+                </div>
+              )}
+
+              {selectedNews.url && selectedNews.url !== '#' && (
+                <button
+                  onClick={() => handleNewsUrlClick(selectedNews.url!)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl font-medium transition-colors flex items-center justify-center space-x-2 space-x-reverse"
+                >
+                  <span>قراءة المقال كاملاً</span>
+                  <ExternalLink size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const currentMatches = allMatches[activeTab as keyof typeof allMatches] || [];
 
@@ -295,7 +393,7 @@ const Matches = () => {
           <div className="text-center">
             <div className="flex items-center justify-between mb-2">
               <div></div>
-              <h1 className="text-3xl font-bold text-white">المباريات</h1>
+              <h1 className="text-3xl font-bold text-white">المباريات والأخبار</h1>
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
@@ -304,7 +402,7 @@ const Matches = () => {
                 <RefreshCw size={20} className={`text-white ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
-            <p className="text-gray-400">تابع أحدث المباريات والنتائج والأخبار</p>
+            <p className="text-gray-400">تابع أحدث المباريات والنتائج والأخبار الرياضية</p>
           </div>
 
           {/* Tabs */}
@@ -394,6 +492,9 @@ const Matches = () => {
             )}
           </div>
         </div>
+
+        {/* News Modal */}
+        <NewsModal />
       </div>
     </Layout>
   );

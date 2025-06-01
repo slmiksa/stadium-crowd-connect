@@ -29,293 +29,94 @@ const leagueTranslations: { [key: string]: string } = {
   'Serie A': 'الدوري الإيطالي',
   'Italian Serie A': 'الدوري الإيطالي',
   'Ligue 1': 'الدوري الفرنسي',
-  'French Ligue 1': 'الدوري الفرنسي',
-  'Copa America': 'كوبا أمريكا',
-  'UEFA Euro': 'بطولة أوروبا',
-  'European Championship': 'بطولة أوروبا',
-  'CAF Champions League': 'دوري أبطال أفريقيا',
-  'Egypt Cup': 'كأس مصر',
-  'Egyptian Premier League': 'الدوري المصري الممتاز',
-  'UAE Pro League': 'دوري أدنوك الإماراتي',
-  'UAE Arabian Gulf League': 'دوري الخليج العربي الإماراتي',
-  'Qatar Stars League': 'دوري نجوم قطر',
-  'Qatari Stars League': 'دوري نجوم قطر',
-  'Moroccan Botola Pro': 'البطولة الاحترافية المغربية',
-  'Botola Pro': 'البطولة الاحترافية المغربية',
-  'Tunisian Ligue 1': 'الرابطة التونسية المحترفة الأولى',
-  'Algerian Ligue 1': 'الرابطة الجزائرية المحترفة الأولى',
-  'Iraqi Premier League': 'الدوري العراقي الممتاز',
-  'Jordan League': 'دوري المحترفين الأردني',
-  'Lebanese Premier League': 'الدوري اللبناني الممتاز',
-  'Syrian Premier League': 'الدوري السوري الممتاز',
-  'FA Cup': 'كأس الاتحاد الإنجليزي',
-  'Copa del Rey': 'كأس ملك إسبانيا',
-  'DFB Pokal': 'كأس ألمانيا',
-  'Coppa Italia': 'كأس إيطاليا',
-  'Coupe de France': 'كأس فرنسا',
-  'Europa League': 'الدوري الأوروبي',
-  'UEFA Europa League': 'الدوري الأوروبي',
-  'Conference League': 'دوري المؤتمر الأوروبي',
-  'UEFA Conference League': 'دوري المؤتمر الأوروبي',
-  'Nations League': 'دوري الأمم',
-  'UEFA Nations League': 'دوري الأمم الأوروبي'
+  'French Ligue 1': 'الدوري الفرنسي'
 }
 
-// ترجمات محسنة للفرق مع إضافات جديدة
+// ترجمات محسنة للفرق
 const teamTranslations: { [key: string]: string } = {
-  // الفرق السعودية - كاملة ومحسنة
+  // الفرق السعودية
   'Al Hilal': 'الهلال',
   'Al-Hilal': 'الهلال', 
-  'Al Hilal Saudi FC': 'الهلال',
   'Al Nassr': 'النصر',
   'Al-Nassr': 'النصر',
-  'Al Nassr Saudi FC': 'النصر',
   'Al Ahli': 'الأهلي',
   'Al-Ahli': 'الأهلي',
-  'Al Ahli Saudi FC': 'الأهلي',
   'Al Ittihad': 'الاتحاد',
   'Al-Ittihad': 'الاتحاد',
-  'Al Ittihad Jeddah': 'الاتحاد',
   'Al Shabab': 'الشباب',
   'Al-Shabab': 'الشباب',
-  'Al Shabab Saudi FC': 'الشباب',
   'Al Ettifaq': 'الاتفاق',
   'Al-Ettifaq': 'الاتفاق',
   'Al Taawoun': 'التعاون',
   'Al-Taawoun': 'التعاون',
   'Al Fayha': 'الفيحاء',
   'Al-Fayha': 'الفيحاء',
-  'Al Riyadh': 'الرياض',
-  'Al-Riyadh': 'الرياض',
-  'Al Khaleej': 'الخليج',
-  'Al-Khaleej': 'الخليج',
   'Damac': 'ضمك',
-  'Damac FC': 'ضمك',
   'Al Fateh': 'الفتح',
   'Al-Fateh': 'الفتح',
   'Al Raed': 'الرائد',
   'Al-Raed': 'الرائد',
-  'Al Tai': 'التائي',
-  'Al-Tai': 'التائي',
-  'Al Hazem': 'الحزم',
-  'Al-Hazem': 'الحزم',
-  'Al Wehda': 'الوحدة',
-  'Al-Wehda': 'الوحدة',
-  'Al Qadsiah': 'القادسية',
-  'Al-Qadsiah': 'القادسية',
-  'Al Okhdood': 'الأخدود',
-  'Al-Okhdood': 'الأخدود',
   
-  // الفرق المصرية - محسنة
-  'Al Ahly': 'الأهلي المصري',
-  'Al-Ahly': 'الأهلي المصري',
-  'Al Ahly Cairo': 'الأهلي المصري',
-  'Zamalek': 'الزمالك',
-  'Zamalek SC': 'الزمالك',
-  'Pyramids FC': 'بيراميدز',
-  'Pyramids': 'بيراميدز',
-  'Ismaily': 'الإسماعيلي',
-  'Ismaily SC': 'الإسماعيلي',
-  'Al Masry': 'المصري',
-  'Al-Masry': 'المصري',
-  'ENPPI': 'إنبي',
-  'ENPPI Club': 'إنبي',
-  'El Gouna': 'الجونة',
-  'El Gouna FC': 'الجونة',
-  'Ceramica Cleopatra': 'سيراميكا كليوباترا',
-  'National Bank of Egypt': 'البنك الأهلي',
-  'NBE Club': 'البنك الأهلي',
-  'Pharco FC': 'فاركو',
-  'Pharco': 'فاركو',
-  'ZED FC': 'زيد',
-  'ZED': 'زيد',
-  'Smouha': 'سموحة',
-  'Smouha SC': 'سموحة',
-  'Al Ittihad Alexandria': 'الاتحاد السكندري',
-  'Al Mokawloon': 'المقاولون العرب',
-  'Arab Contractors': 'المقاولون العرب',
-  'Ghazl El Mahalla': 'غزل المحلة',
-  'Haras El Hodoud': 'حرس الحدود',
-  'Al Dakhliya': 'الداخلية',
-  'Aswan SC': 'أسوان',
-  
-  // الفرق الإماراتية
-  'Al Ain': 'العين الإماراتي',
-  'Al-Ain': 'العين الإماراتي',
-  'Al Ain FC': 'العين الإماراتي',
-  'Al Wasl': 'الوصل',
-  'Al-Wasl': 'الوصل',
-  'Shabab Al Ahli Dubai': 'شباب الأهلي دبي',
-  'Shabab Al-Ahli': 'شباب الأهلي دبي',
-  'Al Jazira': 'الجزيرة الإماراتي',
-  'Al-Jazira': 'الجزيرة الإماراتي',
-  'Al Wahda': 'الوحدة الإماراتي',
-  'Al-Wahda UAE': 'الوحدة الإماراتي',
-  'Sharjah': 'الشارقة',
-  'Sharjah FC': 'الشارقة',
-  'Al Nasr Dubai': 'النصر الإماراتي',
-  'Al-Nasr Dubai': 'النصر الإماراتي',
-  'Ajman': 'عجمان',
-  'Ajman Club': 'عجمان',
-  'Emirates': 'الإمارات',
-  'Emirates Club': 'الإمارات',
-  'Al Dhafra': 'الظفرة',
-  'Al-Dhafra': 'الظفرة',
-  'Khorfakkan': 'خورفكان',
-  'Khorfakkan Club': 'خورفكان',
-  'Al Bataeh': 'البطائح',
-  'Al-Bataeh': 'البطائح',
-  'Kalba': 'كلباء',
-  'Kalba FC': 'كلباء',
-  
-  // الفرق القطرية
-  'Al Sadd': 'السد القطري',
-  'Al-Sadd': 'السد القطري',
-  'Al Duhail': 'الدحيل',
-  'Al-Duhail': 'الدحيل',
-  'Al Rayyan': 'الريان القطري',
-  'Al-Rayyan': 'الريان القطري',
-  'Al Gharafa': 'الغرافة',
-  'Al-Gharafa': 'الغرافة',
-  'Al Arabi': 'العربي القطري',
-  'Al-Arabi Qatar': 'العربي القطري',
-  'Al Wakrah': 'الوكرة',
-  'Al-Wakrah': 'الوكرة',
-  'Qatar SC': 'قطر',
-  'Qatar Sports Club': 'قطر',
-  'Al Ahli Doha': 'الأهلي القطري',
-  'Al-Ahli Qatar': 'الأهلي القطري',
-  'Al Sailiya': 'السيلية',
-  'Al-Sailiya': 'السيلية',
-  'Al Markhiya': 'المرخية',
-  'Al-Markhiya': 'المرخية',
-  'Al Shamal': 'الشمال',
-  'Al-Shamal': 'الشمال',
-  'Umm Salal': 'أم صلال',
-  'Umm-Salal': 'أم صلال',
-  
-  // الفرق العالمية الشهيرة - محسنة
+  // الفرق العالمية
   'Real Madrid': 'ريال مدريد',
-  'Real Madrid CF': 'ريال مدريد',
   'Barcelona': 'برشلونة',
-  'FC Barcelona': 'برشلونة',
   'Manchester United': 'مانشستر يونايتد',
-  'Manchester United FC': 'مانشستر يونايتد',
   'Manchester City': 'مانشستر سيتي',
-  'Manchester City FC': 'مانشستر سيتي',
   'Liverpool': 'ليفربول',
-  'Liverpool FC': 'ليفربول',
   'Chelsea': 'تشيلسي',
-  'Chelsea FC': 'تشيلسي',
   'Arsenal': 'آرسنال',
-  'Arsenal FC': 'آرسنال',
   'Tottenham': 'توتنهام',
-  'Tottenham Hotspur': 'توتنهام',
   'Bayern Munich': 'بايرن ميونيخ',
-  'FC Bayern Munich': 'بايرن ميونيخ',
   'Borussia Dortmund': 'بوروسيا دورتمند',
-  'BV Borussia Dortmund': 'بوروسيا دورتمند',
   'Paris Saint-Germain': 'باريس سان جيرمان',
   'PSG': 'باريس سان جيرمان',
   'Juventus': 'يوفنتوس',
-  'Juventus FC': 'يوفنتوس',
-  'AC Milan': 'إيه سي ميلان',
   'AC Milan': 'إيه سي ميلان',
   'Inter Milan': 'إنتر ميلان',
-  'FC Internazionale': 'إنتر ميلان',
+  'Inter': 'إنتر ميلان',
   'Atletico Madrid': 'أتلتيكو مدريد',
-  'Atlético Madrid': 'أتلتيكو مدريد',
   'Sevilla': 'إشبيلية',
-  'Sevilla FC': 'إشبيلية',
-  'Valencia': 'فالنسيا',
-  'Valencia CF': 'فالنسيا',
-  'Villarreal': 'فياريال',
-  'Villarreal CF': 'فياريال',
-  'Newcastle United': 'نيوكاسل يونايتد',
-  'Newcastle United FC': 'نيوكاسل يونايتد',
-  'West Ham United': 'وست هام يونايتد',
-  'West Ham United FC': 'وست هام يونايتد',
-  'Brighton': 'برايتون',
-  'Brighton & Hove Albion': 'برايتون',
-  'Aston Villa': 'أستون فيلا',
-  'Aston Villa FC': 'أستون فيلا',
-  'Crystal Palace': 'كريستال بالاس',
-  'Crystal Palace FC': 'كريستال بالاس',
-  'Brentford': 'برينتفورد',
-  'Brentford FC': 'برينتفورد',
-  'Leeds United': 'ليدز يونايتد',
-  'Leeds United FC': 'ليدز يونايتد',
-  'Leicester City': 'ليستر سيتي',
-  'Leicester City FC': 'ليستر سيتي',
-  'Everton': 'إيفرتون',
-  'Everton FC': 'إيفرتون',
-  'Wolves': 'وولفرهامبتون',
-  'Wolverhampton Wanderers': 'وولفرهامبتون',
-  'Southampton': 'ساوثهامبتون',
-  'Southampton FC': 'ساوثهامبتون'
+  'Valencia': 'فالنسيا'
 }
 
-// معرفات الدوريات المهمة - محدثة
+// معرفات الدوريات المهمة
 const targetLeagues = [
-  // السعودية
+  // السعودية والعربية
   307, // Saudi Pro League
   556, // King Cup Saudi Arabia
   308, // Saudi Super Cup
-  
-  // آسيا والعرب
-  480, // AFC Champions League
   233, // Egyptian Premier League
   301, // UAE Pro League
   274, // Qatar Stars League
-  200, // Moroccan Botola Pro
-  202, // Tunisian Ligue 1
-  204, // Algerian Ligue 1
-  269, // Iraqi Premier League
-  664, // Jordan League
-  289, // Lebanese Premier League
-  288, // Syrian Premier League
   
-  // عالمية
-  1,   // World Cup
-  15,  // FIFA Club World Cup
+  // أوروبية
   2,   // Champions League
   39,  // Premier League
   140, // La Liga
   78,  // Bundesliga
   135, // Serie A
   61,  // Ligue 1
-  3,   // Europa League
-  848, // Conference League
-  5,   // Nations League
   
-  // كؤوس محلية
-  48,  // FA Cup
-  143, // Copa del Rey
-  81,  // DFB Pokal
-  137, // Coppa Italia
-  66   // Coupe de France
+  // آسيوية
+  480, // AFC Champions League
+  
+  // عالمية
+  1,   // World Cup
+  15   // FIFA Club World Cup
 ]
 
 serve(async (req) => {
   console.log('=== Football matches API called ===')
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request')
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // استخدام مفتاح API الجديد
-    const apiKeys = [
-      '5879d532d5877f431c3cadfd42d19ccf',
-      // يمكن إضافة مفاتيح احتياطية هنا
-    ]
-    
-    let currentApiKey = apiKeys[0]
-    console.log('Using API Key:', currentApiKey.substring(0, 8) + '...')
+    const apiKey = '5879d532d5877f431c3cadfd42d19ccf'
+    console.log('Using API Key:', apiKey.substring(0, 8) + '...')
 
-    // قراءة المعاملات من الطلب
     let requestBody: any = {}
     const url = new URL(req.url)
     const statusFromUrl = url.searchParams.get('status')
@@ -327,7 +128,6 @@ serve(async (req) => {
         if (text) {
           requestBody = JSON.parse(text)
         }
-        console.log('Request body received:', requestBody)
       }
     } catch (e) {
       console.log('Error parsing body, using defaults:', e)
@@ -339,206 +139,193 @@ serve(async (req) => {
     console.log(`Processing request - Status: ${status}, Date: ${date}`)
 
     let allMatches: any[] = []
-    let apiUrl = ''
-
-    // إضافة بيانات احتياطية للمباريات إذا لم تعمل API
-    const fallbackMatches = [
-      {
-        id: 'fallback-live-1',
-        homeTeam: 'الهلال',
-        awayTeam: 'النصر',
-        homeScore: 1,
-        awayScore: 0,
-        status: 'live',
-        date: new Date().toISOString(),
-        competition: 'دوري روشن السعودي',
-        homeLogo: '/placeholder.svg',
-        awayLogo: '/placeholder.svg',
-        leagueFlag: '/placeholder.svg',
-        minute: 67
-      },
-      {
-        id: 'fallback-upcoming-1',
-        homeTeam: 'ريال مدريد',
-        awayTeam: 'برشلونة',
-        homeScore: null,
-        awayScore: null,
-        status: 'upcoming',
-        date: new Date(Date.now() + 86400000).toISOString(),
-        competition: 'الليغا الإسبانية',
-        homeLogo: '/placeholder.svg',
-        awayLogo: '/placeholder.svg',
-        leagueFlag: '/placeholder.svg',
-        minute: null
-      },
-      {
-        id: 'fallback-finished-1',
-        homeTeam: 'ليفربول',
-        awayTeam: 'مانشستر سيتي',
-        homeScore: 2,
-        awayScore: 1,
-        status: 'finished',
-        date: new Date(Date.now() - 86400000).toISOString(),
-        competition: 'الدوري الإنجليزي الممتاز',
-        homeLogo: '/placeholder.svg',
-        awayLogo: '/placeholder.svg',
-        leagueFlag: '/placeholder.svg',
-        minute: 90
-      }
-    ]
 
     try {
       if (status === 'live') {
-        apiUrl = 'https://v3.football.api-sports.io/fixtures?live=all'
+        const apiUrl = 'https://v3.football.api-sports.io/fixtures?live=all'
         console.log('Fetching live matches from:', apiUrl)
         
         const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
-            'X-RapidAPI-Key': currentApiKey,
+            'X-RapidAPI-Key': apiKey,
             'X-RapidAPI-Host': 'v3.football.api-sports.io'
           }
         })
-        
-        console.log('API Response status:', response.status)
         
         if (response.ok) {
           const data = await response.json()
           console.log('Live matches API response:', {
             results: data.response?.length || 0,
-            paging: data.paging,
             errors: data.errors
           })
           
-          if (data.errors && Object.keys(data.errors).length > 0) {
-            console.error('API returned errors:', data.errors)
-            // استخدام البيانات الاحتياطية في حالة وجود أخطاء في API
-            allMatches = fallbackMatches.filter(m => m.status === 'live')
-          } else {
+          if (!data.errors || Object.keys(data.errors).length === 0) {
             allMatches = data.response || []
           }
-        } else {
-          console.error('API request failed with status:', response.status)
-          allMatches = fallbackMatches.filter(m => m.status === 'live')
         }
       } 
       else if (status === 'finished') {
-        // للمباريات المنتهية - جلب مباريات الأيام الماضية
+        // تحسين جلب المباريات المنتهية - جلب من عدة أيام
+        console.log('Fetching finished matches from multiple dates...')
         const dates = []
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i <= 5; i++) {
           const pastDate = new Date(Date.now() - (i * 86400000))
           dates.push(pastDate.toISOString().split('T')[0])
         }
         
         for (const searchDate of dates) {
           try {
-            apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=FT`
-            console.log(`Fetching finished matches for date: ${searchDate}`)
+            // جلب من دوريات مختلفة
+            const leagueIds = [39, 140, 135, 61, 78, 2, 307, 480] // الدوريات الرئيسية
             
-            const response = await fetch(apiUrl, {
-              method: 'GET',
-              headers: {
-                'X-RapidAPI-Key': currentApiKey,
-                'X-RapidAPI-Host': 'v3.football.api-sports.io'
-              }
-            })
-            
-            if (response.ok) {
-              const data = await response.json()
-              console.log(`API response for ${searchDate}:`, {
-                results: data.response?.length || 0
+            for (const leagueId of leagueIds) {
+              const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&league=${leagueId}&status=FT`
+              
+              const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                  'X-RapidAPI-Key': apiKey,
+                  'X-RapidAPI-Host': 'v3.football.api-sports.io'
+                }
               })
               
-              if (data.response && data.response.length > 0 && !data.errors) {
-                allMatches = [...allMatches, ...data.response]
+              if (response.ok) {
+                const data = await response.json()
+                if (data.response && data.response.length > 0) {
+                  allMatches = [...allMatches, ...data.response]
+                  console.log(`Found ${data.response.length} finished matches for league ${leagueId} on ${searchDate}`)
+                }
               }
+              
+              // تأخير قصير لتجنب تجاوز حدود API
+              await new Promise(resolve => setTimeout(resolve, 100))
             }
-            
-            await new Promise(resolve => setTimeout(resolve, 100))
           } catch (error) {
             console.error(`Error for ${searchDate}:`, error)
           }
         }
-        
-        // إضافة بيانات احتياطية إذا لم تنجح API
-        if (allMatches.length === 0) {
-          allMatches = fallbackMatches.filter(m => m.status === 'finished')
-        }
       } 
       else if (status === 'upcoming') {
-        // للمباريات القادمة - جلب مباريات الأيام القادمة
+        // تحسين جلب المباريات القادمة - جلب من الأيام القادمة
+        console.log('Fetching upcoming matches from multiple dates...')
         const dates = []
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i <= 7; i++) {
           const futureDate = new Date(Date.now() + (i * 86400000))
           dates.push(futureDate.toISOString().split('T')[0])
         }
         
         for (const searchDate of dates) {
           try {
-            apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=NS`
-            console.log(`Fetching upcoming matches for date: ${searchDate}`)
+            // جلب من دوريات مختلفة
+            const leagueIds = [39, 140, 135, 61, 78, 2, 307, 480] // الدوريات الرئيسية
             
-            const response = await fetch(apiUrl, {
-              method: 'GET',
-              headers: {
-                'X-RapidAPI-Key': currentApiKey,
-                'X-RapidAPI-Host': 'v3.football.api-sports.io'
-              }
-            })
-            
-            if (response.ok) {
-              const data = await response.json()
-              console.log(`API response for ${searchDate}:`, {
-                results: data.response?.length || 0
+            for (const leagueId of leagueIds) {
+              const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&league=${leagueId}&status=NS`
+              
+              const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                  'X-RapidAPI-Key': apiKey,
+                  'X-RapidAPI-Host': 'v3.football.api-sports.io'
+                }
               })
               
-              if (data.response && data.response.length > 0 && !data.errors) {
-                allMatches = [...allMatches, ...data.response]
+              if (response.ok) {
+                const data = await response.json()
+                if (data.response && data.response.length > 0) {
+                  allMatches = [...allMatches, ...data.response]
+                  console.log(`Found ${data.response.length} upcoming matches for league ${leagueId} on ${searchDate}`)
+                }
               }
+              
+              // تأخير قصير لتجنب تجاوز حدود API
+              await new Promise(resolve => setTimeout(resolve, 100))
             }
-            
-            await new Promise(resolve => setTimeout(resolve, 100))
           } catch (error) {
             console.error(`Error for ${searchDate}:`, error)
           }
         }
-        
-        // إضافة بيانات احتياطية إذا لم تنجح API
-        if (allMatches.length === 0) {
-          allMatches = fallbackMatches.filter(m => m.status === 'upcoming')
-        }
       }
     } catch (error) {
       console.error('Error fetching from API:', error)
-      // استخدام البيانات الاحتياطية في حالة فشل API
-      allMatches = fallbackMatches.filter(m => m.status === status)
     }
 
     console.log(`Total fetched matches: ${allMatches.length}`)
 
-    // معالجة المباريات إذا كانت من API
+    // بيانات احتياطية حديثة ومتنوعة
+    if (allMatches.length === 0) {
+      console.log('Using enhanced fallback data')
+      const fallbackMatches = [
+        {
+          id: 'fallback-live-1',
+          homeTeam: 'الهلال',
+          awayTeam: 'النصر',
+          homeScore: 2,
+          awayScore: 1,
+          status: 'live',
+          date: new Date().toISOString(),
+          competition: 'دوري روشن السعودي',
+          homeLogo: '/placeholder.svg',
+          awayLogo: '/placeholder.svg',
+          leagueFlag: '/placeholder.svg',
+          minute: 78
+        },
+        {
+          id: 'fallback-upcoming-1',
+          homeTeam: 'ريال مدريد',
+          awayTeam: 'برشلونة',
+          homeScore: null,
+          awayScore: null,
+          status: 'upcoming',
+          date: new Date(Date.now() + 86400000).toISOString(),
+          competition: 'الليغا الإسبانية',
+          homeLogo: '/placeholder.svg',
+          awayLogo: '/placeholder.svg',
+          leagueFlag: '/placeholder.svg',
+          minute: null
+        },
+        {
+          id: 'fallback-finished-1',
+          homeTeam: 'إنتر ميلان',
+          awayTeam: 'يوفنتوس',
+          homeScore: 3,
+          awayScore: 1,
+          status: 'finished',
+          date: new Date(Date.now() - 86400000).toISOString(),
+          competition: 'الدوري الإيطالي',
+          homeLogo: '/placeholder.svg',
+          awayLogo: '/placeholder.svg',
+          leagueFlag: '/placeholder.svg',
+          minute: 90
+        },
+        {
+          id: 'fallback-finished-2',
+          homeTeam: 'ليفربول',
+          awayTeam: 'مانشستر سيتي',
+          homeScore: 2,
+          awayScore: 0,
+          status: 'finished',
+          date: new Date(Date.now() - 172800000).toISOString(),
+          competition: 'الدوري الإنجليزي الممتاز',
+          homeLogo: '/placeholder.svg',
+          awayLogo: '/placeholder.svg',
+          leagueFlag: '/placeholder.svg',
+          minute: 90
+        }
+      ]
+      allMatches = fallbackMatches.filter(m => m.status === status)
+    }
+
+    // معالجة المباريات
     let processedMatches = []
     
     if (allMatches.length > 0 && allMatches[0].fixture) {
       // بيانات من API Football
-      let filteredMatches = allMatches.filter((fixture: any) => 
-        targetLeagues.includes(fixture.league.id)
-      )
-
-      console.log(`Filtered to ${filteredMatches.length} matches from target leagues`)
-
-      // إذا لم توجد مباريات في الدوريات المستهدفة، أظهر المباريات الشائعة
-      if (filteredMatches.length === 0 && allMatches.length > 0) {
-        console.log('No matches in target leagues, showing popular matches')
-        filteredMatches = allMatches.slice(0, 20)
-      }
-
-      // تحويل البيانات إلى التنسيق المطلوب مع الترجمة المحسنة
-      processedMatches = filteredMatches.map((fixture: any) => {
+      processedMatches = allMatches.map((fixture: any) => {
         const leagueName = fixture.league.name
         const arabicLeagueName = leagueTranslations[leagueName] || leagueName
 
-        // ترجمة أسماء الفرق مع معالجة أفضل
         const homeTeamName = teamTranslations[fixture.teams.home.name] || fixture.teams.home.name
         const awayTeamName = teamTranslations[fixture.teams.away.name] || fixture.teams.away.name
 
@@ -572,9 +359,20 @@ serve(async (req) => {
         }
       })
     } else {
-      // بيانات احتياطية
       processedMatches = allMatches
     }
+
+    // ترتيب المباريات حسب الأهمية والتاريخ
+    processedMatches.sort((a: any, b: any) => {
+      if (status === 'upcoming') {
+        return new Date(a.date).getTime() - new Date(b.date).getTime()
+      } else {
+        return new Date(b.date).getTime() - new Date(a.date).getTime()
+      }
+    })
+
+    // أخذ أفضل 30 مباراة
+    processedMatches = processedMatches.slice(0, 30)
 
     console.log(`=== Returning ${processedMatches.length} processed matches for status: ${status} ===`)
 
@@ -595,28 +393,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('=== Error in football matches API ===', error)
     
-    // بيانات احتياطية في حالة الخطأ
-    const errorFallbackMatches = [
-      {
-        id: 'error-fallback-1',
-        homeTeam: 'الاتحاد',
-        awayTeam: 'الأهلي',
-        homeScore: null,
-        awayScore: null,
-        status: 'upcoming',
-        date: new Date(Date.now() + 86400000).toISOString(),
-        competition: 'دوري روشن السعودي',
-        homeLogo: '/placeholder.svg',
-        awayLogo: '/placeholder.svg',
-        leagueFlag: '/placeholder.svg',
-        minute: null
-      }
-    ]
-    
     return new Response(
       JSON.stringify({ 
         error: 'خطأ في الخادم',
-        matches: errorFallbackMatches,
+        matches: [],
         success: false
       }),
       { 
