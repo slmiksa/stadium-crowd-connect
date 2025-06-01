@@ -304,7 +304,7 @@ serve(async (req) => {
   }
 
   try {
-    const apiKey = 'cc800cbaffd9f1c8a39ba4cd742815c0'
+    const apiKey = '821aee6f9e3f494ab98d299588b8ad53'
     
     console.log('Using API Key:', apiKey.substring(0, 8) + '...')
 

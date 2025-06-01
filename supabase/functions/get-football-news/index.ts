@@ -17,43 +17,9 @@ serve(async (req) => {
 
   try {
     // استخدام NewsAPI للحصول على أخبار رياضية حقيقية
-    const newsApiKey = Deno.env.get('NEWS_API_KEY')
+    const newsApiKey = '821aee6f9e3f494ab98d299588b8ad53'
     
-    if (!newsApiKey) {
-      console.log('News API key not found, using fallback data')
-      // بيانات احتياطية إذا لم يتم توفير مفتاح API
-      const fallbackNews = [
-        {
-          id: 'news-1',
-          title: 'الهلال يفوز على النصر في الكلاسيكو السعودي',
-          description: 'انتهت مباراة الكلاسيكو السعودي بين الهلال والنصر بفوز الهلال بهدفين مقابل هدف واحد في مباراة مثيرة شهدت أهدافاً رائعة من الفريقين.',
-          image: '/placeholder.svg',
-          date: new Date().toISOString(),
-          source: 'الرياضية'
-        },
-        {
-          id: 'news-2',
-          title: 'محمد صلاح يقود ليفربول للفوز على مانشستر سيتي',
-          description: 'سجل محمد صلاح هدفين رائعين ليقود ليفربول للفوز على مانشستر سيتي بثلاثة أهداف مقابل هدف واحد في قمة الدوري الإنجليزي.',
-          image: '/placeholder.svg',
-          date: new Date(Date.now() - 86400000).toISOString(),
-          source: 'بي بي سي سبورت'
-        }
-      ]
-      
-      return new Response(
-        JSON.stringify({ 
-          news: fallbackNews,
-          success: true,
-          source: 'fallback'
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
+    console.log('Using News API key:', newsApiKey.substring(0, 8) + '...')
     console.log('Fetching real football news from NewsAPI...')
 
     // جلب الأخبار الرياضية الحقيقية
