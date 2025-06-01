@@ -371,6 +371,8 @@ const Hashtags = () => {
         hashtag: post.hashtags?.[0] || ''
       }} 
       onLikeChange={handlePostLikeChange}
+      hideCommentsButton={true}
+      preventClick={true}
     />
   );
 

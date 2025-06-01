@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Share2, MoreVertical } from 'lucide-react';
@@ -24,13 +25,15 @@ interface HashtagPostProps {
   onLikeChange?: () => void;
   hideCommentsButton?: boolean;
   onCommentClick?: () => void;
+  preventClick?: boolean;
 }
 
 const HashtagPost: React.FC<HashtagPostProps> = ({ 
   post, 
   onLikeChange,
   hideCommentsButton = false,
-  onCommentClick
+  onCommentClick,
+  preventClick = false
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -105,13 +108,27 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
   };
 
   const handlePostClick = () => {
-    navigate(`/post/${post.id}`);
+    if (!preventClick) {
+      navigate(`/post/${post.id}`);
+    }
+  };
+
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Copy post link to clipboard
+    const postUrl = `${window.location.origin}/post/${post.id}`;
+    navigator.clipboard.writeText(postUrl).then(() => {
+      // You could add a toast notification here
+      console.log('تم نسخ رابط المنشور');
+    });
   };
 
   return (
     <div 
       onClick={handlePostClick}
-      className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer"
+      className={`bg-gray-800/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 ${
+        preventClick ? '' : 'cursor-pointer'
+      }`}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
@@ -158,11 +175,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
       {/* Actions */}
       <div className="flex items-center justify-between pt-3 border-t border-gray-700/30">
         <div className="flex items-center space-x-6 space-x-reverse">
-          <LikeButton
-            postId={post.id}
-            initialLikesCount={post.likes_count}
-            onLikeChange={onLikeChange}
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <LikeButton
+              postId={post.id}
+              initialLikesCount={post.likes_count}
+              onLikeChange={onLikeChange}
+            />
+          </div>
           
           {!hideCommentsButton && (
             <button
@@ -174,7 +193,10 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
             </button>
           )}
           
-          <button className="flex items-center space-x-2 space-x-reverse text-gray-400 hover:text-green-400 transition-colors group">
+          <button 
+            onClick={handleShareClick}
+            className="flex items-center space-x-2 space-x-reverse text-gray-400 hover:text-green-400 transition-colors group"
+          >
             <Share2 size={18} className="group-hover:scale-110 transition-transform" />
             <span className="text-sm font-medium">مشاركة</span>
           </button>

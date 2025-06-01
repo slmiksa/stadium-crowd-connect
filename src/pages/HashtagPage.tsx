@@ -4,8 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import HashtagPost from '@/components/HashtagPost';
-import CommentItem from '@/components/CommentItem';
-import { ArrowLeft, Hash, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Hash, TrendingUp, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -30,57 +29,19 @@ interface HashtagPostWithProfile {
   }>;
 }
 
-interface HashtagCommentWithProfile {
-  id: string;
-  content: string;
-  hashtags: string[];
-  created_at: string;
-  user_id: string;
-  post_id: string;
-  parent_id?: string;
-  image_url?: string;
-  media_url?: string;
-  media_type?: string;
-  type: 'comment';
-  profiles: {
-    id: string;
-    username: string;
-    avatar_url?: string;
-  };
-}
-
-type HashtagContent = HashtagPostWithProfile | HashtagCommentWithProfile;
-
 const HashtagPage = () => {
   const { hashtag } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<HashtagPostWithProfile[]>([]);
-  const [comments, setComments] = useState<HashtagCommentWithProfile[]>([]);
   const [postContent, setPostContent] = useState(`#${hashtag} `);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (hashtag) {
-      fetchHashtagContent();
+      fetchHashtagPosts();
       
-      // Set up real-time subscription for comments
-      const commentsChannel = supabase
-        .channel('hashtag-comments-channel')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'hashtag_comments'
-          },
-          () => {
-            fetchHashtagComments();
-          }
-        )
-        .subscribe();
-
       // Set up real-time subscription for posts
       const postsChannel = supabase
         .channel('hashtag-posts-channel')
@@ -98,32 +59,15 @@ const HashtagPage = () => {
         .subscribe();
 
       return () => {
-        supabase.removeChannel(commentsChannel);
         supabase.removeChannel(postsChannel);
       };
     }
   }, [hashtag]);
 
-  const fetchHashtagContent = async () => {
+  const fetchHashtagPosts = async () => {
     try {
       setIsLoading(true);
       
-      const [postsResult, commentsResult] = await Promise.all([
-        fetchHashtagPosts(),
-        fetchHashtagComments()
-      ]);
-
-      setPosts(postsResult);
-      setComments(commentsResult);
-    } catch (error) {
-      console.error('Error fetching hashtag content:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchHashtagPosts = async () => {
-    try {
       const { data: postsData, error: postsError } = await supabase
         .from('hashtag_posts')
         .select(`
@@ -142,7 +86,7 @@ const HashtagPage = () => {
 
       if (postsError) {
         console.error('Error fetching hashtag posts:', postsError);
-        return [];
+        return;
       }
 
       if (postsData) {
@@ -158,79 +102,14 @@ const HashtagPage = () => {
         }
       }
 
-      return postsData?.map(post => ({ ...post, type: 'post' as const })) || [];
+      const postsWithType = postsData?.map(post => ({ ...post, type: 'post' as const })) || [];
+      setPosts(postsWithType);
     } catch (error) {
       console.error('Error in fetchHashtagPosts:', error);
-      return [];
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const fetchHashtagComments = async () => {
-    try {
-      // البحث في مصفوفة الهاشتاقات
-      const { data: hashtagComments, error: hashtagError } = await supabase
-        .from('hashtag_comments')
-        .select(`
-          *,
-          profiles (
-            id,
-            username,
-            avatar_url
-          )
-        `)
-        .contains('hashtags', [hashtag])
-        .order('created_at', { ascending: false });
-
-      // البحث في النص كطريقة احتياطية
-      const searchPattern = `#${hashtag}`;
-      const { data: contentComments, error: contentError } = await supabase
-        .from('hashtag_comments')
-        .select(`
-          *,
-          profiles (
-            id,
-            username,
-            avatar_url
-          )
-        `)
-        .ilike('content', `%${searchPattern}%`)
-        .order('created_at', { ascending: false });
-
-      // دمج النتائج وإزالة المكررات
-      const allComments = new Map();
-      
-      if (hashtagComments) {
-        hashtagComments.forEach(comment => {
-          allComments.set(comment.id, comment);
-        });
-      }
-      
-      if (contentComments) {
-        contentComments.forEach(comment => {
-          if (!allComments.has(comment.id)) {
-            allComments.set(comment.id, comment);
-          }
-        });
-      }
-
-      const finalComments = Array.from(allComments.values());
-      
-      const sortedComments = finalComments.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-
-      return sortedComments.map(comment => ({ ...comment, type: 'comment' as const }));
-      
-    } catch (error) {
-      console.error('Error in fetchHashtagComments:', error);
-      return [];
-    }
-  };
-
-  const combinedContent = useMemo(() => {
-    const allContent: HashtagContent[] = [...posts, ...comments];
-    return allContent.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [posts, comments]);
 
   const extractHashtags = (text: string) => {
     const hashtagRegex = /#[\u0600-\u06FF\w]+/g;
@@ -260,7 +139,7 @@ const HashtagPage = () => {
       }
 
       setPostContent(`#${hashtag} `);
-      await fetchHashtagContent();
+      await fetchHashtagPosts();
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -269,11 +148,7 @@ const HashtagPage = () => {
   };
 
   const handlePostLikeChange = () => {
-    fetchHashtagContent();
-  };
-
-  const handleCommentClick = (commentData: HashtagCommentWithProfile) => {
-    navigate(`/post/${commentData.post_id}`);
+    fetchHashtagPosts();
   };
 
   const handleProfileClick = (userId: string) => {
@@ -285,9 +160,7 @@ const HashtagPage = () => {
   };
 
   const postsCount = posts.length;
-  const commentsCount = comments.length;
-  const totalContent = combinedContent.length;
-  const isTrending = totalContent >= 35 || posts.some(post => post.comments_count >= 5);
+  const isTrending = postsCount >= 35;
 
   if (isLoading) {
     return (
@@ -332,14 +205,6 @@ const HashtagPage = () => {
                 <p className="text-sm text-zinc-400">عدد المنشورات</p>
                 <p className="text-lg font-bold text-white">{postsCount}</p>
               </div>
-              <div>
-                <p className="text-sm text-zinc-400">عدد التعليقات</p>
-                <p className="text-lg font-bold text-green-400">{commentsCount}</p>
-              </div>
-              <div>
-                <p className="text-sm text-zinc-400">المجموع</p>
-                <p className="text-lg font-bold text-blue-400">{totalContent}</p>
-              </div>
             </div>
             {isTrending && (
               <div className="flex items-center space-x-2 bg-orange-500/20 px-3 py-1 rounded-full">
@@ -347,6 +212,16 @@ const HashtagPage = () => {
                 <span className="text-sm text-orange-400 font-medium">ترند</span>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Info Note */}
+        <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 mb-6">
+          <div className="flex items-center space-x-3">
+            <Info size={20} className="text-blue-400" />
+            <p className="text-blue-100 text-sm">
+              <strong>ملاحظة:</strong> يعرض هنا فقط المنشورات التي تحتوي على هذا الهاشتاق. التعليقات لا تعرض في هذه الصفحة.
+            </p>
           </div>
         </div>
 
@@ -387,54 +262,27 @@ const HashtagPage = () => {
           </div>
         )}
 
-        {/* Combined Content Feed */}
+        {/* Posts Feed */}
         <div className="space-y-6">
-          {combinedContent.length === 0 ? (
+          {posts.length === 0 ? (
             <div className="text-center py-8">
               <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
-              <p className="text-zinc-400">لا يوجد محتوى لهذا الهاشتاق بعد</p>
+              <p className="text-zinc-400">لا يوجد منشورات لهذا الهاشتاق بعد</p>
               <p className="text-zinc-500 text-sm">كن أول من ينشر!</p>
             </div>
           ) : (
-            combinedContent.map((item) => {
-              if (item.type === 'post') {
-                const post = item as HashtagPostWithProfile;
-                return (
-                  <HashtagPost 
-                    key={`post-${post.id}`}
-                    post={{
-                      ...post,
-                      hashtag: hashtag || ''
-                    }} 
-                    onLikeChange={handlePostLikeChange}
-                  />
-                );
-              } else {
-                const comment = item as HashtagCommentWithProfile;
-                return (
-                  <div 
-                    key={`comment-${comment.id}`}
-                    className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700/50 hover:bg-zinc-800/70 transition-colors cursor-pointer"
-                    onClick={() => handleCommentClick(comment)}
-                  >
-                    <CommentItem
-                      comment={{
-                        ...comment,
-                        media_url: comment.media_url || comment.image_url,
-                        media_type: comment.media_type || (comment.image_url ? 'image' : undefined)
-                      }}
-                      onReply={() => {}}
-                      onProfileClick={handleProfileClick}
-                    />
-                    <div className="mt-3 pt-3 border-t border-zinc-700/30">
-                      <p className="text-xs text-zinc-500">
-                        تعليق على منشور • اضغط للذهاب إلى المنشور
-                      </p>
-                    </div>
-                  </div>
-                );
-              }
-            })
+            posts.map((post) => (
+              <HashtagPost 
+                key={`post-${post.id}`}
+                post={{
+                  ...post,
+                  hashtag: hashtag || ''
+                }} 
+                onLikeChange={handlePostLikeChange}
+                hideCommentsButton={true}
+                preventClick={true}
+              />
+            ))
           )}
         </div>
       </div>
