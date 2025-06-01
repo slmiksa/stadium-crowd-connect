@@ -1,10 +1,9 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
-import { Clock, Users, MapPin } from 'lucide-react';
+import { Clock, Users, MapPin, RefreshCw } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -53,6 +52,10 @@ const Matches = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchMatches();
   };
 
   const handleMatchClick = (matchId: string) => {
@@ -200,7 +203,17 @@ const Matches = () => {
         <div className="p-4 space-y-6 pb-20">
           {/* Header */}
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-white mb-2">المباريات</h1>
+            <div className="flex items-center justify-between mb-2">
+              <div></div>
+              <h1 className="text-3xl font-bold text-white">المباريات</h1>
+              <button
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors"
+              >
+                <RefreshCw size={20} className={`text-white ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
             <p className="text-gray-400">تابع أحدث المباريات والنتائج</p>
           </div>
 

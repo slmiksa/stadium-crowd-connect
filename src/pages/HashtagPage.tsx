@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import HashtagPost from '@/components/HashtagPost';
-import { ArrowLeft, Hash, TrendingUp, Info } from 'lucide-react';
+import { ArrowLeft, Hash, TrendingUp, Info, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -159,6 +158,10 @@ const HashtagPage = () => {
     }
   };
 
+  const handleRefresh = () => {
+    fetchHashtagPosts();
+  };
+
   const postsCount = posts.length;
   const isTrending = postsCount >= 35;
 
@@ -195,6 +198,13 @@ const HashtagPage = () => {
               )}
             </div>
           </div>
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors"
+          >
+            <RefreshCw size={20} className={`text-white ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
         {/* Hashtag Stats */}

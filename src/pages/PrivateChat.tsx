@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -161,6 +161,10 @@ const PrivateChat = () => {
     }
   };
 
+  const handleRefresh = () => {
+    fetchMessages();
+  };
+
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('ar-SA', { 
@@ -194,22 +198,31 @@ const PrivateChat = () => {
     <div className="min-h-screen bg-zinc-900 flex flex-col">
       {/* Header */}
       <div className="bg-zinc-800 border-b border-zinc-700 p-4">
-        <div className="flex items-center space-x-3">
-          <button 
-            onClick={() => navigate('/messages')}
-            className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
-          >
-            <ArrowLeft size={20} className="text-white" />
-          </button>
-          <Avatar className="w-10 h-10">
-            <AvatarImage src={otherUser.avatar_url} alt={otherUser.username} />
-            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-green-500 text-white">
-              {otherUser.username?.charAt(0).toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-lg font-bold text-white">{otherUser.username}</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => navigate('/messages')}
+              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
+            >
+              <ArrowLeft size={20} className="text-white" />
+            </button>
+            <Avatar className="w-10 h-10">
+              <AvatarImage src={otherUser.avatar_url} alt={otherUser.username} />
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-green-500 text-white">
+                {otherUser.username?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-lg font-bold text-white">{otherUser.username}</h1>
+            </div>
           </div>
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors"
+          >
+            <RefreshCw size={16} className={`text-white ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 

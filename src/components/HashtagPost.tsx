@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Share2, MoreVertical } from 'lucide-react';
+import { MessageCircle, Share2, MoreVertical } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import LikeButton from './LikeButton';
 
@@ -95,6 +94,15 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
       navigate('/profile');
     } else {
       navigate(`/user-profile/${post.user_id}`);
+    }
+  };
+
+  const handleCommentsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onCommentClick) {
+      onCommentClick();
+    } else {
+      navigate(`/comments/${post.id}`);
     }
   };
 
@@ -215,6 +223,16 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
               onLikeChange={onLikeChange}
             />
           </div>
+          
+          {!hideCommentsButton && (
+            <button
+              onClick={handleCommentsClick}
+              className="flex items-center space-x-2 space-x-reverse text-gray-400 hover:text-blue-400 transition-colors group"
+            >
+              <MessageCircle size={18} className="group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-medium">{post.comments_count}</span>
+            </button>
+          )}
           
           <button 
             onClick={handleShareClick}
