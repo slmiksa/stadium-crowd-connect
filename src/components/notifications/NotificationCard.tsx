@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, MessageSquare, Users, Heart, UserPlus, Plus } from 'lucide-react';
+import { Bell, MessageSquare, Users, Heart, UserPlus, Plus, Key, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -72,6 +72,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
         return <Plus size={18} className="text-yellow-400" />;
       case 'chat_room':
         return <Users size={18} className="text-cyan-400" />;
+      case 'room_invitation':
+        return <Users size={18} className="text-pink-400" />;
       default:
         return <Bell size={18} className="text-gray-400" />;
     }
@@ -92,6 +94,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
         return 'bg-yellow-500/20 border-yellow-500/30';
       case 'chat_room':
         return 'bg-cyan-500/20 border-cyan-500/30';
+      case 'room_invitation':
+        return 'bg-pink-500/20 border-pink-500/30';
       default:
         return 'bg-gray-500/20 border-gray-500/30';
     }
@@ -141,7 +145,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
           notification.type === 'follow' ? 'bg-green-500/20' :
           notification.type === 'message' ? 'bg-purple-500/20' :
           notification.type === 'post' ? 'bg-yellow-500/20' :
-          notification.type === 'chat_room' ? 'bg-cyan-500/20' : 'bg-gray-500/20'
+          notification.type === 'chat_room' ? 'bg-cyan-500/20' :
+          notification.type === 'room_invitation' ? 'bg-pink-500/20' : 'bg-gray-500/20'
         }`}>
           {getNotificationIcon()}
         </div>
@@ -195,12 +200,39 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             </div>
           )}
 
+          {/* Room invitation special content with password */}
+          {notification.type === 'room_invitation' && (
+            <div className="bg-gray-700/50 rounded-lg p-3 mb-3">
+              <p className="text-xs text-gray-400 mb-1">اسم الغرفة:</p>
+              <p className="text-sm text-pink-300 font-medium">{notification.data.room_name}</p>
+              {notification.data.room_description && (
+                <>
+                  <p className="text-xs text-gray-400 mb-1 mt-2">الوصف:</p>
+                  <p className="text-sm text-gray-300">{notification.data.room_description}</p>
+                </>
+              )}
+              {notification.data.room_password && (
+                <div className="mt-3 p-2 bg-gray-600/50 rounded-lg border border-yellow-500/30">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Key size={14} className="text-yellow-400" />
+                    <p className="text-xs text-yellow-400 font-medium">كلمة السر:</p>
+                  </div>
+                  <p className="text-sm text-yellow-200 font-mono bg-gray-800/50 px-2 py-1 rounded select-all">
+                    {notification.data.room_password}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">اضغط لتحديد ونسخ كلمة السر</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2">
             {/* Profile button for most notification types */}
             {(notification.type === 'follow' || notification.type === 'like' || 
               notification.type === 'comment' || notification.type === 'follower_comment' || 
-              notification.type === 'post' || notification.type === 'chat_room') && (
+              notification.type === 'post' || notification.type === 'chat_room' || 
+              notification.type === 'room_invitation') && (
               <Button
                 size="sm"
                 variant="outline"
@@ -226,14 +258,15 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             )}
 
             {/* Room button for chat room notifications */}
-            {notification.type === 'chat_room' && notification.data?.room_id && (
+            {(notification.type === 'chat_room' || notification.type === 'room_invitation') && notification.data?.room_id && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={(e) => onRoomClick(notification, e)}
-                className="bg-cyan-600/20 border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/30 hover:text-cyan-300 text-xs px-3 py-1 h-auto"
+                className="bg-cyan-600/20 border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/30 hover:text-cyan-300 text-xs px-3 py-1 h-auto flex items-center gap-1"
               >
-                الغرفة
+                <LogIn size={14} />
+                {notification.type === 'room_invitation' ? 'دخول الغرفة' : 'الغرفة'}
               </Button>
             )}
           </div>
