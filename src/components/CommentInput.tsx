@@ -125,10 +125,10 @@ const CommentInput: React.FC<CommentInputProps> = ({
   };
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 bg-gray-800/95 rounded-lg p-2">
       {/* Reply indicator */}
       {replyTo && (
-        <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-700/30 p-1.5 rounded">
+        <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-700/40 p-1.5 rounded">
           <Reply size={10} />
           <span>رد على {replyTo.username}</span>
           {onCancelReply && (
@@ -150,12 +150,12 @@ const CommentInput: React.FC<CommentInputProps> = ({
             <img 
               src={mediaPreview} 
               alt="Preview" 
-              className="w-10 h-10 object-cover rounded border border-gray-600"
+              className="w-8 h-8 object-cover rounded border border-gray-600"
             />
           ) : (
             <video 
               src={mediaPreview} 
-              className="w-12 h-8 object-cover rounded border border-gray-600"
+              className="w-10 h-6 object-cover rounded border border-gray-600"
               controls
             />
           )}
@@ -169,7 +169,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
         </div>
       )}
 
-      {/* Comment Input Form - Extra Compact */}
+      {/* Comment Input Form - More compact */}
       <form onSubmit={handleSubmit} className="flex items-center gap-1">
         <div className="flex-1">
           <Textarea
@@ -177,7 +177,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={replyTo ? `رد على ${replyTo.username}...` : placeholder}
-            className="bg-gray-700/40 border-gray-600/50 text-white placeholder:text-gray-500 resize-none min-h-[32px] max-h-[60px] focus:border-blue-500 focus:ring-blue-500/20 text-sm py-1.5 px-2 rounded-lg"
+            className="bg-gray-700/60 border-gray-600/50 text-white placeholder:text-gray-500 resize-none min-h-[28px] max-h-[50px] focus:border-blue-500 focus:ring-blue-500/20 text-sm py-1 px-2 rounded-md"
             disabled={isSubmitting}
             rows={1}
           />
@@ -187,31 +187,31 @@ const CommentInput: React.FC<CommentInputProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-1 bg-gray-700/40 rounded hover:bg-gray-600 transition-colors border border-gray-600/50 hover:border-gray-500"
+            className="p-1 bg-gray-700/60 rounded hover:bg-gray-600 transition-colors border border-gray-600/50 hover:border-gray-500"
             disabled={isSubmitting}
           >
-            <Image size={14} className="text-gray-400" />
+            <Image size={12} className="text-gray-400" />
           </button>
           
           <button
             type="button"
             onClick={insertHashtag}
-            className="p-1 bg-gray-700/40 rounded hover:bg-gray-600 transition-colors border border-gray-600/50 hover:border-gray-500"
+            className="p-1 bg-gray-700/60 rounded hover:bg-gray-600 transition-colors border border-gray-600/50 hover:border-gray-500"
             disabled={isSubmitting}
           >
-            <Hash size={14} className="text-gray-400" />
+            <Hash size={12} className="text-gray-400" />
           </button>
           
           <Button
             type="submit"
             disabled={(!comment.trim() && !selectedMedia) || isSubmitting}
-            className="p-1 bg-blue-500 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-0 h-7 w-7"
+            className="p-1 bg-blue-500 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-0 h-6 w-6"
             size="sm"
           >
             {isSubmitting ? (
-              <div className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-2 h-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <Send size={12} className="text-white" />
+              <Send size={10} className="text-white" />
             )}
           </Button>
         </div>
