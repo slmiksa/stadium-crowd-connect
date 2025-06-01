@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -104,7 +103,7 @@ serve(async (req) => {
         }
       }
     } catch (e) {
-      console.log('خطأ في تحليل البيانات، استخدام القيم الافتراضية:', e)
+      console.log('خطأ في تحليل البيانات:', e)
     }
     
     const status = requestBody.status || statusFromUrl || 'live'
@@ -119,9 +118,8 @@ serve(async (req) => {
         const apiUrl = 'https://v3.football.api-sports.io/fixtures?live=all'
         console.log('جلب المباريات المباشرة من:', apiUrl)
         
-        // إضافة timeout للتسريع
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 5000)
+        const timeoutId = setTimeout(() => controller.abort(), 10000)
         
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -147,21 +145,20 @@ serve(async (req) => {
         }
       } 
       else if (status === 'finished') {
-        console.log('جلب المباريات المنتهية من تواريخ متعددة...')
+        console.log('جلب المباريات المنتهية...')
         const dates = []
-        for (let i = 0; i <= 3; i++) {
+        for (let i = 0; i <= 7; i++) {
           const pastDate = new Date(Date.now() - (i * 86400000))
           dates.push(pastDate.toISOString().split('T')[0])
         }
         
-        // الدوريات المهمة للتسريع
-        const priorityLeagues = [39, 140, 135, 307, 2] // Premier League, La Liga, Serie A, Saudi Pro League, Champions League
+        const priorityLeagues = [39, 140, 135, 78, 61, 2, 3, 307] // Premier, La Liga, Serie A, Bundesliga, Ligue 1, Champions, Europa, Saudi
         
         for (const searchDate of dates) {
           for (const leagueId of priorityLeagues) {
             try {
               const controller = new AbortController()
-              const timeoutId = setTimeout(() => controller.abort(), 3000)
+              const timeoutId = setTimeout(() => controller.abort(), 5000)
               
               const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&league=${leagueId}&status=FT`
               
@@ -184,34 +181,32 @@ serve(async (req) => {
                 }
               }
               
-              // تقليل التأخير للتسريع
-              await new Promise(resolve => setTimeout(resolve, 50))
+              await new Promise(resolve => setTimeout(resolve, 100))
               
-              // إيقاف البحث إذا وصلنا لعدد كافٍ
-              if (allMatches.length >= 15) break
+              if (allMatches.length >= 30) break
               
             } catch (error) {
               console.error(`خطأ في ${searchDate} للدوري ${leagueId}:`, error)
             }
           }
-          if (allMatches.length >= 15) break
+          if (allMatches.length >= 30) break
         }
       } 
       else if (status === 'upcoming') {
-        console.log('جلب المباريات القادمة من تواريخ متعددة...')
+        console.log('جلب المباريات القادمة...')
         const dates = []
-        for (let i = 0; i <= 5; i++) {
+        for (let i = 0; i <= 10; i++) {
           const futureDate = new Date(Date.now() + (i * 86400000))
           dates.push(futureDate.toISOString().split('T')[0])
         }
         
-        const priorityLeagues = [39, 140, 135, 307, 2]
+        const priorityLeagues = [39, 140, 135, 78, 61, 2, 3, 307]
         
         for (const searchDate of dates) {
           for (const leagueId of priorityLeagues) {
             try {
               const controller = new AbortController()
-              const timeoutId = setTimeout(() => controller.abort(), 3000)
+              const timeoutId = setTimeout(() => controller.abort(), 5000)
               
               const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&league=${leagueId}&status=NS`
               
@@ -234,15 +229,15 @@ serve(async (req) => {
                 }
               }
               
-              await new Promise(resolve => setTimeout(resolve, 50))
+              await new Promise(resolve => setTimeout(resolve, 100))
               
-              if (allMatches.length >= 20) break
+              if (allMatches.length >= 40) break
               
             } catch (error) {
               console.error(`خطأ في ${searchDate} للدوري ${leagueId}:`, error)
             }
           }
-          if (allMatches.length >= 20) break
+          if (allMatches.length >= 40) break
         }
       }
     } catch (error) {
@@ -251,116 +246,64 @@ serve(async (req) => {
 
     console.log(`إجمالي المباريات المجلبة: ${allMatches.length}`)
 
-    // بيانات احتياطية محسنة وسريعة التحميل
+    // إذا لم نحصل على مباريات حقيقية، نرجع قائمة فارغة
     if (allMatches.length === 0) {
-      console.log('استخدام البيانات الاحتياطية المحسنة')
-      const fallbackMatches = [
-        {
-          id: 'fallback-live-1',
-          homeTeam: 'الهلال',
-          awayTeam: 'النصر',
-          homeScore: 1,
-          awayScore: 0,
-          status: 'live',
-          date: new Date().toISOString(),
-          competition: 'دوري روشن السعودي',
-          homeLogo: '/placeholder.svg',
-          awayLogo: '/placeholder.svg',
-          leagueFlag: '/placeholder.svg',
-          minute: 65
-        },
-        {
-          id: 'fallback-upcoming-1',
-          homeTeam: 'ريال مدريد',
-          awayTeam: 'برشلونة',
-          homeScore: null,
-          awayScore: null,
-          status: 'upcoming',
-          date: new Date(Date.now() + 86400000).toISOString(),
-          competition: 'الليغا الإسبانية',
-          homeLogo: '/placeholder.svg',
-          awayLogo: '/placeholder.svg',
-          leagueFlag: '/placeholder.svg',
-          minute: null
-        },
-        {
-          id: 'fallback-finished-1',
-          homeTeam: 'إنتر ميلان',
-          awayTeam: 'يوفنتوس',
-          homeScore: 2,
-          awayScore: 0,
-          status: 'finished',
-          date: new Date(Date.now() - 86400000).toISOString(),
-          competition: 'الدوري الإيطالي',
-          homeLogo: '/placeholder.svg',
-          awayLogo: '/placeholder.svg',
-          leagueFlag: '/placeholder.svg',
-          minute: 90
-        },
-        {
-          id: 'fallback-finished-2',
-          homeTeam: 'ليفربول',
-          awayTeam: 'مانشستر سيتي',
-          homeScore: 3,
-          awayScore: 1,
-          status: 'finished',
-          date: new Date(Date.now() - 172800000).toISOString(),
-          competition: 'الدوري الإنجليزي الممتاز',
-          homeLogo: '/placeholder.svg',
-          awayLogo: '/placeholder.svg',
-          leagueFlag: '/placeholder.svg',
-          minute: 90
+      console.log('لا توجد مباريات حقيقية متاحة')
+      return new Response(
+        JSON.stringify({ 
+          matches: [],
+          totalAvailable: 0,
+          fromApi: false,
+          requestedStatus: status,
+          success: true,
+          message: 'لا توجد مباريات متاحة في الوقت الحالي'
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
-      ]
-      allMatches = fallbackMatches.filter(m => m.status === status)
+      )
     }
 
-    // معالجة المباريات بسرعة
-    let processedMatches = []
-    
-    if (allMatches.length > 0 && allMatches[0].fixture) {
-      // بيانات من API Football
-      processedMatches = allMatches.map((fixture: any) => {
-        const leagueName = fixture.league.name
-        const arabicLeagueName = leagueTranslations[leagueName] || leagueName
+    // معالجة المباريات الحقيقية فقط
+    const processedMatches = allMatches.map((fixture: any) => {
+      const leagueName = fixture.league.name
+      const arabicLeagueName = leagueTranslations[leagueName] || leagueName
 
-        const homeTeamName = teamTranslations[fixture.teams.home.name] || fixture.teams.home.name
-        const awayTeamName = teamTranslations[fixture.teams.away.name] || fixture.teams.away.name
+      const homeTeamName = teamTranslations[fixture.teams.home.name] || fixture.teams.home.name
+      const awayTeamName = teamTranslations[fixture.teams.away.name] || fixture.teams.away.name
 
-        let matchStatus: 'upcoming' | 'live' | 'finished' = 'upcoming'
-        if (fixture.fixture.status.short === 'LIVE' || fixture.fixture.status.short === '1H' || 
-            fixture.fixture.status.short === '2H' || fixture.fixture.status.short === 'HT' ||
-            fixture.fixture.status.short === 'ET' || fixture.fixture.status.short === 'BT' ||
-            fixture.fixture.status.short === 'P' || fixture.fixture.status.short === 'SUSP' ||
-            fixture.fixture.status.short === 'INT') {
-          matchStatus = 'live'
-        } else if (fixture.fixture.status.short === 'FT' || fixture.fixture.status.short === 'AET' || 
-                   fixture.fixture.status.short === 'PEN' || fixture.fixture.status.short === 'PST' ||
-                   fixture.fixture.status.short === 'CANC' || fixture.fixture.status.short === 'ABD' ||
-                   fixture.fixture.status.short === 'AWD' || fixture.fixture.status.short === 'WO') {
-          matchStatus = 'finished'
-        }
+      let matchStatus: 'upcoming' | 'live' | 'finished' = 'upcoming'
+      if (fixture.fixture.status.short === 'LIVE' || fixture.fixture.status.short === '1H' || 
+          fixture.fixture.status.short === '2H' || fixture.fixture.status.short === 'HT' ||
+          fixture.fixture.status.short === 'ET' || fixture.fixture.status.short === 'BT' ||
+          fixture.fixture.status.short === 'P' || fixture.fixture.status.short === 'SUSP' ||
+          fixture.fixture.status.short === 'INT') {
+        matchStatus = 'live'
+      } else if (fixture.fixture.status.short === 'FT' || fixture.fixture.status.short === 'AET' || 
+                 fixture.fixture.status.short === 'PEN' || fixture.fixture.status.short === 'PST' ||
+                 fixture.fixture.status.short === 'CANC' || fixture.fixture.status.short === 'ABD' ||
+                 fixture.fixture.status.short === 'AWD' || fixture.fixture.status.short === 'WO') {
+        matchStatus = 'finished'
+      }
 
-        return {
-          id: fixture.fixture.id.toString(),
-          homeTeam: homeTeamName,
-          awayTeam: awayTeamName,
-          homeScore: fixture.goals.home,
-          awayScore: fixture.goals.away,
-          status: matchStatus,
-          date: fixture.fixture.date,
-          competition: arabicLeagueName,
-          homeLogo: fixture.teams.home.logo,
-          awayLogo: fixture.teams.away.logo,
-          leagueFlag: fixture.league.flag,
-          minute: fixture.fixture.status.elapsed
-        }
-      })
-    } else {
-      processedMatches = allMatches
-    }
+      return {
+        id: fixture.fixture.id.toString(),
+        homeTeam: homeTeamName,
+        awayTeam: awayTeamName,
+        homeScore: fixture.goals.home,
+        awayScore: fixture.goals.away,
+        status: matchStatus,
+        date: fixture.fixture.date,
+        competition: arabicLeagueName,
+        homeLogo: fixture.teams.home.logo,
+        awayLogo: fixture.teams.away.logo,
+        leagueFlag: fixture.league.flag,
+        minute: fixture.fixture.status.elapsed
+      }
+    })
 
-    // ترتيب سريع للمباريات
+    // ترتيب المباريات
     processedMatches.sort((a: any, b: any) => {
       if (status === 'upcoming') {
         return new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -369,16 +312,13 @@ serve(async (req) => {
       }
     })
 
-    // أخذ عدد محدود للتسريع
-    processedMatches = processedMatches.slice(0, 25)
-
-    console.log(`=== إرجاع ${processedMatches.length} مباراة معالجة للحالة: ${status} ===`)
+    console.log(`=== إرجاع ${processedMatches.length} مباراة حقيقية للحالة: ${status} ===`)
 
     return new Response(
       JSON.stringify({ 
         matches: processedMatches,
         totalAvailable: allMatches.length || 0,
-        fromApi: allMatches.length > 0 && allMatches[0].fixture ? true : false,
+        fromApi: true,
         requestedStatus: status,
         success: true,
         cached: false
@@ -396,7 +336,8 @@ serve(async (req) => {
       JSON.stringify({ 
         error: 'خطأ في الخادم',
         matches: [],
-        success: false
+        success: false,
+        message: 'حدث خطأ في جلب المباريات'
       }),
       { 
         status: 200, 

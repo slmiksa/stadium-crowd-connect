@@ -4,7 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { Clock, Users, MapPin, RefreshCw, Newspaper, ExternalLink } from 'lucide-react';
+import { Clock, Users, MapPin, RefreshCw, Newspaper, ExternalLink, AlertCircle } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -57,6 +57,12 @@ const Matches = () => {
     finished: false,
     news: false
   });
+  const [errorMessages, setErrorMessages] = useState({
+    live: '',
+    upcoming: '',
+    finished: '',
+    news: ''
+  });
 
   useEffect(() => {
     fetchInitialData();
@@ -88,7 +94,7 @@ const Matches = () => {
   const fetchMatchData = async (status: 'live' | 'upcoming' | 'finished') => {
     try {
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 8000)
+        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 10000)
       );
       
       const dataPromise = supabase.functions.invoke('get-football-matches', {
@@ -100,10 +106,22 @@ const Matches = () => {
 
       const { data } = await Promise.race([dataPromise, timeoutPromise]) as any;
       
-      setAllMatches(prev => ({
-        ...prev,
-        [status]: data?.matches || []
-      }));
+      if (data?.success && data?.matches) {
+        setAllMatches(prev => ({
+          ...prev,
+          [status]: data.matches
+        }));
+        setErrorMessages(prev => ({ ...prev, [status]: '' }));
+      } else {
+        setAllMatches(prev => ({
+          ...prev,
+          [status]: []
+        }));
+        setErrorMessages(prev => ({ 
+          ...prev, 
+          [status]: data?.message || 'لا توجد مباريات متاحة في الوقت الحالي' 
+        }));
+      }
       
       setDataLoaded(prev => ({ ...prev, [status]: true }));
       
@@ -111,6 +129,14 @@ const Matches = () => {
       
     } catch (error) {
       console.error(`خطأ في تحميل ${status}:`, error);
+      setAllMatches(prev => ({
+        ...prev,
+        [status]: []
+      }));
+      setErrorMessages(prev => ({ 
+        ...prev, 
+        [status]: 'حدث خطأ في تحميل المباريات. يرجى المحاولة لاحقاً.' 
+      }));
       setDataLoaded(prev => ({ ...prev, [status]: true }));
     }
   };
@@ -118,7 +144,7 @@ const Matches = () => {
   const fetchNewsData = async () => {
     try {
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 8000)
+        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 10000)
       );
       
       const dataPromise = supabase.functions.invoke('get-football-news', {
@@ -127,13 +153,28 @@ const Matches = () => {
 
       const { data } = await Promise.race([dataPromise, timeoutPromise]) as any;
       
-      setNews(data?.news || []);
+      if (data?.success && data?.news) {
+        setNews(data.news);
+        setErrorMessages(prev => ({ ...prev, news: '' }));
+      } else {
+        setNews([]);
+        setErrorMessages(prev => ({ 
+          ...prev, 
+          news: data?.message || 'لا توجد أخبار متاحة في الوقت الحالي' 
+        }));
+      }
+      
       setDataLoaded(prev => ({ ...prev, news: true }));
       
       console.log('تم تحميل الأخبار:', data?.news?.length || 0);
       
     } catch (error) {
       console.error('خطأ في تحميل الأخبار:', error);
+      setNews([]);
+      setErrorMessages(prev => ({ 
+        ...prev, 
+        news: 'حدث خطأ في تحميل الأخبار. يرجى المحاولة لاحقاً.' 
+      }));
       setDataLoaded(prev => ({ ...prev, news: true }));
     }
   };
@@ -381,8 +422,19 @@ const Matches = () => {
     );
   };
 
+  const EmptyState = ({ type, message }: { type: string, message: string }) => (
+    <div className="text-center py-12">
+      <div className="w-16 h-16 bg-gradient-to-r from-gray-600 to-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
+        <AlertCircle size={24} className="text-white" />
+      </div>
+      <p className="text-gray-400 text-lg">{message}</p>
+      <p className="text-gray-500 text-sm mt-2">يرجى المحاولة لاحقاً أو تحديث الصفحة</p>
+    </div>
+  );
+
   const currentMatches = allMatches[activeTab as keyof typeof allMatches] || [];
   const isTabLoading = !dataLoaded[activeTab as keyof typeof dataLoaded];
+  const currentErrorMessage = errorMessages[activeTab as keyof typeof errorMessages];
 
   if (isLoading) {
     return (
@@ -464,12 +516,7 @@ const Matches = () => {
               </div>
             ) : activeTab === 'news' ? (
               news.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Newspaper size={24} className="text-white" />
-                  </div>
-                  <p className="text-gray-400 text-lg">لا توجد أخبار متاحة حالياً</p>
-                </div>
+                <EmptyState type="news" message={currentErrorMessage || 'لا توجد أخبار متاحة حالياً'} />
               ) : (
                 news.map((newsItem) => (
                   <NewsCard key={newsItem.id} newsItem={newsItem} />
@@ -477,22 +524,14 @@ const Matches = () => {
               )
             ) : (
               currentMatches.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className={`w-16 h-16 bg-gradient-to-r ${
-                    activeTab === 'live' ? 'from-red-600 to-red-400' :
-                    activeTab === 'upcoming' ? 'from-blue-600 to-blue-400' :
-                    'from-green-600 to-green-400'
-                  } rounded-full flex items-center justify-center mx-auto mb-4`}>
-                    <span className="text-2xl">
-                      {activeTab === 'live' ? '🔴' : activeTab === 'upcoming' ? '⏰' : '✅'}
-                    </span>
-                  </div>
-                  <p className="text-gray-400 text-lg">
-                    {activeTab === 'live' ? 'لا توجد مباريات مباشرة الآن' :
-                     activeTab === 'upcoming' ? 'لا توجد مباريات قادمة' :
-                     'لا توجد مباريات منتهية'}
-                  </p>
-                </div>
+                <EmptyState 
+                  type={activeTab} 
+                  message={currentErrorMessage || `لا توجد مباريات ${
+                    activeTab === 'live' ? 'مباشرة الآن' :
+                    activeTab === 'upcoming' ? 'قادمة' :
+                    'منتهية'
+                  }`} 
+                />
               ) : (
                 currentMatches.map((match) => (
                   <MatchCard key={match.id} match={match} />

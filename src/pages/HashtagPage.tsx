@@ -39,8 +39,29 @@ const HashtagPage = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [totalPostsCount, setTotalPostsCount] = useState(0);
 
   const POSTS_PER_PAGE = 10;
+
+  // جلب العدد الإجمالي للمنشورات للهاشتاق
+  const fetchTotalCount = useCallback(async () => {
+    try {
+      const { count, error } = await supabase
+        .from('hashtag_posts')
+        .select('*', { count: 'exact', head: true })
+        .contains('hashtags', [hashtag]);
+
+      if (error) {
+        console.error('Error fetching total count:', error);
+        return;
+      }
+
+      console.log(`إجمالي المنشورات للهاشتاق #${hashtag}: ${count || 0}`);
+      setTotalPostsCount(count || 0);
+    } catch (error) {
+      console.error('Error in fetchTotalCount:', error);
+    }
+  }, [hashtag]);
 
   // تحسين جلب البيانات مع pagination
   const fetchHashtagPosts = useCallback(async (pageNum = 1, append = false) => {
@@ -113,6 +134,8 @@ const HashtagPage = () => {
   // تحميل البيانات الأولية
   useEffect(() => {
     if (hashtag) {
+      // جلب العدد الإجمالي أولاً
+      fetchTotalCount();
       fetchHashtagPosts(1, false);
       setPage(1);
       
@@ -133,6 +156,7 @@ const HashtagPage = () => {
                 'hashtags' in payload.new && 
                 Array.isArray(payload.new.hashtags) && 
                 payload.new.hashtags.includes(hashtag)) {
+              fetchTotalCount(); // تحديث العدد الإجمالي
               fetchHashtagPosts(1, false);
             }
           }
@@ -143,7 +167,7 @@ const HashtagPage = () => {
         supabase.removeChannel(postsChannel);
       };
     }
-  }, [hashtag, fetchHashtagPosts]);
+  }, [hashtag, fetchHashtagPosts, fetchTotalCount]);
 
   // تحميل المزيد من المنشورات
   const loadMore = useCallback(() => {
@@ -195,7 +219,7 @@ const HashtagPage = () => {
       }
 
       setPostContent(`#${hashtag} `);
-      // إعادة تحميل المنشورات بعد الإضافة
+      await fetchTotalCount();
       await fetchHashtagPosts(1, false);
       setPage(1);
     } catch (error) {
@@ -207,17 +231,16 @@ const HashtagPage = () => {
 
   const handlePostLikeChange = useCallback(() => {
     // تحديث محدود - لا نعيد تحميل كل البيانات
-    // يمكن تحسين هذا لاحقاً بتحديث المنشور المحدد فقط
   }, []);
 
   const handleRefresh = useCallback(() => {
     setPage(1);
+    fetchTotalCount();
     fetchHashtagPosts(1, false);
-  }, [fetchHashtagPosts]);
+  }, [fetchHashtagPosts, fetchTotalCount]);
 
   // حساب الإحصائيات
-  const postsCount = posts.length;
-  const isTrending = postsCount >= 35;
+  const isTrending = totalPostsCount >= 35;
 
   // عرض التحميل الأولي
   if (isLoading && posts.length === 0) {
@@ -268,7 +291,11 @@ const HashtagPage = () => {
             <div className="flex gap-6">
               <div>
                 <p className="text-sm text-zinc-400">عدد المنشورات</p>
-                <p className="text-lg font-bold text-white">{postsCount}</p>
+                <p className="text-lg font-bold text-white">{totalPostsCount}</p>
+              </div>
+              <div>
+                <p className="text-sm text-zinc-400">المحملة حالياً</p>
+                <p className="text-lg font-bold text-blue-400">{posts.length}</p>
               </div>
             </div>
             {isTrending && (
@@ -319,7 +346,7 @@ const HashtagPage = () => {
 
         {/* Posts Feed */}
         <div className="space-y-6">
-          {posts.length === 0 ? (
+          {totalPostsCount === 0 ? (
             <div className="text-center py-8">
               <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
               <p className="text-zinc-400">لا يوجد منشورات لهذا الهاشتاق بعد</p>
@@ -340,8 +367,7 @@ const HashtagPage = () => {
                 />
               ))}
               
-              {/* تحميل المزيد */}
-              {hasMore && (
+              {hasMore && posts.length < totalPostsCount && (
                 <div className="text-center py-4">
                   {isLoadingMore ? (
                     <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -350,9 +376,15 @@ const HashtagPage = () => {
                       onClick={loadMore}
                       className="text-blue-400 hover:text-blue-300 transition-colors"
                     >
-                      تحميل المزيد
+                      تحميل المزيد ({totalPostsCount - posts.length} متبقي)
                     </button>
                   )}
+                </div>
+              )}
+              
+              {posts.length >= totalPostsCount && totalPostsCount > 0 && (
+                <div className="text-center py-4">
+                  <p className="text-gray-400">تم عرض جميع المنشورات ({totalPostsCount})</p>
                 </div>
               )}
             </>
