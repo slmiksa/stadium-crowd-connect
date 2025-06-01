@@ -16,8 +16,8 @@ serve(async (req) => {
   }
 
   try {
-    // استخدام مفتاح API الجديد
-    const newsApiKey = '5879d532d5877f431c3cadfd42d19ccf'
+    // استخدام مفتاح NewsAPI الصحيح
+    const newsApiKey = '821aee6f9e3f494ab98d299588b8ad53'
     
     console.log('Using News API key:', newsApiKey.substring(0, 8) + '...')
     console.log('Fetching comprehensive football news from NewsAPI...')
