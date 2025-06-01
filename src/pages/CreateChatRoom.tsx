@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -245,7 +246,7 @@ const CreateChatRoom = () => {
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-4 pb-24">
+        <div className="flex-1 overflow-y-auto px-4 pb-32">
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Room Avatar */}
@@ -376,7 +377,7 @@ const CreateChatRoom = () => {
 
             {/* Follower Selection for Private Rooms */}
             {isPrivate && user && (
-              <div className="bg-zinc-800 rounded-lg p-4">
+              <div className="bg-zinc-800 rounded-lg p-4 mb-6">
                 <label className="block text-sm font-medium text-zinc-300 mb-3">
                   <Users size={16} className="inline mr-2" />
                   اختيار المتابعين للدعوة *
@@ -390,19 +391,18 @@ const CreateChatRoom = () => {
                 />
               </div>
             )}
-          </form>
-        </div>
 
-        {/* Fixed Submit Button */}
-        <div className="fixed bottom-20 left-0 right-0 p-4 bg-zinc-950/95 backdrop-blur-sm border-t border-zinc-800">
-          <Button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={!name.trim() || isSubmitting || (isPrivate && (!password.trim() || selectedFollowers.length === 0))}
-            className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 h-12 text-base font-medium"
-          >
-            {isSubmitting ? 'جاري الإنشاء...' : 'إنشاء الغرفة'}
-          </Button>
+            {/* Submit Button - moved here to be part of the scrollable content */}
+            <div className="pb-4">
+              <Button
+                type="submit"
+                disabled={!name.trim() || isSubmitting || (isPrivate && (!password.trim() || selectedFollowers.length === 0))}
+                className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 h-12 text-base font-medium"
+              >
+                {isSubmitting ? 'جاري الإنشاء...' : 'إنشاء الغرفة'}
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
     </Layout>
