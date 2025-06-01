@@ -289,6 +289,36 @@ export type Database = {
           },
         ]
       }
+      hashtag_trends: {
+        Row: {
+          created_at: string | null
+          hashtag: string
+          id: string
+          is_trending: boolean | null
+          posts_count: number | null
+          trend_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          hashtag: string
+          id?: string
+          is_trending?: boolean | null
+          posts_count?: number | null
+          trend_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          hashtag?: string
+          id?: string
+          is_trending?: boolean | null
+          posts_count?: number | null
+          trend_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -696,6 +726,15 @@ export type Database = {
           pending_reports: number
         }[]
       }
+      get_hashtag_statistics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_hashtags: number
+          trending_hashtags: number
+          top_hashtag: string
+          top_hashtag_count: number
+        }[]
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: string
@@ -714,6 +753,10 @@ export type Database = {
       }
       update_admin_password: {
         Args: { admin_id: string; new_password: string }
+        Returns: boolean
+      }
+      update_trending_threshold: {
+        Args: { new_threshold: number }
         Returns: boolean
       }
       verify_admin_login: {

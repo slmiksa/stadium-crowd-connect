@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import HashtagPost from '@/components/HashtagPost';
+import ReportButton from '@/components/ReportButton';
 import { ArrowLeft, Hash, TrendingUp, Info, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Textarea } from '@/components/ui/textarea';
@@ -258,21 +260,21 @@ const HashtagPage = () => {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto p-6 pb-32">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
+      <div className="max-w-6xl mx-auto p-3 md:p-6 pb-20 md:pb-32 overflow-y-auto">
+        {/* Header - محسن للجوال */}
+        <div className="flex items-center justify-between mb-4 md:mb-6 sticky top-0 bg-zinc-950 py-2 z-10">
+          <div className="flex items-center space-x-3 space-x-reverse">
             <button 
               onClick={() => navigate('/hashtags')}
               className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
             >
-              <ArrowLeft size={20} className="text-white" />
+              <ArrowLeft size={18} className="text-white md:w-5 md:h-5" />
             </button>
-            <div className="flex items-center space-x-2">
-              <Hash size={24} className="text-blue-400" />
-              <h1 className="text-xl font-bold text-white">{hashtag}</h1>
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <Hash size={20} className="text-blue-400 md:w-6 md:h-6" />
+              <h1 className="text-lg md:text-xl font-bold text-white">{hashtag}</h1>
               {isTrending && (
-                <TrendingUp size={20} className="text-orange-400" />
+                <TrendingUp size={16} className="text-orange-400 md:w-5 md:h-5" />
               )}
             </div>
           </div>
@@ -281,39 +283,39 @@ const HashtagPage = () => {
             disabled={isLoading}
             className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors"
           >
-            <RefreshCw size={20} className={`text-white ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw size={16} className={`text-white md:w-5 md:h-5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
 
-        {/* Hashtag Stats */}
-        <div className="bg-zinc-800 rounded-lg p-4 mb-6">
+        {/* Hashtag Stats - محسن للجوال */}
+        <div className="bg-zinc-800 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
           <div className="flex items-center justify-between">
-            <div className="flex gap-6">
+            <div className="flex gap-4 md:gap-6">
               <div>
-                <p className="text-sm text-zinc-400">عدد المنشورات</p>
-                <p className="text-lg font-bold text-white">{totalPostsCount}</p>
+                <p className="text-xs md:text-sm text-zinc-400">عدد المنشورات</p>
+                <p className="text-base md:text-lg font-bold text-white">{totalPostsCount}</p>
               </div>
               <div>
-                <p className="text-sm text-zinc-400">المحملة حالياً</p>
-                <p className="text-lg font-bold text-blue-400">{posts.length}</p>
+                <p className="text-xs md:text-sm text-zinc-400">المحملة حالياً</p>
+                <p className="text-base md:text-lg font-bold text-blue-400">{posts.length}</p>
               </div>
             </div>
             {isTrending && (
-              <div className="flex items-center space-x-2 bg-orange-500/20 px-3 py-1 rounded-full">
-                <TrendingUp size={16} className="text-orange-400" />
-                <span className="text-sm text-orange-400 font-medium">ترند</span>
+              <div className="flex items-center space-x-2 space-x-reverse bg-orange-500/20 px-2 md:px-3 py-1 rounded-full">
+                <TrendingUp size={14} className="text-orange-400" />
+                <span className="text-xs md:text-sm text-orange-400 font-medium">ترند</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Create Post */}
+        {/* Create Post - محسن للجوال */}
         {user && (
-          <div className="bg-zinc-800 rounded-lg p-4 mb-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-white">
+          <div className="bg-zinc-800 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+            <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+              <div className="flex items-start space-x-3 space-x-reverse">
+                <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs md:text-sm font-bold text-white">
                     {user?.email?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
@@ -322,20 +324,21 @@ const HashtagPage = () => {
                     value={postContent}
                     onChange={(e) => setPostContent(e.target.value)}
                     placeholder={`شارك شيئاً عن #${hashtag}...`}
-                    className="w-full bg-transparent border-0 text-white placeholder-zinc-400 resize-none text-lg focus:outline-none min-h-24"
+                    className="w-full bg-transparent border-0 text-white placeholder-zinc-400 resize-none text-sm md:text-lg focus:outline-none min-h-20 md:min-h-24"
                     maxLength={500}
                   />
                 </div>
               </div>
               
               <div className="flex items-center justify-between pt-3 border-t border-zinc-700">
-                <span className="text-sm text-zinc-400">
+                <span className="text-xs md:text-sm text-zinc-400">
                   {postContent.length}/500
                 </span>
                 <Button
                   type="submit"
                   disabled={!postContent.trim() || isSubmitting}
-                  className="bg-blue-500 hover:bg-blue-600"
+                  className="bg-blue-500 hover:bg-blue-600 text-sm md:text-base"
+                  size="sm"
                 >
                   {isSubmitting ? 'جاري النشر...' : 'نشر'}
                 </Button>
@@ -344,41 +347,46 @@ const HashtagPage = () => {
           </div>
         )}
 
-        {/* Posts Feed */}
-        <div className="space-y-6">
+        {/* Posts Feed - محسن للجوال */}
+        <div className="space-y-4 md:space-y-6">
           {totalPostsCount === 0 ? (
             <div className="text-center py-8">
-              <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
-              <p className="text-zinc-400">لا يوجد منشورات لهذا الهاشتاق بعد</p>
-              <p className="text-zinc-500 text-sm">كن أول من ينشر!</p>
+              <Hash size={40} className="mx-auto text-zinc-600 mb-4 md:w-12 md:h-12" />
+              <p className="text-zinc-400 text-sm md:text-base">لا يوجد منشورات لهذا الهاشتاق بعد</p>
+              <p className="text-zinc-500 text-xs md:text-sm">كن أول من ينشر!</p>
             </div>
           ) : (
             <>
               {posts.map((post) => (
-                <HashtagPost 
-                  key={`post-${post.id}`}
-                  post={{
-                    ...post,
-                    hashtag: hashtag || ''
-                  }} 
-                  onLikeChange={handlePostLikeChange}
-                  hideCommentsButton={false}
-                  preventClick={false}
-                />
+                <div key={`post-${post.id}`} className="relative">
+                  <HashtagPost 
+                    post={{
+                      ...post,
+                      hashtag: hashtag || ''
+                    }} 
+                    onLikeChange={handlePostLikeChange}
+                    hideCommentsButton={false}
+                    preventClick={false}
+                  />
+                  {/* زر البلاغ */}
+                  <div className="absolute top-2 left-2 md:top-3 md:left-3">
+                    <ReportButton type="post" targetId={post.id} size="sm" />
+                  </div>
+                </div>
               ))}
               
-              {/* Load More Button - Now above footer */}
+              {/* Load More Button - محسن للجوال */}
               {hasMore && posts.length < totalPostsCount && (
-                <div className="text-center py-8 mb-8">
+                <div className="text-center py-6 md:py-8 mb-6 md:mb-8">
                   {isLoadingMore ? (
                     <div className="flex flex-col items-center space-y-3">
-                      <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                      <p className="text-gray-400">جاري تحميل المزيد...</p>
+                      <div className="w-5 h-5 md:w-6 md:h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-gray-400 text-sm md:text-base">جاري تحميل المزيد...</p>
                     </div>
                   ) : (
                     <button
                       onClick={loadMore}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 md:px-6 md:py-3 rounded-lg font-medium transition-colors text-sm md:text-base"
                     >
                       تحميل المزيد ({totalPostsCount - posts.length} متبقي)
                     </button>
@@ -387,8 +395,8 @@ const HashtagPage = () => {
               )}
               
               {posts.length >= totalPostsCount && totalPostsCount > 0 && (
-                <div className="text-center py-8 mb-8">
-                  <p className="text-gray-400">تم عرض جميع المنشورات ({totalPostsCount})</p>
+                <div className="text-center py-6 md:py-8 mb-6 md:mb-8">
+                  <p className="text-gray-400 text-sm md:text-base">تم عرض جميع المنشورات ({totalPostsCount})</p>
                 </div>
               )}
             </>
