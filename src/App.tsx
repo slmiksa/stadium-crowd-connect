@@ -98,7 +98,7 @@ const App = () => (
                   </Layout>
                 </AuthGuard>
               } />
-              <Route path="/followers-following/:userId" element={
+              <Route path="/followers-following/:userId/:type" element={
                 <AuthGuard>
                   <Layout>
                     <FollowersFollowing />

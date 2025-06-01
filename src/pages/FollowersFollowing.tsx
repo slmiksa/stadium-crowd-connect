@@ -31,6 +31,8 @@ const FollowersFollowing = () => {
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    console.log('Current params:', { userId, type });
+    
     if (userId) {
       fetchUsers();
       if (user) {
@@ -68,6 +70,7 @@ const FollowersFollowing = () => {
         return;
       }
 
+      console.log('Fetched data:', data);
       const usersList = data?.map((item: FollowData) => item.profiles).filter(Boolean) as UserProfile[];
       setUsers(usersList || []);
     } catch (error) {
@@ -134,9 +137,23 @@ const FollowersFollowing = () => {
   };
 
   const handleUserProfileClick = (userProfileId: string) => {
-    // تصحيح المسار للذهاب للبروفايل
     navigate(`/profile/${userProfileId}`);
   };
+
+  // إذا لم يكن هناك نوع محدد في الرابط، نعيد توجيه المستخدم
+  if (!type || (type !== 'followers' && type !== 'following')) {
+    return (
+      <Layout>
+        <div className="p-4 text-center">
+          <h1 className="text-xl font-bold text-white mb-4">رابط غير صحيح</h1>
+          <p className="text-zinc-400 mb-4">يجب تحديد نوع الصفحة (متابعين أو متابعة)</p>
+          <Button onClick={() => navigate(-1)} className="bg-blue-500 hover:bg-blue-600">
+            العودة للخلف
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
 
   if (isLoading) {
     return (
