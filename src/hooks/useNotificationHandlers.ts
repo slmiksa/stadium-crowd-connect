@@ -18,11 +18,14 @@ interface NotificationData {
   room_is_private?: boolean;
   creator_id?: string;
   avatar_url?: string;
+  invitation_id?: string;
+  inviter_id?: string;
+  room_password?: string;
 }
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room';
+  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation';
   title: string;
   message: string;
   is_read: boolean;
@@ -54,6 +57,8 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
       userId = notification.data?.author_id;
     } else if (notification.type === 'chat_room') {
       userId = notification.data?.creator_id;
+    } else if (notification.type === 'room_invitation') {
+      userId = notification.data?.inviter_id;
     }
 
     if (userId) {
@@ -121,6 +126,14 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
     } else if (notification.type === 'chat_room') {
       if (notification.data?.room_id) {
         console.log('Navigating to chat room:', notification.data.room_id);
+        navigate(`/chat-room/${notification.data.room_id}`);
+      } else {
+        console.log('No room_id found, going to chat rooms');
+        navigate('/chat-rooms');
+      }
+    } else if (notification.type === 'room_invitation') {
+      if (notification.data?.room_id) {
+        console.log('Navigating to chat room from invitation:', notification.data.room_id);
         navigate(`/chat-room/${notification.data.room_id}`);
       } else {
         console.log('No room_id found, going to chat rooms');

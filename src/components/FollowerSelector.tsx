@@ -54,7 +54,7 @@ const FollowerSelector: React.FC<FollowerSelectorProps> = ({
         .select(`
           id,
           follower_id,
-          profiles:follower_id (
+          follower:profiles!follows_follower_id_fkey (
             id,
             username,
             avatar_url
@@ -67,7 +67,18 @@ const FollowerSelector: React.FC<FollowerSelectorProps> = ({
         return;
       }
 
-      setFollowers(data || []);
+      // تحويل البيانات إلى الشكل المطلوب
+      const transformedData = (data || []).map(item => ({
+        id: item.id,
+        follower_id: item.follower_id,
+        profiles: item.follower as {
+          id: string;
+          username: string;
+          avatar_url?: string;
+        }
+      }));
+
+      setFollowers(transformedData);
     } catch (error) {
       console.error('Error:', error);
     } finally {
