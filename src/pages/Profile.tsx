@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -192,23 +191,45 @@ const Profile = () => {
 
   const handleAcceptInvitation = async (invitation: RoomInvitation) => {
     try {
-      // قبول الدعوة وإضافة المستخدم إلى الغرفة
-      const { error: updateError } = await supabase
-        .from('room_invitations')
-        .update({ status: 'accepted' })
-        .eq('id', invitation.id);
+      // التحقق أولاً من أن المستخدم ليس عضواً بالفعل في الغرفة
+      const { data: existingMember } = await supabase
+        .from('room_members')
+        .select('id')
+        .eq('room_id', invitation.room_id)
+        .eq('user_id', user!.id)
+        .single();
 
-      if (updateError) {
-        console.error('Error accepting invitation:', updateError);
+      // إذا كان المستخدم عضواً بالفعل، فقط نقبل الدعوة وننتقل للغرفة
+      if (existingMember) {
+        const { error: updateError } = await supabase
+          .from('room_invitations')
+          .update({ status: 'accepted' })
+          .eq('id', invitation.id);
+
+        if (updateError) {
+          console.error('Error accepting invitation:', updateError);
+          toast({
+            title: "خطأ",
+            description: "فشل في قبول الدعوة",
+            variant: "destructive"
+          });
+          return;
+        }
+
         toast({
-          title: "خطأ",
-          description: "فشل في قبول الدعوة",
-          variant: "destructive"
+          title: "تم بنجاح",
+          description: "تم قبول الدعوة والانتقال للغرفة"
         });
+
+        // تحديث قائمة الدعوات
+        fetchRoomInvitations();
+
+        // الانتقال إلى الغرفة
+        navigate(`/chat-room/${invitation.room_id}`);
         return;
       }
 
-      // إضافة المستخدم إلى أعضاء الغرفة
+      // إذا لم يكن المستخدم عضواً، نضيفه أولاً ثم نقبل الدعوة
       const { error: memberError } = await supabase
         .from('room_members')
         .insert({
@@ -222,6 +243,22 @@ const Profile = () => {
         toast({
           title: "خطأ",
           description: "فشل في الانضمام إلى الغرفة",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // قبول الدعوة
+      const { error: updateError } = await supabase
+        .from('room_invitations')
+        .update({ status: 'accepted' })
+        .eq('id', invitation.id);
+
+      if (updateError) {
+        console.error('Error accepting invitation:', updateError);
+        toast({
+          title: "خطأ",
+          description: "فشل في قبول الدعوة",
           variant: "destructive"
         });
         return;
