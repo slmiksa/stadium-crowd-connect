@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Share2, MoreVertical, Flag, Trash2 } from 'lucide-react';
@@ -100,7 +99,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
     if (post.user_id === user?.id) {
       navigate('/profile');
     } else {
-      navigate(`/user-profile/${post.user_id}`);
+      navigate(`/profile/${post.user_id}`);
     }
   };
 
