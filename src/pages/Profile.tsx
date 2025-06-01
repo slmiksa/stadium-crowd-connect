@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Layout from '@/components/Layout';
 import VerificationBadge from '@/components/VerificationBadge';
-import { Camera, Edit3, Users, MessageSquare, Hash, Settings, LogOut, Trash2, Crown } from 'lucide-react';
+import { Camera, Edit3, Users, MessageSquare, Hash, Settings, LogOut, Trash2, Crown, Mail, Key, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,17 @@ interface ChatRoom {
   created_at: string;
   avatar_url?: string;
   is_private: boolean;
+  password?: string;
+}
+
+interface RoomInvitation {
+  id: string;
+  room_id: string;
+  inviter_id: string;
+  status: string;
+  created_at: string;
+  chat_rooms: ChatRoom & { password: string };
+  inviter_profile: UserProfile;
 }
 
 const Profile = () => {
@@ -44,6 +55,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [myRooms, setMyRooms] = useState<ChatRoom[]>([]);
+  const [roomInvitations, setRoomInvitations] = useState<RoomInvitation[]>([]);
   const [editForm, setEditForm] = useState({
     username: '',
     bio: '',
@@ -56,6 +68,7 @@ const Profile = () => {
     if (user) {
       fetchProfile();
       fetchMyRooms();
+      fetchRoomInvitations();
     }
   }, [user]);
 
@@ -143,6 +156,120 @@ const Profile = () => {
       setMyRooms(data || []);
     } catch (error) {
       console.error('Error:', error);
+    }
+  };
+
+  const fetchRoomInvitations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('room_invitations')
+        .select(`
+          *,
+          chat_rooms (*),
+          inviter_profile:inviter_id (id, username, avatar_url, verification_status)
+        `)
+        .eq('invitee_id', user?.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching room invitations:', error);
+        return;
+      }
+
+      setRoomInvitations(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const handleAcceptInvitation = async (invitation: RoomInvitation) => {
+    try {
+      // قبول الدعوة وإضافة المستخدم إلى الغرفة
+      const { error: updateError } = await supabase
+        .from('room_invitations')
+        .update({ status: 'accepted' })
+        .eq('id', invitation.id);
+
+      if (updateError) {
+        console.error('Error accepting invitation:', updateError);
+        toast({
+          title: "خطأ",
+          description: "فشل في قبول الدعوة",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // إضافة المستخدم إلى أعضاء الغرفة
+      const { error: memberError } = await supabase
+        .from('room_members')
+        .insert({
+          room_id: invitation.room_id,
+          user_id: user!.id,
+          role: 'member'
+        });
+
+      if (memberError) {
+        console.error('Error adding to room members:', memberError);
+        toast({
+          title: "خطأ",
+          description: "فشل في الانضمام إلى الغرفة",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم قبول الدعوة والانضمام للغرفة"
+      });
+
+      // تحديث قائمة الدعوات
+      fetchRoomInvitations();
+
+      // الانتقال إلى الغرفة
+      navigate(`/chat-room/${invitation.room_id}`);
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء قبول الدعوة",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRejectInvitation = async (invitationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('room_invitations')
+        .update({ status: 'rejected' })
+        .eq('id', invitationId);
+
+      if (error) {
+        console.error('Error rejecting invitation:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في رفض الدعوة",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "تم",
+        description: "تم رفض الدعوة"
+      });
+
+      fetchRoomInvitations();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء رفض الدعوة",
+        variant: "destructive"
+      });
     }
   };
 
@@ -388,6 +515,70 @@ const Profile = () => {
               </p>
             )}
           </div>
+
+          {/* Room Invitations */}
+          {roomInvitations.length > 0 && (
+            <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-lg p-4 mb-6 border border-purple-500/30">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                <Mail size={20} className="text-purple-400 ml-2" />
+                دعوات الغرف ({roomInvitations.length})
+              </h3>
+              
+              <div className="space-y-3">
+                {roomInvitations.map((invitation) => (
+                  <div key={invitation.id} className="bg-zinc-800/70 rounded-lg p-4 border border-purple-400/30">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-medium text-purple-200">{invitation.chat_rooms.name}</h4>
+                          <span className="text-xs bg-purple-500/30 text-purple-200 px-2 py-1 rounded">خاصة</span>
+                        </div>
+                        {invitation.chat_rooms.description && (
+                          <p className="text-sm text-gray-300 mb-2">{invitation.chat_rooms.description}</p>
+                        )}
+                        <p className="text-xs text-purple-300">
+                          دعوة من: {invitation.inviter_profile?.username || 'مستخدم مجهول'}
+                        </p>
+                        
+                        {/* Password Display */}
+                        <div className="mt-3 p-3 bg-gray-900/80 rounded-lg border border-yellow-400/40">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Key size={14} className="text-yellow-400" />
+                            <span className="text-xs text-yellow-300 font-semibold">كلمة المرور:</span>
+                          </div>
+                          <div className="bg-zinc-800 rounded-md p-2 border border-yellow-300/20">
+                            <span className="text-sm text-yellow-100 font-mono select-all">
+                              {invitation.chat_rooms.password || 'غير متوفرة'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleAcceptInvitation(invitation)}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                      >
+                        <Check size={16} />
+                        قبول ودخول الغرفة
+                      </Button>
+                      <Button
+                        onClick={() => handleRejectInvitation(invitation.id)}
+                        size="sm"
+                        variant="outline"
+                        className="border-red-500/30 text-red-400 hover:bg-red-500/20 flex items-center gap-2"
+                      >
+                        <X size={16} />
+                        رفض
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4 mb-6">

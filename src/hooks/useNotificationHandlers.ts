@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -131,14 +130,10 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
         console.log('No room_id found, going to chat rooms');
         navigate('/chat-rooms');
       }
-    } else if (notification.type === 'room_invitation') {
-      if (notification.data?.room_id) {
-        console.log('Navigating to chat room from invitation:', notification.data.room_id);
-        navigate(`/chat-room/${notification.data.room_id}`);
-      } else {
-        console.log('No room_id found, going to chat rooms');
-        navigate('/chat-rooms');
-      }
+    } else if (notification.type === 'room_invitation' || (notification as any).type === 'profile_redirect') {
+      // للدعوات، الذهاب إلى البروفايل لرؤية الدعوات
+      console.log('Navigating to profile for room invitation');
+      navigate('/profile');
     } else {
       console.log('Fallback navigation to hashtags');
       navigate('/hashtags');

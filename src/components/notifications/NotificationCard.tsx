@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, MessageSquare, Users, Heart, UserPlus, Plus, Key, LogIn } from 'lucide-react';
+import { Bell, MessageSquare, Users, Heart, UserPlus, Plus, Key, LogIn, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -118,9 +118,16 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
       onMarkAsRead(notification.id);
     }
     
-    // للتنبيهات الخاصة بغرف الدردشة، استخدم onNotificationClick مباشرة
-    // حيث أن onNotificationClick يحتوي على المنطق الصحيح للتنقل
-    onNotificationClick(notification);
+    // للتنبيهات الخاصة بدعوات الغرف، توجيه المستخدم للبروفايل
+    if (notification.type === 'room_invitation') {
+      // الذهاب إلى البروفايل لرؤية الدعوات
+      onNotificationClick({
+        ...notification,
+        type: 'profile_redirect' as any
+      });
+    } else {
+      onNotificationClick(notification);
+    }
   };
 
   // Debug log to check notification data
@@ -209,7 +216,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             </div>
           )}
 
-          {/* Room invitation special content - Enhanced with better display */}
+          {/* Room invitation special content - Simplified to direct to profile */}
           {notification.type === 'room_invitation' && (
             <div className="bg-gradient-to-r from-pink-900/30 to-purple-900/30 rounded-lg p-4 mb-3 border border-pink-500/30">
               <div className="flex items-center gap-2 mb-3">
@@ -230,18 +237,15 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   </div>
                 )}
                 
-                {/* Password section - Always show for room invitations */}
-                <div className="mt-4 p-3 bg-gray-800/70 rounded-lg border-2 border-yellow-400/50">
+                {/* Instruction to go to profile */}
+                <div className="mt-4 p-3 bg-blue-800/70 rounded-lg border-2 border-blue-400/50">
                   <div className="flex items-center gap-2 mb-2">
-                    <Key size={16} className="text-yellow-400" />
-                    <p className="text-sm text-yellow-300 font-bold">كلمة السر المطلوبة:</p>
+                    <User size={16} className="text-blue-400" />
+                    <p className="text-sm text-blue-300 font-bold">للانضمام للغرفة:</p>
                   </div>
-                  <div className="bg-gray-900/80 rounded-md p-3 border border-yellow-300/30">
-                    <p className="text-lg text-yellow-100 font-mono text-center select-all tracking-wider">
-                      {notification.data?.room_password || 'غير متوفرة'}
-                    </p>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2 text-center">انقر على كلمة السر لتحديدها ونسخها</p>
+                  <p className="text-sm text-blue-100 text-center">
+                    اذهب إلى بروفايلك لرؤية تفاصيل الدعوة وكلمة المرور
+                  </p>
                 </div>
               </div>
             </div>
@@ -257,10 +261,22 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={(e) => onProfileClick(notification, e)}
-                className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (notification.type === 'room_invitation') {
+                    // للدعوات، الذهاب إلى البروفايل مباشرة
+                    window.location.href = '/profile';
+                  } else {
+                    onProfileClick(notification, e);
+                  }
+                }}
+                className={`text-xs px-3 py-1 h-auto ${
+                  notification.type === 'room_invitation' 
+                    ? 'bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300'
+                    : 'bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300'
+                }`}
               >
-                البروفايل
+                {notification.type === 'room_invitation' ? 'اذهب للبروفايل' : 'البروفايل'}
               </Button>
             )}
 
@@ -278,20 +294,16 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
               </Button>
             )}
 
-            {/* Room button for chat room notifications - Enhanced for invitations */}
-            {(notification.type === 'chat_room' || notification.type === 'room_invitation') && notification.data?.room_id && (
+            {/* Room button for regular chat room notifications */}
+            {notification.type === 'chat_room' && notification.data?.room_id && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={(e) => onRoomClick(notification, e)}
-                className={`text-xs px-4 py-2 h-auto flex items-center gap-2 font-medium ${
-                  notification.type === 'room_invitation' 
-                    ? 'bg-pink-600/30 border-pink-400/50 text-pink-200 hover:bg-pink-600/50 hover:text-pink-100' 
-                    : 'bg-cyan-600/20 border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/30 hover:text-cyan-300'
-                }`}
+                className="bg-cyan-600/20 border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/30 hover:text-cyan-300 text-xs px-4 py-2 h-auto flex items-center gap-2 font-medium"
               >
                 <LogIn size={16} />
-                {notification.type === 'room_invitation' ? 'دخول الغرفة الآن' : 'الغرفة'}
+                الغرفة
               </Button>
             )}
           </div>
