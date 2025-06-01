@@ -12,6 +12,7 @@ import { ArrowLeft, Users, Settings, Quote, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   id: string;
@@ -45,6 +46,7 @@ const ChatRoom = () => {
   const { roomId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
@@ -71,6 +73,48 @@ const ChatRoom = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (user && roomId) {
+      // الاستماع لتغييرات العضوية (الطرد والحظر)
+      const membershipChannel = supabase
+        .channel('membership-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'room_members',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Membership change:', payload);
+            if (payload.eventType === 'DELETE' && payload.old?.room_id === roomId) {
+              // تم طرد المستخدم
+              toast({
+                title: "تم إخراجك",
+                description: `تم إخراجك من شات ${roomInfo?.name || 'الغرفة'}`,
+                variant: "destructive"
+              });
+              navigate('/chat-rooms');
+            } else if (payload.eventType === 'UPDATE' && payload.new?.is_banned === true && payload.new?.room_id === roomId) {
+              // تم حظر المستخدم
+              toast({
+                title: "تم حظرك",
+                description: `تم حظرك من شات ${roomInfo?.name || 'الغرفة'}`,
+                variant: "destructive"
+              });
+              setIsBanned(true);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(membershipChannel);
+      };
+    }
+  }, [user, roomId, roomInfo?.name, navigate, toast]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -249,6 +293,16 @@ const ChatRoom = () => {
     
     if (!user) {
       console.log('No user found');
+      return;
+    }
+
+    // التحقق من أن المستخدم غير محظور
+    if (isBanned) {
+      toast({
+        title: "محظور",
+        description: "لا يمكنك إرسال رسائل لأنك محظور من هذه الغرفة",
+        variant: "destructive"
+      });
       return;
     }
 

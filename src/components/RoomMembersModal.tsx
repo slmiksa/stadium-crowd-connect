@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import ModeratorBadge from './ModeratorBadge';
+import { useToast } from '@/hooks/use-toast';
 
 interface Member {
   id: string;
@@ -35,6 +36,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   onMembershipChange
 }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [roomOwner, setRoomOwner] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -115,10 +117,19 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
       if (error) {
         console.error('Error promoting to moderator:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في ترقية العضو",
+          variant: "destructive"
+        });
         return;
       }
 
       if (data) {
+        toast({
+          title: "تم بنجاح",
+          description: "تم ترقية العضو إلى مشرف"
+        });
         fetchMembers();
         onMembershipChange?.();
       }
@@ -139,10 +150,19 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
       if (error) {
         console.error('Error demoting from moderator:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في تنزيل رتبة العضو",
+          variant: "destructive"
+        });
         return;
       }
 
       if (data) {
+        toast({
+          title: "تم بنجاح",
+          description: "تم تنزيل رتبة العضو من مشرف"
+        });
         fetchMembers();
         onMembershipChange?.();
       }
@@ -163,8 +183,18 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
       if (error) {
         console.error('Error banning member:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في حظر العضو",
+          variant: "destructive"
+        });
         return;
       }
+
+      toast({
+        title: "تم الحظر",
+        description: "تم حظر العضو من الغرفة"
+      });
 
       fetchMembers();
       onMembershipChange?.();
@@ -185,8 +215,18 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
       if (error) {
         console.error('Error unbanning member:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في إلغاء حظر العضو",
+          variant: "destructive"
+        });
         return;
       }
+
+      toast({
+        title: "تم الإلغاء",
+        description: "تم إلغاء حظر العضو"
+      });
 
       fetchMembers();
       onMembershipChange?.();
@@ -207,8 +247,18 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
       if (error) {
         console.error('Error kicking member:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في طرد العضو",
+          variant: "destructive"
+        });
         return;
       }
+
+      toast({
+        title: "تم الطرد",
+        description: "تم طرد العضو من الغرفة"
+      });
 
       fetchMembers();
       onMembershipChange?.();

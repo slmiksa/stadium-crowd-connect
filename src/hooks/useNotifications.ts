@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -86,8 +85,8 @@ export const useNotifications = () => {
             id: notif.id,
             type: notif.type as 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation',
             title: notif.title,
-            message: notif.message,
-            is_read: notif.type === 'chat_room' ? true : (notif.is_read ?? false), // تعليم تنبيهات غرف الدردشة كمقروءة في الواجهة
+            message: notif.type === 'room_invitation' ? 'تم دعوتكم لغرفة دردشة خاصة - للدخول من خلال بروفايلكم الخاص' : notif.message,
+            is_read: notif.type === 'chat_room' ? true : (notif.is_read ?? false),
             created_at: notif.created_at || '',
             data: notificationData
           };
