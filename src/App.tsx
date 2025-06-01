@@ -6,10 +6,10 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { useRoomInvitationUpdate } from '@/hooks/useRoomInvitationUpdate';
 import AuthGuard from '@/components/AuthGuard';
-import Home from '@/pages/Home';
 import Profile from '@/pages/Profile';
 import EditProfile from '@/pages/EditProfile';
 import Hashtags from '@/pages/Hashtags';
+import HashtagPage from '@/pages/HashtagPage';
 import UserProfile from '@/pages/UserProfile';
 import PostDetails from '@/pages/PostDetails';
 import ChatRooms from '@/pages/ChatRooms';
@@ -20,6 +20,8 @@ import Notifications from '@/pages/Notifications';
 import Matches from '@/pages/Matches';
 import MatchDetails from '@/pages/MatchDetails';
 import Comments from '@/pages/Comments';
+import CreateHashtagPost from '@/pages/CreateHashtagPost';
+import MyPosts from '@/pages/MyPosts';
 
 const queryClient = new QueryClient();
 
@@ -28,10 +30,11 @@ function AppContent() {
   
   return (
     <Routes>
-      <Route path="/" element={<AuthGuard><Home /></AuthGuard>} />
+      <Route path="/" element={<AuthGuard><Hashtags /></AuthGuard>} />
+      <Route path="/hashtags" element={<AuthGuard><Hashtags /></AuthGuard>} />
+      <Route path="/hashtag/:hashtag" element={<AuthGuard><HashtagPage /></AuthGuard>} />
       <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
       <Route path="/edit-profile" element={<AuthGuard><EditProfile /></AuthGuard>} />
-      <Route path="/hashtags" element={<AuthGuard><Hashtags /></AuthGuard>} />
       <Route path="/user-profile/:userId" element={<AuthGuard><UserProfile /></AuthGuard>} />
       <Route path="/post/:postId" element={<AuthGuard><PostDetails /></AuthGuard>} />
       <Route path="/chat-rooms" element={<AuthGuard><ChatRooms /></AuthGuard>} />
@@ -42,7 +45,9 @@ function AppContent() {
       <Route path="/matches" element={<AuthGuard><Matches /></AuthGuard>} />
       <Route path="/match-details/:matchId" element={<AuthGuard><MatchDetails /></AuthGuard>} />
       <Route path="/comments/:postId" element={<AuthGuard><Comments /></AuthGuard>} />
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="/create-hashtag-post" element={<AuthGuard><CreateHashtagPost /></AuthGuard>} />
+      <Route path="/my-posts" element={<AuthGuard><MyPosts /></AuthGuard>} />
+      <Route path="*" element={<Navigate to="/hashtags" />} />
     </Routes>
   );
 }
