@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,7 +59,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         .from('hashtag_comments')
         .select('*')
         .eq('post_id', postId)
-        .order('created_at', { ascending: false }); // Changed to descending for newest first
+        .order('created_at', { ascending: false });
 
       if (commentsError) {
         console.error('Error fetching comments:', commentsError);
@@ -133,7 +132,6 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
   const updateCommentsCount = async () => {
     try {
-      // Get all comments for this post (including replies)
       const { data: allComments, error } = await supabase
         .from('hashtag_comments')
         .select('id')
@@ -146,7 +144,6 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
       const totalCount = allComments?.length || 0;
 
-      // Update the post's comments count
       const { error: updateError } = await supabase
         .from('hashtag_posts')
         .update({ comments_count: totalCount })
@@ -199,12 +196,12 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
       console.log('Inserting comment into database...');
       
-      // Prepare comment data
+      // Prepare comment data with explicit hashtags array
       const commentData: any = {
         post_id: postId,
         user_id: user.id,
         content: content.trim() || '',
-        hashtags: hashtags
+        hashtags: hashtags.length > 0 ? hashtags : []
       };
 
       // Add parent_id if replying to a comment
@@ -235,7 +232,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
       // Clear reply state after successful submission
       setReplyTo(null);
       
-      // Add the new comment to the top of the list without full refresh
+      // Add the new comment to the top of the list
       if (insertData && insertData[0]) {
         const newComment = {
           ...insertData[0],
@@ -249,9 +246,6 @@ const PostComments: React.FC<PostCommentsProps> = ({
       }
       
       await updateCommentsCount();
-      
-      // Don't call onCommentAdded() to prevent page refresh
-      // onCommentAdded();
       
     } catch (error) {
       console.error('Error in handleSubmitComment:', error);
@@ -305,7 +299,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         </div>
 
         {/* Comments List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent pb-32">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent pb-24">
           {isLoading ? (
             <div className="flex justify-center py-12">
               <div className="relative">
@@ -334,8 +328,8 @@ const PostComments: React.FC<PostCommentsProps> = ({
           )}
         </div>
 
-        {/* Comment Input - Compact and fixed */}
-        <div className="border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-lg flex-shrink-0">
+        {/* Comment Input - Fixed at bottom */}
+        <div className="border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-lg flex-shrink-0 fixed bottom-0 left-0 right-0 max-w-lg mx-auto">
           <div className="p-3">
             <CommentInput
               onSubmit={handleSubmitComment}
