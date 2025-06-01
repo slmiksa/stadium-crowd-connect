@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +7,7 @@ import OwnerBadge from '@/components/OwnerBadge';
 import RoomMembersModal from '@/components/RoomMembersModal';
 import ChatRoomSettingsModal from '@/components/ChatRoomSettingsModal';
 import ChatRoomAnnouncement from '@/components/ChatRoomAnnouncement';
-import { ArrowLeft, Users, Settings, Quote } from 'lucide-react';
+import { ArrowLeft, Users, Settings, Quote, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -49,6 +48,7 @@ const ChatRoom = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [quotedMessage, setQuotedMessage] = useState<Message | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [imageModal, setImageModal] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -289,6 +289,14 @@ const ChatRoom = () => {
     }
   };
 
+  const openImageModal = (imageUrl: string) => {
+    setImageModal(imageUrl);
+  };
+
+  const closeImageModal = () => {
+    setImageModal(null);
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -442,21 +450,21 @@ const ChatRoom = () => {
                   {/* Media Display */}
                   {message.media_url && (
                     <div className="mb-2">
-                      {message.media_type?.startsWith('image/') ? (
+                      {message.media_type === 'image' ? (
                         <img 
                           src={message.media_url} 
                           alt="صورة مرسلة" 
-                          className="max-w-xs max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => window.open(message.media_url, '_blank')}
+                          className="max-w-xs max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity border border-zinc-600"
+                          onClick={() => openImageModal(message.media_url!)}
                           onError={(e) => {
                             console.error('Image failed to load:', message.media_url);
                             e.currentTarget.style.display = 'none';
                           }}
                         />
-                      ) : message.media_type?.startsWith('video/') ? (
+                      ) : message.media_type === 'video' ? (
                         <video 
                           src={message.media_url} 
-                          className="max-w-xs max-h-64 rounded-lg" 
+                          className="max-w-xs max-h-64 rounded-lg border border-zinc-600" 
                           controls
                           onError={(e) => {
                             console.error('Video failed to load:', message.media_url);
@@ -467,7 +475,7 @@ const ChatRoom = () => {
                           href={message.media_url} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline inline-flex items-center"
+                          className="text-blue-400 hover:underline inline-flex items-center bg-zinc-700 px-3 py-2 rounded-lg"
                         >
                           📎 عرض المرفق
                         </a>
@@ -507,6 +515,29 @@ const ChatRoom = () => {
             onClearQuote={() => setQuotedMessage(null)}
           />
         </div>
+
+        {/* Image Modal */}
+        {imageModal && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+            onClick={closeImageModal}
+          >
+            <div className="relative max-w-full max-h-full">
+              <button
+                onClick={closeImageModal}
+                className="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors z-10"
+              >
+                <X size={24} />
+              </button>
+              <img 
+                src={imageModal} 
+                alt="صورة مكبرة" 
+                className="max-w-full max-h-full object-contain rounded-lg"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {showMembersModal && roomId && (
