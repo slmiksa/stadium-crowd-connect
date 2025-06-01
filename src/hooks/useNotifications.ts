@@ -17,13 +17,16 @@ interface NotificationData {
   room_name?: string;
   room_description?: string;
   room_is_private?: boolean;
+  room_password?: string;
   creator_id?: string;
   avatar_url?: string;
+  invitation_id?: string;
+  inviter_id?: string;
 }
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room';
+  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation';
   title: string;
   message: string;
   is_read: boolean;
@@ -81,7 +84,7 @@ export const useNotifications = () => {
           
           const enrichedNotif: Notification = {
             id: notif.id,
-            type: notif.type as 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room',
+            type: notif.type as 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation',
             title: notif.title,
             message: notif.message,
             is_read: notif.type === 'chat_room' ? true : (notif.is_read ?? false), // تعليم تنبيهات غرف الدردشة كمقروءة في الواجهة
@@ -179,6 +182,40 @@ export const useNotifications = () => {
     }
   };
 
+  const acceptRoomInvitation = async (invitationId: string, roomId: string) => {
+    try {
+      // Update invitation status
+      const { error: invitationError } = await supabase
+        .from('room_invitations')
+        .update({ status: 'accepted' })
+        .eq('id', invitationId);
+
+      if (invitationError) {
+        console.error('Error accepting invitation:', invitationError);
+        return false;
+      }
+
+      // Add user to room members
+      const { error: memberError } = await supabase
+        .from('room_members')
+        .insert({
+          room_id: roomId,
+          user_id: user!.id,
+          role: 'member'
+        });
+
+      if (memberError) {
+        console.error('Error adding to room members:', memberError);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchNotifications();
@@ -212,6 +249,7 @@ export const useNotifications = () => {
     isLoading,
     markAsRead,
     markAllAsRead,
-    fetchNotifications
+    fetchNotifications,
+    acceptRoomInvitation
   };
 };

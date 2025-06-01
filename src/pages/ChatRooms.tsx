@@ -7,6 +7,7 @@ import { Users, Search, Plus, Lock, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
+import RoomPasswordModal from '@/components/RoomPasswordModal';
 
 interface ChatRoomWithDetails {
   id: string;
@@ -17,6 +18,7 @@ interface ChatRoomWithDetails {
   created_at: string;
   avatar_url?: string;
   owner_id: string;
+  password?: string;
   profiles: {
     id: string;
     username: string;
@@ -36,6 +38,15 @@ const ChatRooms = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [passwordModal, setPasswordModal] = useState<{
+    isOpen: boolean;
+    room: ChatRoomWithDetails | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    room: null,
+    isLoading: false
+  });
 
   useEffect(() => {
     if (isInitialized && user) {
@@ -110,43 +121,63 @@ const ChatRooms = () => {
     setIsRefreshing(false);
   };
 
+  const checkRoomAccess = async (room: ChatRoomWithDetails) => {
+    if (!user) return;
+
+    // Check if user is already a member
+    const { data: existingMember } = await supabase
+      .from('room_members')
+      .select('id')
+      .eq('room_id', room.id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (existingMember) {
+      // User is already a member, go directly to room
+      navigate(`/chat-room/${room.id}`);
+      return;
+    }
+
+    // If it's a private room, show password modal
+    if (room.is_private) {
+      setPasswordModal({
+        isOpen: true,
+        room: room,
+        isLoading: false
+      });
+    } else {
+      // Public room, join directly
+      await joinRoom(room.id);
+    }
+  };
+
   const joinRoom = async (roomId: string) => {
     if (!user) return;
 
     try {
-      // Check if user is already a member
-      const { data: existingMember } = await supabase
+      // Add user as member
+      const { error } = await supabase
         .from('room_members')
-        .select('id')
-        .eq('room_id', roomId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (!existingMember) {
-        // Add user as member
-        const { error } = await supabase
-          .from('room_members')
-          .insert({
-            room_id: roomId,
-            user_id: user.id,
-            role: 'member'
-          });
-
-        if (error) {
-          console.error('Error joining room:', error);
-          toast({
-            title: "خطأ في الانضمام للغرفة",
-            description: error.message,
-            variant: "destructive"
-          });
-          return;
-        }
-
-        toast({
-          title: "تم الانضمام بنجاح",
-          description: "مرحباً بك في الغرفة"
+        .insert({
+          room_id: roomId,
+          user_id: user.id,
+          role: 'member'
         });
+
+      if (error) {
+        console.error('Error joining room:', error);
+        toast({
+          title: "خطأ في الانضمام للغرفة",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
       }
+
+      toast({
+        title: "تم الانضمام بنجاح",
+        description: "مرحباً بك في الغرفة"
+      });
 
       // Navigate to the room
       navigate(`/chat-room/${roomId}`);
@@ -157,6 +188,32 @@ const ChatRooms = () => {
         description: "يرجى المحاولة مرة أخرى",
         variant: "destructive"
       });
+    }
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
+    if (!passwordModal.room || !user) return;
+
+    setPasswordModal(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      // Check if password is correct
+      if (passwordModal.room.password !== password) {
+        toast({
+          title: "كلمة سر خاطئة",
+          description: "يرجى إدخال كلمة السر الصحيحة",
+          variant: "destructive"
+        });
+        setPasswordModal(prev => ({ ...prev, isLoading: false }));
+        return;
+      }
+
+      // Password is correct, join the room
+      await joinRoom(passwordModal.room.id);
+      setPasswordModal({ isOpen: false, room: null, isLoading: false });
+    } catch (error) {
+      console.error('Error:', error);
+      setPasswordModal(prev => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -239,7 +296,7 @@ const ChatRooms = () => {
               filteredRooms.map((room) => (
                 <div 
                   key={room.id} 
-                  onClick={() => joinRoom(room.id)}
+                  onClick={() => checkRoomAccess(room)}
                   className="group bg-gray-800/40 backdrop-blur-sm rounded-3xl p-6 hover:bg-gray-800/60 transition-all duration-300 cursor-pointer border border-gray-700/30 hover:border-gray-600/50 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1"
                 >
                   <div className="flex items-center justify-between">
@@ -307,6 +364,15 @@ const ChatRooms = () => {
           </button>
         </div>
       </div>
+
+      {/* Password Modal */}
+      <RoomPasswordModal
+        isOpen={passwordModal.isOpen}
+        onClose={() => setPasswordModal({ isOpen: false, room: null, isLoading: false })}
+        roomName={passwordModal.room?.name || ''}
+        onPasswordSubmit={handlePasswordSubmit}
+        isLoading={passwordModal.isLoading}
+      />
     </Layout>
   );
 };

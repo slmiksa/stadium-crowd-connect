@@ -20,6 +20,7 @@ export type Database = {
           members_count: number | null
           name: string
           owner_id: string
+          password: string | null
           updated_at: string | null
         }
         Insert: {
@@ -32,6 +33,7 @@ export type Database = {
           members_count?: number | null
           name: string
           owner_id: string
+          password?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -44,6 +46,7 @@ export type Database = {
           members_count?: number | null
           name?: string
           owner_id?: string
+          password?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -389,6 +392,55 @@ export type Database = {
           verification_status?: string | null
         }
         Relationships: []
+      }
+      room_invitations: {
+        Row: {
+          created_at: string | null
+          id: string
+          invitee_id: string
+          inviter_id: string
+          room_id: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invitee_id: string
+          inviter_id: string
+          room_id: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invitee_id?: string
+          inviter_id?: string
+          room_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_invitations_invitee_id_fkey"
+            columns: ["invitee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_invitations_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_invitations_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       room_members: {
         Row: {

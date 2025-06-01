@@ -2,13 +2,14 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import { ArrowLeft, Hash, Lock, Globe, Camera, Upload } from 'lucide-react';
+import { ArrowLeft, Hash, Lock, Globe, Camera, Upload, Key, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import FollowerSelector from '@/components/FollowerSelector';
 
 const CreateChatRoom = () => {
   const { user } = useAuth();
@@ -19,6 +20,9 @@ const CreateChatRoom = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
+  const [password, setPassword] = useState('');
+  const [selectedFollowers, setSelectedFollowers] = useState<string[]>([]);
+  const [selectAllFollowers, setSelectAllFollowers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -72,13 +76,70 @@ const CreateChatRoom = () => {
     }
   };
 
+  const sendInvitations = async (roomId: string) => {
+    if (!isPrivate || selectedFollowers.length === 0) return;
+
+    try {
+      const invitations = selectedFollowers.map(followerId => ({
+        room_id: roomId,
+        inviter_id: user!.id,
+        invitee_id: followerId,
+        status: 'pending'
+      }));
+
+      const { error } = await supabase
+        .from('room_invitations')
+        .insert(invitations);
+
+      if (error) {
+        console.error('Error sending invitations:', error);
+        toast({
+          title: "خطأ في إرسال الدعوات",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "تم إرسال الدعوات",
+          description: `تم إرسال ${selectedFollowers.length} دعوة بنجاح`
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !name.trim()) return;
 
+    if (isPrivate && !password.trim()) {
+      toast({
+        title: "كلمة السر مطلوبة",
+        description: "يجب إدخال كلمة سر للغرف الخاصة",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isPrivate && selectedFollowers.length === 0) {
+      toast({
+        title: "اختيار المتابعين مطلوب",
+        description: "يجب اختيار متابعين للدعوة للغرفة الخاصة",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      console.log('Creating room with data:', { name: name.trim(), description: description.trim(), isPrivate, userId: user.id });
+      console.log('Creating room with data:', { 
+        name: name.trim(), 
+        description: description.trim(), 
+        isPrivate, 
+        password: isPrivate ? password.trim() : null,
+        userId: user.id 
+      });
       
       // إنشاء الغرفة أولاً
       const { data: room, error: roomError } = await supabase
@@ -87,6 +148,7 @@ const CreateChatRoom = () => {
           name: name.trim(),
           description: description.trim() || null,
           is_private: isPrivate,
+          password: isPrivate ? password.trim() : null,
           owner_id: user.id,
           members_count: 1
         })
@@ -142,10 +204,15 @@ const CreateChatRoom = () => {
       }
 
       console.log('Owner added as member successfully');
+
+      // إرسال الدعوات للمتابعين إذا كانت الغرفة خاصة
+      if (isPrivate) {
+        await sendInvitations(room.id);
+      }
       
       toast({
         title: "تم إنشاء الغرفة بنجاح",
-        description: "يمكنك الآن بدء المحادثة"
+        description: isPrivate ? "تم إرسال دعوات للمتابعين المختارين" : "يمكنك الآن بدء المحادثة"
       });
       
       // الانتقال إلى الغرفة
@@ -278,17 +345,55 @@ const CreateChatRoom = () => {
                   <Lock size={20} className="text-white" />
                   <div className="text-right">
                     <p className="font-medium text-white">خاصة</p>
-                    <p className="text-sm text-zinc-300">بالدعوة فقط</p>
+                    <p className="text-sm text-zinc-300">بكلمة سر ودعوات للمتابعين</p>
                   </div>
                 </div>
               </button>
             </div>
           </div>
 
+          {/* Password for Private Rooms */}
+          {isPrivate && (
+            <div className="bg-zinc-800 rounded-lg p-4">
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
+                <Key size={16} className="inline mr-2" />
+                كلمة سر الغرفة *
+              </label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="أدخل كلمة سر قوية"
+                className="bg-zinc-900 border-zinc-700 text-white"
+                required={isPrivate}
+              />
+              <p className="text-xs text-zinc-500 mt-1">
+                ستُرسل كلمة السر للمتابعين المدعوين
+              </p>
+            </div>
+          )}
+
+          {/* Follower Selection for Private Rooms */}
+          {isPrivate && user && (
+            <div className="bg-zinc-800 rounded-lg p-4">
+              <label className="block text-sm font-medium text-zinc-300 mb-3">
+                <Users size={16} className="inline mr-2" />
+                اختيار المتابعين للدعوة *
+              </label>
+              <FollowerSelector
+                userId={user.id}
+                selectedFollowers={selectedFollowers}
+                onFollowersChange={setSelectedFollowers}
+                selectAll={selectAllFollowers}
+                onSelectAllChange={setSelectAllFollowers}
+              />
+            </div>
+          )}
+
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={!name.trim() || isSubmitting}
+            disabled={!name.trim() || isSubmitting || (isPrivate && (!password.trim() || selectedFollowers.length === 0))}
             className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50"
           >
             {isSubmitting ? 'جاري الإنشاء...' : 'إنشاء الغرفة'}
