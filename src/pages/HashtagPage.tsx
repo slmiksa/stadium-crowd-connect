@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -129,7 +128,11 @@ const HashtagPage = () => {
           },
           (payload) => {
             // تحديث فقط إذا كان المنشور يحتوي على هاشتاق الصفحة الحالية
-            if (payload.new && Array.isArray(payload.new.hashtags) && payload.new.hashtags.includes(hashtag)) {
+            if (payload.new && 
+                typeof payload.new === 'object' && 
+                'hashtags' in payload.new && 
+                Array.isArray(payload.new.hashtags) && 
+                payload.new.hashtags.includes(hashtag)) {
               fetchHashtagPosts(1, false);
             }
           }
