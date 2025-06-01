@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -29,21 +30,27 @@ const Matches = () => {
 
   useEffect(() => {
     fetchMatches();
-  }, []);
+  }, [activeTab]);
 
   const fetchMatches = async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching matches...');
+      console.log(`Fetching ${activeTab} matches...`);
       
-      const { data, error } = await supabase.functions.invoke('get-football-matches');
+      const { data, error } = await supabase.functions.invoke('get-football-matches', {
+        body: { 
+          status: activeTab,
+          date: new Date().toISOString().split('T')[0]
+        }
+      });
 
       console.log('Matches response:', data, error);
 
       if (data && data.matches) {
+        console.log(`Received ${data.matches.length} ${activeTab} matches`);
         setMatches(data.matches);
       } else {
-        console.log('No matches found');
+        console.log(`No ${activeTab} matches found`);
         setMatches([]);
       }
     } catch (error) {
@@ -72,8 +79,12 @@ const Matches = () => {
     });
   };
 
-  const getMatchesByStatus = (status: string) => {
-    return matches.filter(match => match.status === status);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ar-SA', {
+      day: 'numeric',
+      month: 'short'
+    });
   };
 
   const getMatchStatus = (status: string) => {
@@ -144,6 +155,12 @@ const Matches = () => {
               </div>
             )}
           </div>
+          
+          {match.status === 'upcoming' && (
+            <div className="text-xs text-gray-400 mt-1">
+              {formatDate(match.date)}
+            </div>
+          )}
         </div>
 
         {/* Away Team */}
@@ -193,10 +210,6 @@ const Matches = () => {
     );
   }
 
-  const liveMatches = getMatchesByStatus('live');
-  const upcomingMatches = getMatchesByStatus('upcoming');
-  const finishedMatches = getMatchesByStatus('finished');
-
   return (
     <Layout>
       <div className="min-h-screen bg-gray-900">
@@ -228,7 +241,7 @@ const Matches = () => {
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                مباشر ({liveMatches.length})
+                مباشر ({activeTab === 'live' ? matches.length : 0})
               </button>
               <button
                 onClick={() => setActiveTab('upcoming')}
@@ -238,7 +251,7 @@ const Matches = () => {
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                قادمة ({upcomingMatches.length})
+                قادمة ({activeTab === 'upcoming' ? matches.length : 0})
               </button>
               <button
                 onClick={() => setActiveTab('finished')}
@@ -248,62 +261,34 @@ const Matches = () => {
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                انتهت ({finishedMatches.length})
+                انتهت ({activeTab === 'finished' ? matches.length : 0})
               </button>
             </div>
           </div>
 
           {/* Matches Content */}
           <div className="space-y-4">
-            {activeTab === 'live' && (
-              <>
-                {liveMatches.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gradient-to-r from-red-600 to-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-2xl">🔴</span>
-                    </div>
-                    <p className="text-gray-400 text-lg">لا توجد مباريات مباشرة الآن</p>
-                  </div>
-                ) : (
-                  liveMatches.map((match) => (
-                    <MatchCard key={match.id} match={match} />
-                  ))
-                )}
-              </>
-            )}
-
-            {activeTab === 'upcoming' && (
-              <>
-                {upcomingMatches.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-2xl">⏰</span>
-                    </div>
-                    <p className="text-gray-400 text-lg">لا توجد مباريات قادمة</p>
-                  </div>
-                ) : (
-                  upcomingMatches.map((match) => (
-                    <MatchCard key={match.id} match={match} />
-                  ))
-                )}
-              </>
-            )}
-
-            {activeTab === 'finished' && (
-              <>
-                {finishedMatches.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gradient-to-r from-green-600 to-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-2xl">✅</span>
-                    </div>
-                    <p className="text-gray-400 text-lg">لا توجد مباريات منتهية</p>
-                  </div>
-                ) : (
-                  finishedMatches.map((match) => (
-                    <MatchCard key={match.id} match={match} />
-                  ))
-                )}
-              </>
+            {matches.length === 0 ? (
+              <div className="text-center py-12">
+                <div className={`w-16 h-16 bg-gradient-to-r ${
+                  activeTab === 'live' ? 'from-red-600 to-red-400' :
+                  activeTab === 'upcoming' ? 'from-blue-600 to-blue-400' :
+                  'from-green-600 to-green-400'
+                } rounded-full flex items-center justify-center mx-auto mb-4`}>
+                  <span className="text-2xl">
+                    {activeTab === 'live' ? '🔴' : activeTab === 'upcoming' ? '⏰' : '✅'}
+                  </span>
+                </div>
+                <p className="text-gray-400 text-lg">
+                  {activeTab === 'live' ? 'لا توجد مباريات مباشرة الآن' :
+                   activeTab === 'upcoming' ? 'لا توجد مباريات قادمة' :
+                   'لا توجد مباريات منتهية'}
+                </p>
+              </div>
+            ) : (
+              matches.map((match) => (
+                <MatchCard key={match.id} match={match} />
+              ))
             )}
           </div>
         </div>

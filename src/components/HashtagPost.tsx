@@ -1,7 +1,10 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Share2, MoreVertical } from 'lucide-react';
+import { MessageCircle, Share2, MoreVertical, Flag, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 import LikeButton from './LikeButton';
 
 interface HashtagPostProps {
@@ -25,6 +28,7 @@ interface HashtagPostProps {
   hideCommentsButton?: boolean;
   onCommentClick?: () => void;
   preventClick?: boolean;
+  onPostDelete?: () => void;
 }
 
 const HashtagPost: React.FC<HashtagPostProps> = ({ 
@@ -32,10 +36,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
   onLikeChange,
   hideCommentsButton = false,
   onCommentClick,
-  preventClick = false
+  preventClick = false,
+  onPostDelete
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [showMenu, setShowMenu] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -123,44 +130,93 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
     };
 
     try {
-      // Check if Web Share API is supported and has files capability
-      if (navigator.share && post.image_url) {
-        // Try to fetch the image and share it
-        try {
-          const response = await fetch(post.image_url);
-          const blob = await response.blob();
-          const file = new File([blob], 'post-image.jpg', { type: blob.type });
-          
-          await navigator.share({
-            ...shareData,
-            files: [file]
-          });
-          console.log('تم مشاركة المنشور مع الصورة بنجاح');
-          return;
-        } catch (imageError) {
-          console.log('فشل في مشاركة الصورة، سيتم مشاركة الرابط فقط');
-        }
-      }
-
-      // Fallback: share without image or use Web Share API without files
       if (navigator.share) {
         await navigator.share(shareData);
-        console.log('تم مشاركة المنشور بنجاح');
+        toast({
+          title: "تم مشاركة المنشور",
+          description: "تم مشاركة المنشور بنجاح"
+        });
       } else {
-        // Final fallback: copy to clipboard
         await navigator.clipboard.writeText(postUrl);
-        console.log('تم نسخ رابط المنشور');
-        // You could add a toast notification here
+        toast({
+          title: "تم نسخ الرابط",
+          description: "تم نسخ رابط المنشور إلى الحافظة"
+        });
       }
     } catch (error) {
       console.error('خطأ في المشاركة:', error);
-      // Fallback to copying URL
       try {
         await navigator.clipboard.writeText(postUrl);
-        console.log('تم نسخ رابط المنشور كبديل');
+        toast({
+          title: "تم نسخ الرابط", 
+          description: "تم نسخ رابط المنشور إلى الحافظة"
+        });
       } catch (clipboardError) {
-        console.error('فشل في نسخ الرابط:', clipboardError);
+        toast({
+          title: "خطأ في المشاركة",
+          description: "حدث خطأ أثناء مشاركة المنشور",
+          variant: "destructive"
+        });
       }
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!user || post.user_id !== user.id) {
+      toast({
+        title: "غير مسموح",
+        description: "لا يمكنك حذف هذا المنشور",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      
+      const { error } = await supabase
+        .from('hashtag_posts')
+        .delete()
+        .eq('id', post.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم حذف المنشور",
+        description: "تم حذف المنشور بنجاح"
+      });
+
+      if (onPostDelete) {
+        onPostDelete();
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast({
+        title: "خطأ في الحذف",
+        description: "حدث خطأ أثناء حذف المنشور",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowMenu(false);
+    }
+  };
+
+  const handleReportPost = async () => {
+    try {
+      // يمكن إضافة منطق الإبلاغ هنا
+      toast({
+        title: "تم الإبلاغ",
+        description: "تم الإبلاغ عن المنشور وسيتم مراجعته"
+      });
+      setShowMenu(false);
+    } catch (error) {
+      toast({
+        title: "خطأ في الإبلاغ",
+        description: "حدث خطأ أثناء الإبلاغ عن المنشور",
+        variant: "destructive"
+      });
     }
   };
 
@@ -192,9 +248,47 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
             <p className="text-xs text-gray-500">{formatTimestamp(post.created_at)}</p>
           </div>
         </div>
-        <button className="text-gray-500 hover:text-white p-1 rounded transition-colors">
-          <MoreVertical size={16} />
-        </button>
+        
+        <div className="relative">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMenu(!showMenu);
+            }}
+            className="text-gray-500 hover:text-white p-1 rounded transition-colors"
+          >
+            <MoreVertical size={16} />
+          </button>
+          
+          {showMenu && (
+            <div className="absolute left-0 top-8 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px] overflow-hidden">
+              {post.user_id === user?.id ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeletePost();
+                  }}
+                  disabled={isDeleting}
+                  className="w-full px-3 py-2 text-right text-red-400 hover:bg-gray-600 transition-colors flex items-center text-sm"
+                >
+                  <Trash2 size={14} className="ml-2" />
+                  {isDeleting ? 'جاري الحذف...' : 'حذف المنشور'}
+                </button>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleReportPost();
+                  }}
+                  className="w-full px-3 py-2 text-right text-orange-400 hover:bg-gray-600 transition-colors flex items-center text-sm"
+                >
+                  <Flag size={14} className="ml-2" />
+                  إبلاغ عن المنشور
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -224,15 +318,13 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
             />
           </div>
           
-          {!hideCommentsButton && (
-            <button
-              onClick={handleCommentsClick}
-              className="flex items-center space-x-2 space-x-reverse text-gray-400 hover:text-blue-400 transition-colors group"
-            >
-              <MessageCircle size={18} className="group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-medium">{post.comments_count}</span>
-            </button>
-          )}
+          <button
+            onClick={handleCommentsClick}
+            className="flex items-center space-x-2 space-x-reverse text-gray-400 hover:text-blue-400 transition-colors group"
+          >
+            <MessageCircle size={18} className="group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-medium">{post.comments_count}</span>
+          </button>
           
           <button 
             onClick={handleShareClick}

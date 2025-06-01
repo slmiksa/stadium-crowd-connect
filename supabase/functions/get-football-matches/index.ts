@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -41,11 +40,11 @@ const leagueTranslations: { [key: string]: string } = {
   'Coupe de France': 'كأس فرنسا'
 }
 
-// ترجمة أسماء الفرق
+// ترجمة أسماء الفرق - تحديث وتوسيع القائمة
 const teamTranslations: { [key: string]: string } = {
   // الفرق السعودية
   'Al Hilal': 'الهلال',
-  'Al Nassr': 'النصر',
+  'Al Nassr': 'النصر', 
   'Al Ahli': 'الأهلي',
   'Al Ittihad': 'الاتحاد',
   'Al Shabab': 'الشباب',
@@ -131,7 +130,12 @@ const teamTranslations: { [key: string]: string } = {
   'Atletico Madrid': 'أتلتيكو مدريد',
   'Sevilla': 'إشبيلية',
   'Valencia': 'فالنسيا',
-  'Villarreal': 'فياريال'
+  'Villarreal': 'فياريال',
+  'Newcastle United': 'نيوكاسل يونايتد',
+  'West Ham United': 'وست هام يونايتد',
+  'Brighton': 'برايتون',
+  'Aston Villa': 'أستون فيلا',
+  'Crystal Palace': 'كريستال بالاس'
 }
 
 // معرفات الدوريات المهمة
@@ -217,26 +221,33 @@ serve(async (req) => {
     const statusData = await testResponse.json()
     console.log('API Status Data:', statusData)
 
-    // قراءة المعاملات من الطلب
+    // قراءة المعاملات من الطلب أو URL
     let requestBody: any = {}
+    const url = new URL(req.url)
+    const statusFromUrl = url.searchParams.get('status')
+    const dateFromUrl = url.searchParams.get('date')
+    
     try {
       if (req.method === 'POST') {
-        requestBody = await req.json()
+        const text = await req.text()
+        if (text) {
+          requestBody = JSON.parse(text)
+        }
         console.log('Request body received:', requestBody)
       }
     } catch (e) {
       console.log('Error parsing body, using defaults:', e)
     }
     
-    const status = requestBody.status || 'live'
-    const date = requestBody.date || new Date().toISOString().split('T')[0]
+    const status = requestBody.status || statusFromUrl || 'live'
+    const date = requestBody.date || dateFromUrl || new Date().toISOString().split('T')[0]
     
     console.log(`Processing request - Status: ${status}, Date: ${date}`)
 
     let allMatches: any[] = []
     let apiUrl = ''
 
-    // تحديد URL API حسب الحالة المطلوبة
+    // تحديد URL API حسب الحالة المطلوبة مع تحسين المعالجة
     try {
       if (status === 'live') {
         apiUrl = 'https://v3.football.api-sports.io/fixtures?live=all'
@@ -268,18 +279,18 @@ serve(async (req) => {
         }
       } 
       else if (status === 'finished') {
-        // للمباريات المنتهية - جلب مباريات الأيام السابقة
-        const dates = [
-          date, // اليوم
-          new Date(Date.now() - 86400000).toISOString().split('T')[0], // أمس
-          new Date(Date.now() - 172800000).toISOString().split('T')[0] // أمس الأول
-        ]
+        // للمباريات المنتهية - جلب مباريات الأيام الماضية
+        const dates = []
+        for (let i = 0; i < 5; i++) {
+          const pastDate = new Date(Date.now() - (i * 86400000))
+          dates.push(pastDate.toISOString().split('T')[0])
+        }
         
         for (const searchDate of dates) {
-          apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=FT`
-          console.log(`Fetching finished matches for date: ${searchDate}`)
-          
           try {
+            apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=FT`
+            console.log(`Fetching finished matches for date: ${searchDate}`)
+            
             const response = await fetch(apiUrl, {
               method: 'GET',
               headers: {
@@ -295,12 +306,15 @@ serve(async (req) => {
                 paging: data.paging
               })
               
-              if (data.response) {
+              if (data.response && data.response.length > 0) {
                 allMatches = [...allMatches, ...data.response]
               }
             } else {
               console.error(`API error for ${searchDate}:`, response.status, response.statusText)
             }
+            
+            // إضافة تأخير قصير بين الطلبات
+            await new Promise(resolve => setTimeout(resolve, 100))
           } catch (error) {
             console.error(`Network error for ${searchDate}:`, error)
           }
@@ -308,17 +322,17 @@ serve(async (req) => {
       } 
       else if (status === 'upcoming') {
         // للمباريات القادمة - جلب مباريات الأيام القادمة
-        const dates = [
-          date, // اليوم
-          new Date(Date.now() + 86400000).toISOString().split('T')[0], // غداً
-          new Date(Date.now() + 172800000).toISOString().split('T')[0] // بعد غد
-        ]
+        const dates = []
+        for (let i = 0; i < 7; i++) {
+          const futureDate = new Date(Date.now() + (i * 86400000))
+          dates.push(futureDate.toISOString().split('T')[0])
+        }
         
         for (const searchDate of dates) {
-          apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=NS`
-          console.log(`Fetching upcoming matches for date: ${searchDate}`)
-          
           try {
+            apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=NS`
+            console.log(`Fetching upcoming matches for date: ${searchDate}`)
+            
             const response = await fetch(apiUrl, {
               method: 'GET',
               headers: {
@@ -334,12 +348,15 @@ serve(async (req) => {
                 paging: data.paging
               })
               
-              if (data.response) {
+              if (data.response && data.response.length > 0) {
                 allMatches = [...allMatches, ...data.response]
               }
             } else {
               console.error(`API error for ${searchDate}:`, response.status, response.statusText)
             }
+            
+            // إضافة تأخير قصير بين الطلبات
+            await new Promise(resolve => setTimeout(resolve, 100))
           } catch (error) {
             console.error(`Network error for ${searchDate}:`, error)
           }
@@ -364,12 +381,12 @@ serve(async (req) => {
       filteredMatches = allMatches.slice(0, 50)
     }
 
-    // تحويل البيانات إلى التنسيق المطلوب مع الترجمة
+    // تحويل البيانات إلى التنسيق المطلوب مع الترجمة المحسنة
     const matches = filteredMatches.map((fixture: any) => {
       const leagueName = fixture.league.name
       const arabicLeagueName = leagueTranslations[leagueName] || leagueName
 
-      // ترجمة أسماء الفرق
+      // ترجمة أسماء الفرق مع معالجة أفضل
       const homeTeamName = teamTranslations[fixture.teams.home.name] || fixture.teams.home.name
       const awayTeamName = teamTranslations[fixture.teams.away.name] || fixture.teams.away.name
 
