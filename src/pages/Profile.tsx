@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -741,11 +742,11 @@ const Profile = () => {
             </Button>
           </div>
 
-          {/* Sign out button */}
-          <div className="pb-8">
+          {/* Sign out button with safe area padding */}
+          <div className="pb-24 safe-area-bottom">
             <Button
               onClick={handleSignOut}
-              className="w-full bg-red-600 hover:bg-red-700 text-white"
+              className="w-full bg-red-600 hover:bg-red-700 text-white mb-4"
             >
               <LogOut size={18} className="ml-2" />
               تسجيل الخروج

@@ -39,17 +39,17 @@ const Login = () => {
           setPassword('');
           setUsername('');
         } else {
-          setError(isRTL ? 'فشل في إنشاء الحساب' : 'Failed to create account');
+          setError(isRTL ? 'فشل في إنشاء الحساب. يرجى المحاولة مرة أخرى.' : 'Failed to create account. Please try again.');
         }
       } else {
         success = await login(email, password);
         if (!success) {
-          setError(isRTL ? 'بيانات تسجيل الدخول غير صحيحة' : 'Invalid login credentials');
+          setError(isRTL ? 'بيانات تسجيل الدخول غير صحيحة. يرجى التحقق من البريد الإلكتروني وكلمة المرور.' : 'Invalid login credentials. Please check your email and password.');
         }
       }
     } catch (error) {
       console.error('Auth error:', error);
-      setError(isRTL ? 'حدث خطأ غير متوقع' : 'An unexpected error occurred');
+      setError(isRTL ? 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.' : 'An unexpected error occurred. Please try again.');
     }
   };
 
@@ -80,6 +80,7 @@ const Login = () => {
                   placeholder={isRTL ? 'اسم المستخدم' : 'Username'}
                   className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 transition-colors"
                   disabled={isLoading}
+                  required={isSignUp}
                 />
               </div>
             )}
@@ -93,6 +94,7 @@ const Login = () => {
                 placeholder={isRTL ? 'البريد الإلكتروني' : 'Email'}
                 className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 transition-colors"
                 disabled={isLoading}
+                required
               />
             </div>
 
@@ -105,11 +107,13 @@ const Login = () => {
                 placeholder={isRTL ? 'كلمة المرور' : 'Password'}
                 className="w-full pl-10 pr-10 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 transition-colors"
                 disabled={isLoading}
+                required
+                minLength={6}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-zinc-300"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-zinc-300 transition-colors"
                 disabled={isLoading}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
