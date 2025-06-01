@@ -19,6 +19,7 @@ import PrivateChat from '@/pages/PrivateChat';
 import Notifications from '@/pages/Notifications';
 import Matches from '@/pages/Matches';
 import MatchDetails from '@/pages/MatchDetails';
+import Comments from '@/pages/Comments';
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ function AppContent() {
       <Route path="/notifications" element={<AuthGuard><Notifications /></AuthGuard>} />
       <Route path="/matches" element={<AuthGuard><Matches /></AuthGuard>} />
       <Route path="/match-details/:matchId" element={<AuthGuard><MatchDetails /></AuthGuard>} />
+      <Route path="/comments/:postId" element={<AuthGuard><Comments /></AuthGuard>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
