@@ -1,0 +1,162 @@
+
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Search, Ban, UserCheck } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  avatar_url: string | null;
+  followers_count: number;
+  following_count: number;
+  verification_status: string;
+  created_at: string;
+}
+
+const UsersManagement = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    const filtered = users.filter(user => 
+      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredUsers(filtered);
+  }, [users, searchTerm]);
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        toast({
+          title: 'خطأ',
+          description: 'فشل في جلب المستخدمين',
+          variant: 'destructive'
+        });
+      } else {
+        setUsers(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getVerificationBadge = (status: string) => {
+    const badges = {
+      'diamond': { label: 'الماسي', color: 'bg-cyan-500' },
+      'gold': { label: 'ذهبي', color: 'bg-yellow-500' },
+      'silver': { label: 'فضي', color: 'bg-gray-400' },
+      'bronze': { label: 'برونزي', color: 'bg-orange-600' },
+      'none': { label: 'غير موثق', color: 'bg-gray-600' }
+    };
+    
+    const badge = badges[status as keyof typeof badges] || badges.none;
+    return (
+      <Badge className={`${badge.color} text-white text-xs`}>
+        {badge.label}
+      </Badge>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="bg-zinc-900 border-zinc-800">
+        <CardHeader>
+          <CardTitle className="text-white">جاري تحميل المستخدمين...</CardTitle>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-zinc-900 border-zinc-800">
+        <CardHeader>
+          <CardTitle className="text-white">إدارة المستخدمين</CardTitle>
+          <div className="flex items-center space-x-4 space-x-reverse">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-4 w-4" />
+              <Input
+                placeholder="البحث عن مستخدم..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-zinc-800 border-zinc-700 text-white pl-10"
+              />
+            </div>
+            <Badge variant="secondary" className="bg-zinc-800 text-white">
+              {filteredUsers.length} مستخدم
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {filteredUsers.map((user) => (
+              <div key={user.id} className="flex items-center justify-between p-4 bg-zinc-800 rounded-lg">
+                <div className="flex items-center space-x-4 space-x-reverse">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={user.avatar_url || ''} />
+                    <AvatarFallback className="bg-zinc-700 text-white">
+                      {user.username.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <h3 className="font-medium text-white">{user.username}</h3>
+                      {getVerificationBadge(user.verification_status)}
+                    </div>
+                    <p className="text-sm text-zinc-400">{user.email}</p>
+                    <div className="flex space-x-4 space-x-reverse text-xs text-zinc-500">
+                      <span>{user.followers_count} متابع</span>
+                      <span>{user.following_count} متابع</span>
+                      <span>انضم في {new Date(user.created_at).toLocaleDateString('ar-SA')}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex space-x-2 space-x-reverse">
+                  <Button size="sm" variant="outline" className="text-white border-zinc-700">
+                    <UserCheck className="h-4 w-4 mr-1" />
+                    عرض الملف
+                  </Button>
+                  <Button size="sm" variant="destructive">
+                    <Ban className="h-4 w-4 mr-1" />
+                    حظر
+                  </Button>
+                </div>
+              </div>
+            ))}
+            
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-8 text-zinc-400">
+                لم يتم العثور على مستخدمين
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default UsersManagement;

@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_super_admin: boolean | null
+          password_hash: string
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_super_admin?: boolean | null
+          password_hash: string
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_super_admin?: boolean | null
+          password_hash?: string
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
       chat_rooms: {
         Row: {
           announcement: string | null
@@ -393,6 +420,76 @@ export type Database = {
         }
         Relationships: []
       }
+      reports: {
+        Row: {
+          admin_response: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          reason: string
+          report_type: string
+          reported_comment_id: string | null
+          reported_post_id: string | null
+          reported_room_id: string | null
+          reported_user_id: string | null
+          reporter_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          reason: string
+          report_type: string
+          reported_comment_id?: string | null
+          reported_post_id?: string | null
+          reported_room_id?: string | null
+          reported_user_id?: string | null
+          reporter_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          reason?: string
+          report_type?: string
+          reported_comment_id?: string | null
+          reported_post_id?: string | null
+          reported_room_id?: string | null
+          reported_user_id?: string | null
+          reporter_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_reported_comment_id_fkey"
+            columns: ["reported_comment_id"]
+            isOneToOne: false
+            referencedRelation: "hashtag_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reported_post_id_fkey"
+            columns: ["reported_post_id"]
+            isOneToOne: false
+            referencedRelation: "hashtag_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reported_room_id_fkey"
+            columns: ["reported_room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_invitations: {
         Row: {
           created_at: string | null
@@ -587,6 +684,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_app_statistics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_users: number
+          total_posts: number
+          total_comments: number
+          total_rooms: number
+          total_messages: number
+          total_reports: number
+          pending_reports: number
+        }[]
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: string
@@ -602,6 +711,18 @@ export type Database = {
           promoter_id_param: string
         }
         Returns: boolean
+      }
+      update_admin_password: {
+        Args: { admin_id: string; new_password: string }
+        Returns: boolean
+      }
+      verify_admin_login: {
+        Args: { username_input: string; password_input: string }
+        Returns: {
+          id: string
+          username: string
+          is_super_admin: boolean
+        }[]
       }
     }
     Enums: {
