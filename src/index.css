@@ -240,11 +240,29 @@ html, body {
   max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }
 
+/* Enhanced comment input positioning - ensuring it's always visible above footer */
 .comments-input-area {
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
-  position: sticky;
-  bottom: 0;
-  background: rgba(31, 41, 55, 0.95);
-  backdrop-filter: blur(8px);
-  border-top: 1px solid rgba(75, 85, 99, 0.3);
+  position: fixed !important;
+  bottom: 64px !important; /* 64px to be well above the footer */
+  left: 0;
+  right: 0;
+  z-index: 1000 !important;
+  background: rgba(31, 41, 55, 0.98) !important;
+  backdrop-filter: blur(12px) !important;
+  border-top: 1px solid rgba(75, 85, 99, 0.5);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
+  padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+}
+
+/* Ensure comment input is always visible on mobile */
+@media screen and (max-width: 768px) {
+  .comments-input-area {
+    bottom: 80px !important; /* Even higher on mobile */
+  }
+}
+
+/* Prevent any element from covering the comment input */
+.comment-input-wrapper {
+  position: relative;
+  z-index: 1001 !important;
 }

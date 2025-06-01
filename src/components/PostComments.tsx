@@ -298,8 +298,8 @@ const PostComments: React.FC<PostCommentsProps> = ({
           </button>
         </div>
 
-        {/* Comments List - with extra bottom padding to prevent overlap */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent pb-24">
+        {/* Comments List - with much more bottom padding to prevent overlap */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent pb-32">
           {isLoading ? (
             <div className="flex justify-center py-12">
               <div className="relative">
@@ -328,9 +328,9 @@ const PostComments: React.FC<PostCommentsProps> = ({
           )}
         </div>
 
-        {/* Comment Input - Fixed at bottom with higher z-index and better positioning */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gray-800/98 backdrop-blur-lg border-t border-gray-700/50 z-20">
-          <div className="p-3 pb-6">
+        {/* Comment Input - Fixed at bottom with much higher positioning and better visibility */}
+        <div className="absolute bottom-16 left-0 right-0 bg-gray-800/98 backdrop-blur-lg border-t border-gray-700/50 z-30 shadow-2xl">
+          <div className="p-4 pb-8">
             <CommentInput
               onSubmit={handleSubmitComment}
               isSubmitting={isSubmitting}
