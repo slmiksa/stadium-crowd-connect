@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -179,9 +180,22 @@ const PostComments: React.FC<PostCommentsProps> = ({
   };
 
   const extractHashtags = (text: string) => {
+    console.log('=== Extracting hashtags from text ===');
+    console.log('Input text:', text);
+    
     const hashtagRegex = /#[\u0600-\u06FF\w]+/g;
     const matches = text.match(hashtagRegex);
-    return matches ? matches.map(tag => tag.slice(1)) : [];
+    
+    console.log('Regex matches:', matches);
+    
+    const hashtags = matches ? matches.map(tag => {
+      const cleanTag = tag.slice(1); // Remove # symbol
+      console.log('Clean hashtag:', cleanTag);
+      return cleanTag;
+    }) : [];
+    
+    console.log('Final extracted hashtags:', hashtags);
+    return hashtags;
   };
 
   const handleSubmitComment = async (content: string, mediaFile?: File, mediaType?: string) => {
@@ -195,7 +209,12 @@ const PostComments: React.FC<PostCommentsProps> = ({
       return;
     }
 
-    console.log('Submitting comment:', { content, hasMedia: !!mediaFile, replyTo, mediaType });
+    console.log('=== STARTING COMMENT SUBMISSION ===');
+    console.log('Comment content:', content);
+    console.log('Has media:', !!mediaFile);
+    console.log('Media type:', mediaType);
+    console.log('Reply to:', replyTo);
+    
     setIsSubmitting(true);
     
     try {
@@ -213,16 +232,18 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
       // استخراج الهاشتاقات من محتوى التعليق
       const hashtags = extractHashtags(content);
+      console.log('=== HASHTAGS EXTRACTED ===');
       console.log('Extracted hashtags:', hashtags);
+      console.log('Hashtags count:', hashtags.length);
 
-      console.log('Inserting comment into database...');
+      console.log('=== PREPARING DATABASE INSERT ===');
       
       // إعداد بيانات التعليق مع مصفوفة هاشتاقات واضحة
       const commentData: any = {
         post_id: postId,
         user_id: user.id,
         content: content.trim() || '',
-        hashtags: hashtags.length > 0 ? hashtags : []
+        hashtags: hashtags // Always include hashtags array, even if empty
       };
 
       // إضافة parent_id إذا كان يرد على تعليق
@@ -236,7 +257,8 @@ const PostComments: React.FC<PostCommentsProps> = ({
         commentData.media_type = mediaType;
       }
 
-      console.log('Comment data to insert:', commentData);
+      console.log('=== COMMENT DATA TO INSERT ===');
+      console.log('Comment data:', JSON.stringify(commentData, null, 2));
 
       const { data: insertData, error: insertError } = await supabase
         .from('hashtag_comments')
@@ -244,11 +266,35 @@ const PostComments: React.FC<PostCommentsProps> = ({
         .select();
 
       if (insertError) {
-        console.error('Error inserting comment:', insertError);
+        console.error('=== DATABASE INSERT ERROR ===');
+        console.error('Insert error:', insertError);
         throw insertError;
       }
 
-      console.log('Comment inserted successfully:', insertData);
+      console.log('=== DATABASE INSERT SUCCESS ===');
+      console.log('Inserted data:', insertData);
+
+      // التحقق من الإدراج
+      if (insertData && insertData[0]) {
+        console.log('=== VERIFYING INSERT ===');
+        console.log('Inserted comment ID:', insertData[0].id);
+        console.log('Inserted hashtags:', insertData[0].hashtags);
+        
+        // فحص إضافي للتأكد من حفظ الهاشتاقات
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('hashtag_comments')
+          .select('id, content, hashtags')
+          .eq('id', insertData[0].id)
+          .single();
+        
+        if (verifyError) {
+          console.error('Verification error:', verifyError);
+        } else {
+          console.log('=== VERIFICATION RESULT ===');
+          console.log('Verified comment:', verifyData);
+          console.log('Verified hashtags:', verifyData.hashtags);
+        }
+      }
 
       // مسح حالة الرد بعد الإرسال الناجح
       setReplyTo(null);
@@ -271,7 +317,10 @@ const PostComments: React.FC<PostCommentsProps> = ({
       
       await updateCommentsCount();
       
+      console.log('=== COMMENT SUBMISSION COMPLETED SUCCESSFULLY ===');
+      
     } catch (error) {
+      console.error('=== COMMENT SUBMISSION FAILED ===');
       console.error('Error in handleSubmitComment:', error);
       alert('حدث خطأ أثناء إضافة التعليق');
     } finally {

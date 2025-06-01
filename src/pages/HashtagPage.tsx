@@ -63,6 +63,8 @@ const HashtagPage = () => {
 
   useEffect(() => {
     if (hashtag) {
+      console.log('=== HASHTAG PAGE LOADED ===');
+      console.log('Current hashtag:', hashtag);
       fetchHashtagContent();
       
       // Set up real-time subscription for comments
@@ -76,7 +78,8 @@ const HashtagPage = () => {
             table: 'hashtag_comments'
           },
           (payload) => {
-            console.log('Real-time comment update:', payload);
+            console.log('=== REAL-TIME COMMENT UPDATE ===');
+            console.log('Payload:', payload);
             fetchHashtagComments(); // Refetch comments on any change
           }
         )
@@ -93,7 +96,8 @@ const HashtagPage = () => {
             table: 'hashtag_posts'
           },
           (payload) => {
-            console.log('Real-time post update:', payload);
+            console.log('=== REAL-TIME POST UPDATE ===');
+            console.log('Payload:', payload);
             fetchHashtagPosts(); // Refetch posts on any change
           }
         )
@@ -108,13 +112,17 @@ const HashtagPage = () => {
 
   const fetchHashtagContent = async () => {
     try {
-      console.log('Fetching content for hashtag:', hashtag);
+      console.log('=== FETCHING HASHTAG CONTENT ===');
+      console.log('Hashtag:', hashtag);
       setIsLoading(true);
       
       const [postsResult, commentsResult] = await Promise.all([
         fetchHashtagPosts(),
         fetchHashtagComments()
       ]);
+
+      console.log('Posts result:', postsResult.length);
+      console.log('Comments result:', commentsResult.length);
 
       setPosts(postsResult);
       setComments(commentsResult);
@@ -127,7 +135,8 @@ const HashtagPage = () => {
 
   const fetchHashtagPosts = async () => {
     try {
-      console.log('Fetching posts for hashtag:', hashtag);
+      console.log('=== FETCHING HASHTAG POSTS ===');
+      console.log('Searching for hashtag:', hashtag);
       
       const { data: postsData, error: postsError } = await supabase
         .from('hashtag_posts')
@@ -150,7 +159,9 @@ const HashtagPage = () => {
         return [];
       }
 
+      console.log('=== POSTS FETCH RESULT ===');
       console.log('Found posts:', postsData?.length || 0);
+      console.log('Posts data:', postsData);
 
       if (postsData) {
         for (const post of postsData) {
@@ -174,10 +185,12 @@ const HashtagPage = () => {
 
   const fetchHashtagComments = async () => {
     try {
-      console.log('Fetching comments for hashtag:', hashtag);
+      console.log('=== FETCHING HASHTAG COMMENTS ===');
+      console.log('Searching for hashtag:', hashtag);
       setIsLoadingComments(true);
       
-      // Method 1: Search in hashtags array (more reliable)
+      // Method 1: Search in hashtags array (most reliable)
+      console.log('=== METHOD 1: Searching in hashtags array ===');
       const { data: arrayComments, error: arrayError } = await supabase
         .from('hashtag_comments')
         .select(`
@@ -191,9 +204,15 @@ const HashtagPage = () => {
         .contains('hashtags', [hashtag])
         .order('created_at', { ascending: false });
 
-      console.log('Comments from hashtags array:', arrayComments?.length || 0, arrayComments);
+      console.log('Method 1 result:', {
+        count: arrayComments?.length || 0,
+        error: arrayError,
+        data: arrayComments
+      });
 
       // Method 2: Search in content text (backup method)
+      console.log('=== METHOD 2: Searching in content ===');
+      const searchPattern = `#${hashtag}`;
       const { data: contentComments, error: contentError } = await supabase
         .from('hashtag_comments')
         .select(`
@@ -204,30 +223,54 @@ const HashtagPage = () => {
             avatar_url
           )
         `)
-        .ilike('content', `%#${hashtag}%`)
+        .ilike('content', `%${searchPattern}%`)
         .order('created_at', { ascending: false });
 
-      console.log('Comments from content search:', contentComments?.length || 0, contentComments);
+      console.log('Method 2 result:', {
+        searchPattern,
+        count: contentComments?.length || 0,
+        error: contentError,
+        data: contentComments
+      });
 
-      // Method 3: Search for exact hashtag pattern in content
-      const { data: exactComments, error: exactError } = await supabase
+      // Method 3: Get ALL comments to see what's in the database
+      console.log('=== METHOD 3: Getting ALL comments for debugging ===');
+      const { data: allComments, error: allError } = await supabase
         .from('hashtag_comments')
         .select(`
-          *,
+          id,
+          content,
+          hashtags,
+          created_at,
           profiles (
             id,
             username,
             avatar_url
           )
         `)
-        .or(`content.ilike.%#${hashtag} %,content.ilike.%#${hashtag},content.ilike.#${hashtag} %,content.ilike.#${hashtag}`)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-      console.log('Comments from exact pattern search:', exactComments?.length || 0, exactComments);
+      console.log('All comments (last 20):', {
+        count: allComments?.length || 0,
+        error: allError,
+        data: allComments
+      });
+
+      if (allComments) {
+        allComments.forEach((comment, index) => {
+          console.log(`Comment ${index + 1}:`, {
+            id: comment.id,
+            content: comment.content.substring(0, 100),
+            hashtags: comment.hashtags,
+            hasHashtag: comment.hashtags?.includes(hashtag),
+            contentHasHashtag: comment.content.includes(`#${hashtag}`)
+          });
+        });
+      }
 
       if (arrayError) console.error('Error fetching hashtag array comments:', arrayError);
       if (contentError) console.error('Error fetching content comments:', contentError);
-      if (exactError) console.error('Error fetching exact comments:', exactError);
 
       // Combine and deduplicate comments using a Map for better performance
       const commentMap = new Map();
@@ -248,21 +291,14 @@ const HashtagPage = () => {
         });
       }
 
-      // Add exact pattern comments (lowest priority)
-      if (exactComments) {
-        exactComments.forEach(comment => {
-          if (!commentMap.has(comment.id)) {
-            commentMap.set(comment.id, comment);
-          }
-        });
-      }
-
-      const allComments = Array.from(commentMap.values());
+      const finalComments = Array.from(commentMap.values());
       
-      console.log('Total unique comments found:', allComments.length);
+      console.log('=== FINAL COMMENTS RESULT ===');
+      console.log('Total unique comments found:', finalComments.length);
+      console.log('Final comments:', finalComments);
       
       // Sort by created_at descending
-      const sortedComments = allComments.sort((a, b) => 
+      const sortedComments = finalComments.sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
@@ -439,15 +475,13 @@ const HashtagPage = () => {
         )}
 
         {/* Debug Info */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="bg-gray-900 rounded-lg p-4 mb-6 text-sm">
-            <p className="text-gray-400">Debug Info:</p>
-            <p className="text-white">Posts: {postsCount}</p>
-            <p className="text-white">Comments: {commentsCount}</p>
-            <p className="text-white">Total Content: {totalContent}</p>
-            <p className="text-white">Loading Comments: {isLoadingComments.toString()}</p>
-          </div>
-        )}
+        <div className="bg-gray-900 rounded-lg p-4 mb-6 text-sm">
+          <p className="text-gray-400">Debug Info:</p>
+          <p className="text-white">Posts: {postsCount}</p>
+          <p className="text-white">Comments: {commentsCount}</p>
+          <p className="text-white">Total Content: {totalContent}</p>
+          <p className="text-white">Loading Comments: {isLoadingComments.toString()}</p>
+        </div>
 
         {/* Combined Content Feed */}
         <div className="space-y-6">
