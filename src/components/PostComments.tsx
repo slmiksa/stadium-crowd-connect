@@ -197,6 +197,9 @@ const PostComments: React.FC<PostCommentsProps> = ({
       const hashtags = extractHashtags(content);
       console.log('Extracted hashtags:', hashtags);
 
+      // Use the actual parent_id from replyTo
+      const actualParentId = replyTo ? replyTo.id : parentId;
+
       console.log('Inserting comment into database...');
       const { data: insertData, error: insertError } = await supabase
         .from('hashtag_comments')
@@ -206,7 +209,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
           content: content.trim() || '',
           media_url: mediaUrl,
           media_type: mediaType || null,
-          parent_id: parentId || null,
+          parent_id: actualParentId || null,
           hashtags: hashtags
         })
         .select();
@@ -218,8 +221,11 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
       console.log('Comment inserted successfully:', insertData);
 
+      // Clear reply state after successful submission
+      setReplyTo(null);
+      
       await fetchComments();
-      await updateCommentsCount(); // Update the total count including nested replies
+      await updateCommentsCount();
       onCommentAdded();
       
     } catch (error) {
@@ -231,10 +237,12 @@ const PostComments: React.FC<PostCommentsProps> = ({
   };
 
   const handleReply = (commentId: string, username: string) => {
+    console.log('Setting reply to:', { commentId, username });
     setReplyTo({ id: commentId, username });
   };
 
   const handleCancelReply = () => {
+    console.log('Cancelling reply');
     setReplyTo(null);
   };
 
@@ -258,21 +266,21 @@ const PostComments: React.FC<PostCommentsProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-gray-900/95 backdrop-blur-md w-full sm:max-w-lg h-[90vh] sm:h-[85vh] rounded-t-3xl sm:rounded-3xl border border-gray-700/50 shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center">
+      <div className="bg-gray-900/95 backdrop-blur-md w-full max-w-lg h-[90vh] rounded-t-3xl border border-gray-700/50 shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700/50 bg-gray-800/50 flex-shrink-0">
-          <h3 className="text-xl font-bold text-white">التعليقات</h3>
+        <div className="flex items-center justify-between p-4 border-b border-gray-700/50 bg-gray-800/50 flex-shrink-0">
+          <h3 className="text-lg font-bold text-white">التعليقات</h3>
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-xl transition-all duration-200"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Comments List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 pb-4">
           {isLoading ? (
             <div className="flex justify-center py-12">
               <div className="relative">
@@ -301,11 +309,11 @@ const PostComments: React.FC<PostCommentsProps> = ({
           )}
         </div>
 
-        {/* Comment Input - Fixed to bottom with safe area */}
-        <div className="flex-shrink-0 border-t border-gray-700/50 bg-gray-800/30 safe-area-bottom">
-          <div className="p-4 pb-safe-bottom">
+        {/* Comment Input - Fixed to bottom */}
+        <div className="flex-shrink-0 border-t border-gray-700/50 bg-gray-800/50 backdrop-blur-sm">
+          <div className="p-4 pb-8">
             <CommentInput
-              onSubmit={handleSubmitComment}
+              onSubmit={(content, mediaFile, mediaType) => handleSubmitComment(content, mediaFile, undefined, mediaType)}
               isSubmitting={isSubmitting}
               placeholder="اكتب تعليقاً..."
               replyTo={replyTo}
