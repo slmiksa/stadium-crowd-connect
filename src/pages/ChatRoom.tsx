@@ -313,6 +313,28 @@ const ChatRoom = () => {
     setImageModal(null);
   };
 
+  const leaveRoom = async () => {
+    if (!user || !roomId) return;
+
+    try {
+      const { error } = await supabase
+        .from('room_members')
+        .delete()
+        .eq('room_id', roomId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error leaving room:', error);
+        return;
+      }
+
+      // Navigate back to chat rooms list
+      navigate('/chat-rooms');
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -414,6 +436,16 @@ const ChatRoom = () => {
                   className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
                 >
                   <Settings size={20} className="text-white" />
+                </button>
+              )}
+              {/* Leave Room Button - only show if user is not the owner */}
+              {user?.id !== roomInfo?.owner_id && (
+                <button 
+                  onClick={leaveRoom}
+                  className="p-2 hover:bg-red-700 rounded-lg transition-colors"
+                  title="مغادرة الغرفة"
+                >
+                  <ArrowLeft size={20} className="text-red-400" />
                 </button>
               )}
             </div>
