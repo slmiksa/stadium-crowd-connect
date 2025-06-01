@@ -94,7 +94,7 @@ const Matches = () => {
   const fetchMatchData = async (status: 'live' | 'upcoming' | 'finished') => {
     try {
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 10000)
+        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 15000)
       );
       
       const dataPromise = supabase.functions.invoke('get-football-matches', {
@@ -119,7 +119,11 @@ const Matches = () => {
         }));
         setErrorMessages(prev => ({ 
           ...prev, 
-          [status]: data?.message || 'لا توجد مباريات متاحة في الوقت الحالي' 
+          [status]: data?.message || `لا توجد مباريات ${
+            status === 'live' ? 'مباشرة الآن' :
+            status === 'upcoming' ? 'غدا' :
+            'أمس'
+          }` 
         }));
       }
       
@@ -135,7 +139,11 @@ const Matches = () => {
       }));
       setErrorMessages(prev => ({ 
         ...prev, 
-        [status]: 'حدث خطأ في تحميل المباريات. يرجى المحاولة لاحقاً.' 
+        [status]: `حدث خطأ في تحميل المباريات ${
+          status === 'live' ? 'المباشرة' :
+          status === 'upcoming' ? 'غدا' :
+          'أمس'
+        }. يرجى المحاولة لاحقاً.` 
       }));
       setDataLoaded(prev => ({ ...prev, [status]: true }));
     }
@@ -144,11 +152,11 @@ const Matches = () => {
   const fetchNewsData = async () => {
     try {
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 10000)
+        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 15000)
       );
       
       const dataPromise = supabase.functions.invoke('get-football-news', {
-        body: { limit: 30 }
+        body: { limit: 20 }
       });
 
       const { data } = await Promise.race([dataPromise, timeoutPromise]) as any;
@@ -483,7 +491,7 @@ const Matches = () => {
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                قادمة ({allMatches.upcoming.length})
+                غدا ({allMatches.upcoming.length})
               </button>
               <button
                 onClick={() => setActiveTab('finished')}
@@ -493,7 +501,7 @@ const Matches = () => {
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                انتهت ({allMatches.finished.length})
+                أمس ({allMatches.finished.length})
               </button>
               <button
                 onClick={() => setActiveTab('news')}
@@ -528,8 +536,8 @@ const Matches = () => {
                   type={activeTab} 
                   message={currentErrorMessage || `لا توجد مباريات ${
                     activeTab === 'live' ? 'مباشرة الآن' :
-                    activeTab === 'upcoming' ? 'قادمة' :
-                    'منتهية'
+                    activeTab === 'upcoming' ? 'غدا' :
+                    'أمس'
                   }`} 
                 />
               ) : (

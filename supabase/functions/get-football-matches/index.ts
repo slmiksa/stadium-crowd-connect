@@ -142,75 +142,59 @@ serve(async (req) => {
         }
       } 
       else if (status === 'finished') {
-        console.log('جلب المباريات المنتهية للأسبوع الماضي...')
+        // جلب المباريات المنتهية لأمس فقط
+        const yesterday = new Date(Date.now() - 86400000)
+        const searchDate = yesterday.toISOString().split('T')[0]
         
-        // جلب المباريات المنتهية للأسبوع الماضي
-        for (let i = 1; i <= 7; i++) {
-          const pastDate = new Date(Date.now() - (i * 86400000))
-          const searchDate = pastDate.toISOString().split('T')[0]
-          
-          const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=FT`
-          console.log(`جلب المباريات المنتهية لتاريخ: ${searchDate}`)
-          
-          try {
-            const response = await fetch(apiUrl, {
-              method: 'GET',
-              headers: {
-                'X-RapidAPI-Key': apiKey,
-                'X-RapidAPI-Host': 'v3.football.api-sports.io'
-              }
-            })
-            
-            if (response.ok) {
-              const data = await response.json()
-              if (data.response && data.response.length > 0) {
-                allMatches = [...allMatches, ...data.response]
-                console.log(`تم العثور على ${data.response.length} مباراة منتهية في ${searchDate}`)
-              }
+        const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=FT`
+        console.log(`جلب المباريات المنتهية لأمس: ${searchDate}`)
+        
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'X-RapidAPI-Key': apiKey,
+              'X-RapidAPI-Host': 'v3.football.api-sports.io'
             }
-            
-            // تأخير قصير بين الطلبات
-            await new Promise(resolve => setTimeout(resolve, 200))
-            
-          } catch (error) {
-            console.error(`خطأ في جلب المباريات لتاريخ ${searchDate}:`, error)
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            if (data.response && data.response.length > 0) {
+              allMatches = data.response
+              console.log(`تم العثور على ${data.response.length} مباراة منتهية أمس`)
+            }
           }
+        } catch (error) {
+          console.error(`خطأ في جلب المباريات المنتهية:`, error)
         }
       } 
       else if (status === 'upcoming') {
-        console.log('جلب المباريات القادمة للأسبوع القادم...')
+        // جلب المباريات القادمة لغدا فقط
+        const tomorrow = new Date(Date.now() + 86400000)
+        const searchDate = tomorrow.toISOString().split('T')[0]
         
-        // جلب المباريات القادمة للأسبوع القادم
-        for (let i = 0; i <= 7; i++) {
-          const futureDate = new Date(Date.now() + (i * 86400000))
-          const searchDate = futureDate.toISOString().split('T')[0]
-          
-          const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=NS`
-          console.log(`جلب المباريات القادمة لتاريخ: ${searchDate}`)
-          
-          try {
-            const response = await fetch(apiUrl, {
-              method: 'GET',
-              headers: {
-                'X-RapidAPI-Key': apiKey,
-                'X-RapidAPI-Host': 'v3.football.api-sports.io'
-              }
-            })
-            
-            if (response.ok) {
-              const data = await response.json()
-              if (data.response && data.response.length > 0) {
-                allMatches = [...allMatches, ...data.response]
-                console.log(`تم العثور على ${data.response.length} مباراة قادمة في ${searchDate}`)
-              }
+        const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=NS`
+        console.log(`جلب المباريات القادمة لغدا: ${searchDate}`)
+        
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'X-RapidAPI-Key': apiKey,
+              'X-RapidAPI-Host': 'v3.football.api-sports.io'
             }
-            
-            // تأخير قصير بين الطلبات
-            await new Promise(resolve => setTimeout(resolve, 200))
-            
-          } catch (error) {
-            console.error(`خطأ في جلب المباريات لتاريخ ${searchDate}:`, error)
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            if (data.response && data.response.length > 0) {
+              allMatches = data.response
+              console.log(`تم العثور على ${data.response.length} مباراة قادمة غدا`)
+            }
           }
+        } catch (error) {
+          console.error(`خطأ في جلب المباريات القادمة:`, error)
         }
       }
     } catch (error) {
@@ -231,8 +215,8 @@ serve(async (req) => {
           success: true,
           message: `لا توجد مباريات ${
             status === 'live' ? 'مباشرة الآن' :
-            status === 'upcoming' ? 'قادمة' :
-            'منتهية'
+            status === 'upcoming' ? 'غدا' :
+            'أمس'
           }`
         }),
         { 
