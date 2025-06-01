@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Send, Image, X, Reply, Hash } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
@@ -116,13 +117,6 @@ const CommentInput: React.FC<CommentInputProps> = ({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
-
   return (
     <div className="space-y-3 bg-gray-800/95 rounded-lg p-4">
       {/* Reply indicator */}
@@ -174,14 +168,13 @@ const CommentInput: React.FC<CommentInputProps> = ({
           <Textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            onKeyDown={handleKeyDown}
             placeholder={replyTo ? `رد على ${replyTo.username}...` : placeholder}
             className="bg-gray-700/60 border-gray-600/50 text-white placeholder:text-gray-500 min-h-[80px] max-h-[200px] focus:border-blue-500 focus:ring-blue-500/20 text-sm rounded-lg leading-relaxed"
             disabled={isSubmitting}
             style={{ whiteSpace: 'pre-wrap' }}
           />
           <div className="text-xs text-gray-500 mt-1">
-            اضغط Shift + Enter لسطر جديد، Enter للإرسال
+            اضغط زر الإرسال لإرسال التعليق
           </div>
         </div>
         
