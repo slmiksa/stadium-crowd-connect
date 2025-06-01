@@ -299,7 +299,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         </div>
 
         {/* Comments List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent pb-24">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent pb-20">
           {isLoading ? (
             <div className="flex justify-center py-12">
               <div className="relative">
@@ -328,9 +328,9 @@ const PostComments: React.FC<PostCommentsProps> = ({
           )}
         </div>
 
-        {/* Comment Input - Fixed at bottom */}
-        <div className="border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-lg flex-shrink-0 fixed bottom-0 left-0 right-0 max-w-lg mx-auto">
-          <div className="p-3">
+        {/* Comment Input - Fixed at bottom with proper positioning */}
+        <div className="border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-lg flex-shrink-0 sticky bottom-0 z-10">
+          <div className="p-2">
             <CommentInput
               onSubmit={handleSubmitComment}
               isSubmitting={isSubmitting}

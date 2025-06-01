@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Send, Image, X, Reply, Hash, Video } from 'lucide-react';
+import { Send, Image, X, Reply, Hash } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -125,11 +125,11 @@ const CommentInput: React.FC<CommentInputProps> = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
       {/* Reply indicator */}
       {replyTo && (
-        <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-700/30 p-2 rounded">
-          <Reply size={12} />
+        <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-700/30 p-1.5 rounded">
+          <Reply size={10} />
           <span>رد على {replyTo.username}</span>
           {onCancelReply && (
             <button
@@ -137,7 +137,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
               onClick={onCancelReply}
               className="ml-auto text-gray-500 hover:text-white"
             >
-              <X size={12} />
+              <X size={10} />
             </button>
           )}
         </div>
@@ -150,68 +150,68 @@ const CommentInput: React.FC<CommentInputProps> = ({
             <img 
               src={mediaPreview} 
               alt="Preview" 
-              className="w-12 h-12 object-cover rounded border border-gray-600"
+              className="w-10 h-10 object-cover rounded border border-gray-600"
             />
           ) : (
             <video 
               src={mediaPreview} 
-              className="w-16 h-12 object-cover rounded border border-gray-600"
+              className="w-12 h-8 object-cover rounded border border-gray-600"
               controls
             />
           )}
           <button
             type="button"
             onClick={removeMedia}
-            className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+            className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
           >
-            <X size={8} className="text-white" />
+            <X size={6} className="text-white" />
           </button>
         </div>
       )}
 
-      {/* Comment Input Form - Compact */}
-      <form onSubmit={handleSubmit} className="flex items-end gap-2">
+      {/* Comment Input Form - Extra Compact */}
+      <form onSubmit={handleSubmit} className="flex items-center gap-1">
         <div className="flex-1">
           <Textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={replyTo ? `رد على ${replyTo.username}...` : placeholder}
-            className="bg-gray-700/30 border-gray-600 text-white placeholder:text-gray-400 resize-none min-h-[36px] max-h-[80px] focus:border-blue-500 focus:ring-blue-500/20 text-sm py-2"
+            className="bg-gray-700/40 border-gray-600/50 text-white placeholder:text-gray-500 resize-none min-h-[32px] max-h-[60px] focus:border-blue-500 focus:ring-blue-500/20 text-sm py-1.5 px-2 rounded-lg"
             disabled={isSubmitting}
             rows={1}
           />
         </div>
         
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 bg-gray-700/30 rounded hover:bg-gray-600 transition-colors border border-gray-600 hover:border-gray-500"
+            className="p-1 bg-gray-700/40 rounded hover:bg-gray-600 transition-colors border border-gray-600/50 hover:border-gray-500"
             disabled={isSubmitting}
           >
-            <Image size={16} className="text-gray-300" />
+            <Image size={14} className="text-gray-400" />
           </button>
           
           <button
             type="button"
             onClick={insertHashtag}
-            className="p-1.5 bg-gray-700/30 rounded hover:bg-gray-600 transition-colors border border-gray-600 hover:border-gray-500"
+            className="p-1 bg-gray-700/40 rounded hover:bg-gray-600 transition-colors border border-gray-600/50 hover:border-gray-500"
             disabled={isSubmitting}
           >
-            <Hash size={16} className="text-gray-300" />
+            <Hash size={14} className="text-gray-400" />
           </button>
           
           <Button
             type="submit"
             disabled={(!comment.trim() && !selectedMedia) || isSubmitting}
-            className="p-1.5 bg-blue-500 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-0 h-8 w-8"
+            className="p-1 bg-blue-500 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-0 h-7 w-7"
             size="sm"
           >
             {isSubmitting ? (
-              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <Send size={14} className="text-white" />
+              <Send size={12} className="text-white" />
             )}
           </Button>
         </div>
