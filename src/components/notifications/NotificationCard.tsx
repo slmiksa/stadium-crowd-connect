@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Bell, MessageSquare, Users, Heart, UserPlus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,11 +21,14 @@ interface NotificationData {
   room_is_private?: boolean;
   creator_id?: string;
   avatar_url?: string;
+  invitation_id?: string;
+  inviter_id?: string;
+  room_password?: string;
 }
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room';
+  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation';
   title: string;
   message: string;
   is_read: boolean;
