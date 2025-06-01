@@ -48,6 +48,7 @@ const ChatRoom = () => {
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [quotedMessage, setQuotedMessage] = useState<Message | null>(null);
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -181,39 +182,50 @@ const ChatRoom = () => {
   };
 
   const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
-    if (!content.trim() && !mediaFile) return;
-    if (!user) return;
+    console.log('=== SEND MESSAGE FUNCTION CALLED ===');
+    console.log('Content:', content);
+    console.log('Media file:', mediaFile ? `${mediaFile.name} (${mediaFile.size} bytes)` : 'none');
+    console.log('Media type:', mediaType);
 
+    if (!content.trim() && !mediaFile) {
+      console.log('No content or media to send');
+      return;
+    }
+    
+    if (!user) {
+      console.log('No user found');
+      return;
+    }
+
+    setIsSending(true);
+    
     try {
-      console.log('ChatRoom sendMessage called with:', { content, mediaFile: !!mediaFile, mediaType });
-      
       let mediaUrl = null;
       
       if (mediaFile) {
-        console.log('Starting media upload...');
+        console.log('=== STARTING MEDIA UPLOAD ===');
         const fileExt = mediaFile.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-        const filePath = `chat-media/${fileName}`;
+        const fileName = `chat-media/${user.id}/${Date.now()}.${fileExt}`;
 
-        console.log('Uploading to path:', filePath);
+        console.log('Uploading to path:', fileName);
 
-        // First ensure the bucket exists by trying to upload
-        const { error: uploadError } = await supabase.storage
-          .from('hashtag-images') // Using existing bucket instead of chat-media
-          .upload(filePath, mediaFile);
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('hashtag-images')
+          .upload(fileName, mediaFile);
 
         if (uploadError) {
-          console.error('Error uploading media:', uploadError);
-          alert('فشل في رفع الملف: ' + uploadError.message);
-          return;
+          console.error('Upload error:', uploadError);
+          throw new Error('فشل في رفع الملف: ' + uploadError.message);
         }
+
+        console.log('Upload successful:', uploadData);
 
         const { data: urlData } = supabase.storage
           .from('hashtag-images')
-          .getPublicUrl(filePath);
+          .getPublicUrl(fileName);
 
         mediaUrl = urlData.publicUrl;
-        console.log('Media uploaded successfully:', mediaUrl);
+        console.log('Media URL generated:', mediaUrl);
       }
 
       let finalContent = content || '';
@@ -229,24 +241,29 @@ const ChatRoom = () => {
         media_type: mediaType
       };
 
-      console.log('Inserting message:', messageData);
+      console.log('=== INSERTING MESSAGE ===');
+      console.log('Message data:', messageData);
 
-      const { error } = await supabase
+      const { data: insertData, error: insertError } = await supabase
         .from('room_messages')
-        .insert(messageData);
+        .insert(messageData)
+        .select()
+        .single();
 
-      if (error) {
-        console.error('Message insert error:', error);
-        throw new Error('فشل في إرسال الرسالة: ' + error.message);
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        throw new Error('فشل في إرسال الرسالة: ' + insertError.message);
       }
 
-      console.log('Message sent successfully');
+      console.log('Message inserted successfully:', insertData);
       setQuotedMessage(null);
       await fetchMessages();
       
     } catch (error) {
       console.error('Error in sendMessage:', error);
       alert(error.message || 'فشل في إرسال الرسالة');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -386,7 +403,7 @@ const ChatRoom = () => {
           </div>
         )}
 
-        {/* Messages Container - Add bottom padding for input area */}
+        {/* Messages Container */}
         <div className="flex-1 overflow-hidden pb-20">
           <div className="h-full overflow-y-auto p-4 space-y-4" style={{ paddingBottom: '100px' }}>
             {messages.map((message) => (
@@ -422,40 +439,58 @@ const ChatRoom = () => {
                     </button>
                   </div>
                   
-                  {message.media_url ? (
+                  {/* Media Display */}
+                  {message.media_url && (
                     <div className="mb-2">
                       {message.media_type?.startsWith('image/') ? (
                         <img 
                           src={message.media_url} 
-                          alt="مرفق" 
-                          className="max-w-xs rounded-lg"
+                          alt="صورة مرسلة" 
+                          className="max-w-xs max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => window.open(message.media_url, '_blank')}
+                          onError={(e) => {
+                            console.error('Image failed to load:', message.media_url);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : message.media_type?.startsWith('video/') ? (
+                        <video 
+                          src={message.media_url} 
+                          className="max-w-xs max-h-64 rounded-lg" 
+                          controls
+                          onError={(e) => {
+                            console.error('Video failed to load:', message.media_url);
+                          }}
                         />
                       ) : (
                         <a 
                           href={message.media_url} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline"
+                          className="text-blue-400 hover:underline inline-flex items-center"
                         >
-                          عرض المرفق
+                          📎 عرض المرفق
                         </a>
                       )}
                     </div>
-                  ) : null}
+                  )}
                   
-                  <div className="text-zinc-300 break-words">
-                    {message.content.split('\n').map((line, index) => (
-                      <div key={index}>
-                        {line.startsWith('> ') ? (
-                          <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic bg-zinc-800 rounded-r-lg p-2">
-                            {line.substring(2)}
-                          </div>
-                        ) : (
-                          <span>{line}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  {/* Message Content */}
+                  {message.content && (
+                    <div className="text-zinc-300 break-words">
+                      {message.content.split('\n').map((line, index) => (
+                        <div key={index}>
+                          {line.startsWith('> ') ? (
+                            <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic bg-zinc-800 rounded-r-lg p-2">
+                              {line.substring(2)}
+                            </div>
+                          ) : (
+                            <span>{line}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -463,11 +498,11 @@ const ChatRoom = () => {
           </div>
         </div>
 
-        {/* Input Area - Fixed at bottom with mobile-specific classes */}
+        {/* Input Area */}
         <div className="absolute bottom-0 left-0 right-0 mobile-input-container">
           <MediaInput 
             onSendMessage={sendMessage} 
-            isSending={false}
+            isSending={isSending}
             quotedMessage={quotedMessage}
             onClearQuote={() => setQuotedMessage(null)}
           />

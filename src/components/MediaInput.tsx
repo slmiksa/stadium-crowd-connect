@@ -29,6 +29,9 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      console.log('=== MEDIA SELECTION ===');
+      console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
+      
       if (file.size > 10 * 1024 * 1024) {
         alert('حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت');
         return;
@@ -42,12 +45,16 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         return;
       }
 
+      console.log('Media type determined:', type);
+      
       setSelectedMedia(file);
       setMediaType(type);
       
       const reader = new FileReader();
       reader.onload = (e) => {
-        setMediaPreview(e.target?.result as string);
+        const result = e.target?.result as string;
+        console.log('Preview created:', result.substring(0, 50) + '...');
+        setMediaPreview(result);
       };
       reader.readAsDataURL(file);
     }
@@ -56,10 +63,25 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!message.trim() && !selectedMedia) return;
+    console.log('=== MEDIA INPUT SUBMIT ===');
+    console.log('Message:', message);
+    console.log('Has media:', !!selectedMedia);
+    console.log('Media type:', mediaType);
+    
+    if (!message.trim() && !selectedMedia) {
+      console.log('No content to send');
+      return;
+    }
+    
+    console.log('Calling onSendMessage with:', {
+      content: message.trim(),
+      hasFile: !!selectedMedia,
+      fileType: mediaType
+    });
     
     onSendMessage(message.trim(), selectedMedia || undefined, mediaType || undefined);
     
+    // Clear form
     setMessage('');
     setSelectedMedia(null);
     setMediaPreview(null);
@@ -67,9 +89,12 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    
+    console.log('Form cleared after send');
   };
 
   const clearMedia = () => {
+    console.log('Clearing selected media');
     setSelectedMedia(null);
     setMediaPreview(null);
     setMediaType(null);
