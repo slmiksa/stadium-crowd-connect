@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, Crown, UserX, Ban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -22,13 +21,15 @@ interface RoomMembersModalProps {
   onClose: () => void;
   roomId: string;
   isOwner: boolean;
+  onMembershipChange?: () => void;
 }
 
 const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   isOpen,
   onClose,
   roomId,
-  isOwner
+  isOwner,
+  onMembershipChange
 }) => {
   const navigate = useNavigate();
   const [members, setMembers] = useState<Member[]>([]);
@@ -102,6 +103,8 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       }
 
       fetchMembers();
+      // Notify parent component to refresh member count
+      onMembershipChange?.();
     } catch (error) {
       console.error('Error:', error);
     }
@@ -123,6 +126,8 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       }
 
       fetchMembers();
+      // Notify parent component to refresh member count
+      onMembershipChange?.();
     } catch (error) {
       console.error('Error:', error);
     }
@@ -144,6 +149,8 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       }
 
       fetchMembers();
+      // Notify parent component to refresh member count
+      onMembershipChange?.();
     } catch (error) {
       console.error('Error:', error);
     }
@@ -187,7 +194,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
             </div>
           ) : (
             <div className="space-y-3">
-              {members.map((member) => (
+              {members.filter(member => !member.is_banned).map((member) => (
                 <div key={member.id} className="flex items-center justify-between">
                   <div 
                     className="flex items-center space-x-3 cursor-pointer hover:bg-zinc-800 rounded-lg p-2 transition-colors flex-1"
@@ -207,9 +214,6 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
                         {member.user_id === roomOwner && (
                           <Crown size={16} className="text-yellow-500" />
                         )}
-                        {member.is_banned && (
-                          <span className="text-xs bg-red-600 text-white px-2 py-1 rounded">محظور</span>
-                        )}
                       </div>
                       <span className="text-xs text-zinc-500">
                         انضم في {formatJoinDate(member.joined_at)}
@@ -219,38 +223,26 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
                   
                   {isOwner && member.user_id !== roomOwner && (
                     <div className="flex items-center space-x-2">
-                      {member.is_banned ? (
-                        <button
-                          onClick={() => unbanMember(member.user_id)}
-                          className="p-2 text-green-400 hover:bg-green-900/20 rounded-lg transition-colors"
-                          title="فك الحظر"
-                        >
-                          <Ban size={16} />
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => banMember(member.user_id)}
-                            className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
-                            title="حظر"
-                          >
-                            <Ban size={16} />
-                          </button>
-                          <button
-                            onClick={() => kickMember(member.user_id)}
-                            className="p-2 text-orange-400 hover:bg-orange-900/20 rounded-lg transition-colors"
-                            title="طرد"
-                          >
-                            <UserX size={16} />
-                          </button>
-                        </>
-                      )}
+                      <button
+                        onClick={() => banMember(member.user_id)}
+                        className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
+                        title="حظر"
+                      >
+                        <Ban size={16} />
+                      </button>
+                      <button
+                        onClick={() => kickMember(member.user_id)}
+                        className="p-2 text-orange-400 hover:bg-orange-900/20 rounded-lg transition-colors"
+                        title="طرد"
+                      >
+                        <UserX size={16} />
+                      </button>
                     </div>
                   )}
                 </div>
               ))}
               
-              {members.length === 0 && (
+              {members.filter(member => !member.is_banned).length === 0 && (
                 <div className="text-center text-zinc-500 py-8">
                   لا يوجد أعضاء في الغرفة
                 </div>

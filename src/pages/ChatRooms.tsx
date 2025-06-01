@@ -60,9 +60,6 @@ const ChatRooms = () => {
             id,
             username,
             avatar_url
-          ),
-          room_members (
-            user_id
           )
         `)
         .order('created_at', { ascending: false });
@@ -77,7 +74,24 @@ const ChatRooms = () => {
         return;
       }
 
-      setRooms(data || []);
+      // Get actual member counts for each room
+      const roomsWithCorrectCounts = await Promise.all(
+        (data || []).map(async (room) => {
+          const { count: actualMembersCount } = await supabase
+            .from('room_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('room_id', room.id)
+            .eq('is_banned', false);
+
+          return {
+            ...room,
+            members_count: actualMembersCount || 0,
+            room_members: [] // This is not used in the current UI
+          };
+        })
+      );
+
+      setRooms(roomsWithCorrectCounts);
     } catch (error) {
       console.error('Error:', error);
       toast({

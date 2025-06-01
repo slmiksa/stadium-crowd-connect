@@ -70,19 +70,34 @@ const ChatRoom = () => {
 
   const fetchRoomInfo = async () => {
     try {
-      const { data, error } = await supabase
+      // Get room info with real-time member count
+      const { data: roomData, error: roomError } = await supabase
         .from('chat_rooms')
         .select('*, announcement')
         .eq('id', roomId)
         .single();
 
-      if (error) {
-        console.error('Error fetching room info:', error);
+      if (roomError) {
+        console.error('Error fetching room info:', roomError);
         navigate('/chat-rooms');
         return;
       }
 
-      setRoomInfo(data);
+      // Get actual current member count
+      const { count: actualMembersCount, error: countError } = await supabase
+        .from('room_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('room_id', roomId)
+        .eq('is_banned', false);
+
+      if (countError) {
+        console.error('Error counting members:', countError);
+      }
+
+      setRoomInfo({
+        ...roomData,
+        members_count: actualMembersCount || 0
+      });
     } catch (error) {
       console.error('Error:', error);
     }
@@ -175,6 +190,7 @@ const ChatRoom = () => {
       }
 
       setIsMember(true);
+      // Refresh room info to get updated member count
       fetchRoomInfo();
     } catch (error) {
       console.error('Error:', error);
@@ -546,6 +562,7 @@ const ChatRoom = () => {
           isOpen={showMembersModal}
           onClose={() => setShowMembersModal(false)}
           isOwner={user?.id === roomInfo?.owner_id}
+          onMembershipChange={fetchRoomInfo}
         />
       )}
       
