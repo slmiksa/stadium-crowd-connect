@@ -168,7 +168,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
           <p className={`text-sm mb-3 leading-relaxed ${!notification.is_read ? 'text-gray-200' : 'text-gray-400'}`}>
             {notification.type === 'room_invitation' 
-              ? 'تم دعوتكم لغرفة دردشة خاصة - للدخول من خلال بروفايلكم'
+              ? 'تم دعوتكم لغرفة دردشة خاصة - للدخول من خلال بروفايلكم الخاص'
               : notification.message
             }
           </p>
@@ -228,14 +228,14 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   </div>
                 )}
                 
-                {/* Instruction to go to profile */}
+                {/* Updated instruction to go to profile */}
                 <div className="mt-4 p-3 bg-blue-800/70 rounded-lg border-2 border-blue-400/50">
                   <div className="flex items-center gap-2 mb-2">
                     <User size={16} className="text-blue-400" />
                     <p className="text-sm text-blue-300 font-bold">للانضمام للغرفة:</p>
                   </div>
                   <p className="text-sm text-blue-100 text-center">
-                    اذهب إلى بروفايلك لرؤية تفاصيل الدعوة وكلمة المرور
+                    اذهب إلى بروفايلك الخاص لرؤية تفاصيل الدعوة وكلمة المرور
                   </p>
                 </div>
               </div>

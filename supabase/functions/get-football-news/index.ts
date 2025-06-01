@@ -22,7 +22,44 @@ serve(async (req) => {
 
     let allNews = []
 
-    // جلب أخبار الدوري السعودي فقط
+    // جلب أخبار كرة القدم العامة باللغة العربية
+    console.log('جلب أخبار كرة القدم العامة...')
+    try {
+      const generalResponse = await fetch(`https://newsapi.org/v2/everything?q=كرة القدم OR football OR soccer&language=ar&sortBy=publishedAt&pageSize=15&apiKey=${newsApiKey}`)
+
+      if (generalResponse.ok) {
+        const generalData = await generalResponse.json()
+        console.log(`أخبار كرة القدم العامة: ${generalData.articles?.length || 0} مقال`)
+        
+        if (generalData.articles && generalData.articles.length > 0) {
+          const generalNews = generalData.articles.map((article: any, index: number) => ({
+            id: `general-${index}-${Date.now()}`,
+            title: article.title || 'أخبار كرة القدم',
+            description: article.description || article.content?.substring(0, 200) + '...' || 'أحدث أخبار كرة القدم',
+            image: article.urlToImage || '/placeholder.svg',
+            video: null,
+            date: article.publishedAt,
+            source: article.source?.name || 'مصدر رياضي',
+            url: article.url,
+            category: 'كرة القدم',
+            content: article.content || article.description || 'المحتوى غير متوفر'
+          })).filter((news: any) => 
+            news.title && 
+            news.description && 
+            !news.title.includes('[Removed]') &&
+            news.title !== 'أخبار كرة القدم'
+          )
+          
+          allNews = [...allNews, ...generalNews]
+        }
+      } else {
+        console.error('خطأ في استجابة API للأخبار العامة:', generalResponse.status)
+      }
+    } catch (error) {
+      console.error('خطأ في جلب الأخبار العامة:', error)
+    }
+
+    // جلب أخبار الدوري السعودي
     console.log('جلب أخبار الدوري السعودي...')
     try {
       const saudiQueries = [
@@ -33,7 +70,7 @@ serve(async (req) => {
 
       for (const query of saudiQueries) {
         try {
-          const saudiResponse = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=ar&sortBy=publishedAt&pageSize=8&apiKey=${newsApiKey}`)
+          const saudiResponse = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=ar&sortBy=publishedAt&pageSize=5&apiKey=${newsApiKey}`)
 
           if (saudiResponse.ok) {
             const saudiData = await saudiResponse.json()
@@ -74,6 +111,42 @@ serve(async (req) => {
       console.error('خطأ في جلب الأخبار السعودية:', error)
     }
 
+    // إذا لم نجد أخبار، استخدم أخبار رياضية عامة بالإنجليزية
+    if (allNews.length === 0) {
+      console.log('جلب أخبار رياضية احتياطية بالإنجليزية...')
+      try {
+        const fallbackResponse = await fetch(`https://newsapi.org/v2/top-headlines?category=sports&language=en&pageSize=20&apiKey=${newsApiKey}`)
+        
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json()
+          console.log(`أخبار رياضية احتياطية: ${fallbackData.articles?.length || 0} مقال`)
+          
+          if (fallbackData.articles && fallbackData.articles.length > 0) {
+            const fallbackNews = fallbackData.articles.map((article: any, index: number) => ({
+              id: `fallback-${index}-${Date.now()}`,
+              title: article.title || 'Sports News',
+              description: article.description || article.content?.substring(0, 200) + '...' || 'Latest sports news',
+              image: article.urlToImage || '/placeholder.svg',
+              video: null,
+              date: article.publishedAt,
+              source: article.source?.name || 'Sports Source',
+              url: article.url,
+              category: 'Sports',
+              content: article.content || article.description || 'Content not available'
+            })).filter((news: any) => 
+              news.title && 
+              news.description && 
+              !news.title.includes('[Removed]')
+            )
+            
+            allNews = [...allNews, ...fallbackNews]
+          }
+        }
+      } catch (error) {
+        console.error('خطأ في جلب الأخبار الاحتياطية:', error)
+      }
+    }
+
     // إزالة الأخبار المكررة وترتيبها
     const uniqueNews = allNews.filter((news, index, self) => 
       index === self.findIndex(n => n.title === news.title)
@@ -82,18 +155,18 @@ serve(async (req) => {
     // ترتيب حسب التاريخ (الأحدث أولاً)
     uniqueNews.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
     
-    // أخذ أفضل 20 خبر حقيقي
-    const finalNews = uniqueNews.slice(0, 20)
+    // أخذ أفضل 30 خبر
+    const finalNews = uniqueNews.slice(0, 30)
 
-    console.log(`=== إرجاع ${finalNews.length} خبر رياضي حقيقي ===`)
+    console.log(`=== إرجاع ${finalNews.length} خبر رياضي ===`)
 
     return new Response(
       JSON.stringify({ 
         news: finalNews,
         success: true,
         source: 'real-newsapi',
-        totalCategories: 1,
-        language: 'ar'
+        totalCategories: allNews.length > 0 ? 2 : 0,
+        language: 'mixed'
       }),
       { 
         status: 200, 
