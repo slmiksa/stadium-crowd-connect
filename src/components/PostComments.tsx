@@ -46,6 +46,27 @@ const PostComments: React.FC<PostCommentsProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchComments();
+      
+      // إعداد الاشتراك في التحديثات الفورية للتعليقات
+      const commentsChannel = supabase
+        .channel(`post-comments-${postId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'hashtag_comments'
+          },
+          (payload) => {
+            console.log('Real-time comment update:', payload);
+            fetchComments(); // إعادة جلب التعليقات عند أي تغيير
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(commentsChannel);
+      };
     }
   }, [isOpen, postId]);
 
@@ -190,13 +211,13 @@ const PostComments: React.FC<PostCommentsProps> = ({
         console.log('Media uploaded successfully:', mediaUrl);
       }
 
-      // Extract hashtags from comment content
+      // استخراج الهاشتاقات من محتوى التعليق
       const hashtags = extractHashtags(content);
       console.log('Extracted hashtags:', hashtags);
 
       console.log('Inserting comment into database...');
       
-      // Prepare comment data with explicit hashtags array
+      // إعداد بيانات التعليق مع مصفوفة هاشتاقات واضحة
       const commentData: any = {
         post_id: postId,
         user_id: user.id,
@@ -204,12 +225,12 @@ const PostComments: React.FC<PostCommentsProps> = ({
         hashtags: hashtags.length > 0 ? hashtags : []
       };
 
-      // Add parent_id if replying to a comment
+      // إضافة parent_id إذا كان يرد على تعليق
       if (replyTo) {
         commentData.parent_id = replyTo.id;
       }
 
-      // Add media fields if available
+      // إضافة حقول الوسائط إذا كانت متوفرة
       if (mediaUrl && mediaType) {
         commentData.media_url = mediaUrl;
         commentData.media_type = mediaType;
@@ -229,10 +250,10 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
       console.log('Comment inserted successfully:', insertData);
 
-      // Clear reply state after successful submission
+      // مسح حالة الرد بعد الإرسال الناجح
       setReplyTo(null);
       
-      // Add the new comment to the top of the list
+      // إضافة التعليق الجديد إلى أعلى القائمة
       if (insertData && insertData[0]) {
         const newComment = {
           ...insertData[0],
@@ -243,6 +264,9 @@ const PostComments: React.FC<PostCommentsProps> = ({
           }
         };
         setComments(prevComments => [newComment, ...prevComments]);
+        
+        // إشعار المكون الأب بالتعليق الجديد
+        onCommentAdded();
       }
       
       await updateCommentsCount();
