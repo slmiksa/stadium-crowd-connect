@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -285,14 +284,8 @@ const PostComments: React.FC<PostCommentsProps> = ({
       const { data: insertData, error: insertError } = await supabase
         .from('hashtag_comments')
         .insert(commentData)
-        .select(`
-          *,
-          profiles (
-            id,
-            username,
-            avatar_url
-          )
-        `);
+        .select()
+        .single();
 
       if (insertError) {
         console.error('=== INSERT ERROR ===');
@@ -304,15 +297,15 @@ const PostComments: React.FC<PostCommentsProps> = ({
       console.log('Inserted data:', insertData);
 
       // التحقق من الحفظ
-      if (insertData && insertData[0]) {
+      if (insertData) {
         console.log('=== VERIFICATION ===');
-        console.log('Saved comment ID:', insertData[0].id);
-        console.log('Saved hashtags:', insertData[0].hashtags);
+        console.log('Saved comment ID:', insertData.id);
+        console.log('Saved hashtags:', insertData.hashtags);
 
-        // إضافة التعليق الجديد للقائمة
-        const newComment = {
-          ...insertData[0],
-          profiles: insertData[0].profiles || {
+        // إضافة التعليق الجديد للقائمة مع profile
+        const newComment: Comment = {
+          ...insertData,
+          profiles: {
             id: user.id,
             username: user.email?.split('@')[0] || 'مستخدم',
             avatar_url: null
