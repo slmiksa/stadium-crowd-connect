@@ -125,11 +125,11 @@ const CommentInput: React.FC<CommentInputProps> = ({
   };
 
   return (
-    <div className="space-y-1 bg-gray-800/95 rounded-lg p-2">
+    <div className="space-y-3 bg-gray-800/95 rounded-lg p-3">
       {/* Reply indicator */}
       {replyTo && (
-        <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-700/40 p-1.5 rounded">
-          <Reply size={10} />
+        <div className="flex items-center gap-2 text-sm text-gray-400 bg-gray-700/40 p-2 rounded">
+          <Reply size={12} />
           <span>رد على {replyTo.username}</span>
           {onCancelReply && (
             <button
@@ -137,7 +137,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
               onClick={onCancelReply}
               className="ml-auto text-gray-500 hover:text-white"
             >
-              <X size={10} />
+              <X size={12} />
             </button>
           )}
         </div>
@@ -150,68 +150,77 @@ const CommentInput: React.FC<CommentInputProps> = ({
             <img 
               src={mediaPreview} 
               alt="Preview" 
-              className="w-8 h-8 object-cover rounded border border-gray-600"
+              className="w-16 h-16 object-cover rounded border border-gray-600"
             />
           ) : (
             <video 
               src={mediaPreview} 
-              className="w-10 h-6 object-cover rounded border border-gray-600"
+              className="w-20 h-12 object-cover rounded border border-gray-600"
               controls
             />
           )}
           <button
             type="button"
             onClick={removeMedia}
-            className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
           >
-            <X size={6} className="text-white" />
+            <X size={8} className="text-white" />
           </button>
         </div>
       )}
 
-      {/* Comment Input Form - More compact */}
-      <form onSubmit={handleSubmit} className="flex items-center gap-1">
+      {/* Comment Input Form */}
+      <form onSubmit={handleSubmit} className="space-y-3">
         <div className="flex-1">
           <Textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={replyTo ? `رد على ${replyTo.username}...` : placeholder}
-            className="bg-gray-700/60 border-gray-600/50 text-white placeholder:text-gray-500 resize-none min-h-[28px] max-h-[50px] focus:border-blue-500 focus:ring-blue-500/20 text-sm py-1 px-2 rounded-md"
+            className="bg-gray-700/60 border-gray-600/50 text-white placeholder:text-gray-500 resize-none min-h-[80px] max-h-[120px] focus:border-blue-500 focus:ring-blue-500/20 text-sm rounded-lg"
             disabled={isSubmitting}
-            rows={1}
+            rows={3}
           />
+          <div className="text-xs text-gray-500 mt-1">
+            اضغط Shift + Enter لسطر جديد، Enter للإرسال
+          </div>
         </div>
         
-        <div className="flex items-center gap-0.5">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="p-1 bg-gray-700/60 rounded hover:bg-gray-600 transition-colors border border-gray-600/50 hover:border-gray-500"
-            disabled={isSubmitting}
-          >
-            <Image size={12} className="text-gray-400" />
-          </button>
-          
-          <button
-            type="button"
-            onClick={insertHashtag}
-            className="p-1 bg-gray-700/60 rounded hover:bg-gray-600 transition-colors border border-gray-600/50 hover:border-gray-500"
-            disabled={isSubmitting}
-          >
-            <Hash size={12} className="text-gray-400" />
-          </button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 bg-gray-700/60 rounded hover:bg-gray-600 transition-colors border border-gray-600/50 hover:border-gray-500"
+              disabled={isSubmitting}
+              title="إضافة صورة"
+            >
+              <Image size={16} className="text-gray-400" />
+            </button>
+            
+            <button
+              type="button"
+              onClick={insertHashtag}
+              className="p-2 bg-gray-700/60 rounded hover:bg-gray-600 transition-colors border border-gray-600/50 hover:border-gray-500"
+              disabled={isSubmitting}
+              title="إضافة هاشتاق"
+            >
+              <Hash size={16} className="text-gray-400" />
+            </button>
+          </div>
           
           <Button
             type="submit"
             disabled={(!comment.trim() && !selectedMedia) || isSubmitting}
-            className="p-1 bg-blue-500 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-0 h-6 w-6"
-            size="sm"
+            className="bg-blue-500 hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2"
           >
             {isSubmitting ? (
-              <div className="w-2 h-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <Send size={10} className="text-white" />
+              <>
+                <Send size={16} className="ml-2" />
+                إرسال
+              </>
             )}
           </Button>
         </div>
