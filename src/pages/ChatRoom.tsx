@@ -558,7 +558,7 @@ const ChatRoom = () => {
 
         {/* Messages Container */}
         <div className="flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto p-4 space-y-4 pb-32">
+          <div className="h-full overflow-y-auto p-4 space-y-4 pb-24">
             {messages.map((message) => (
               <div key={message.id} className="flex items-start space-x-3 group">
                 <div 
@@ -652,8 +652,8 @@ const ChatRoom = () => {
           </div>
         </div>
 
-        {/* Input Area - Fixed position above bottom navigation */}
-        <div className="fixed bottom-16 left-0 right-0 bg-zinc-800 border-t border-zinc-700 p-4 z-40">
+        {/* Input Area - Fixed at bottom */}
+        <div className="bg-zinc-800 border-t border-zinc-700 p-4">
           <MediaInput 
             onSendMessage={sendMessage} 
             isSending={isSending}
