@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -118,19 +119,13 @@ serve(async (req) => {
         const apiUrl = 'https://v3.football.api-sports.io/fixtures?live=all'
         console.log('جلب المباريات المباشرة من:', apiUrl)
         
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 10000)
-        
         const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
             'X-RapidAPI-Key': apiKey,
             'X-RapidAPI-Host': 'v3.football.api-sports.io'
-          },
-          signal: controller.signal
+          }
         })
-        
-        clearTimeout(timeoutId)
         
         if (response.ok) {
           const data = await response.json()
@@ -142,102 +137,80 @@ serve(async (req) => {
           if (!data.errors || Object.keys(data.errors).length === 0) {
             allMatches = data.response || []
           }
+        } else {
+          console.error('خطأ في استجابة API المباشر:', response.status)
         }
       } 
       else if (status === 'finished') {
-        console.log('جلب المباريات المنتهية...')
-        const dates = []
-        for (let i = 0; i <= 7; i++) {
+        console.log('جلب المباريات المنتهية للأسبوع الماضي...')
+        
+        // جلب المباريات المنتهية للأسبوع الماضي
+        for (let i = 1; i <= 7; i++) {
           const pastDate = new Date(Date.now() - (i * 86400000))
-          dates.push(pastDate.toISOString().split('T')[0])
-        }
-        
-        const priorityLeagues = [39, 140, 135, 78, 61, 2, 3, 307] // Premier, La Liga, Serie A, Bundesliga, Ligue 1, Champions, Europa, Saudi
-        
-        for (const searchDate of dates) {
-          for (const leagueId of priorityLeagues) {
-            try {
-              const controller = new AbortController()
-              const timeoutId = setTimeout(() => controller.abort(), 5000)
-              
-              const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&league=${leagueId}&status=FT`
-              
-              const response = await fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                  'X-RapidAPI-Key': apiKey,
-                  'X-RapidAPI-Host': 'v3.football.api-sports.io'
-                },
-                signal: controller.signal
-              })
-              
-              clearTimeout(timeoutId)
-              
-              if (response.ok) {
-                const data = await response.json()
-                if (data.response && data.response.length > 0) {
-                  allMatches = [...allMatches, ...data.response]
-                  console.log(`تم العثور على ${data.response.length} مباراة منتهية للدوري ${leagueId} في ${searchDate}`)
-                }
+          const searchDate = pastDate.toISOString().split('T')[0]
+          
+          const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=FT`
+          console.log(`جلب المباريات المنتهية لتاريخ: ${searchDate}`)
+          
+          try {
+            const response = await fetch(apiUrl, {
+              method: 'GET',
+              headers: {
+                'X-RapidAPI-Key': apiKey,
+                'X-RapidAPI-Host': 'v3.football.api-sports.io'
               }
-              
-              await new Promise(resolve => setTimeout(resolve, 100))
-              
-              if (allMatches.length >= 30) break
-              
-            } catch (error) {
-              console.error(`خطأ في ${searchDate} للدوري ${leagueId}:`, error)
+            })
+            
+            if (response.ok) {
+              const data = await response.json()
+              if (data.response && data.response.length > 0) {
+                allMatches = [...allMatches, ...data.response]
+                console.log(`تم العثور على ${data.response.length} مباراة منتهية في ${searchDate}`)
+              }
             }
+            
+            // تأخير قصير بين الطلبات
+            await new Promise(resolve => setTimeout(resolve, 200))
+            
+          } catch (error) {
+            console.error(`خطأ في جلب المباريات لتاريخ ${searchDate}:`, error)
           }
-          if (allMatches.length >= 30) break
         }
       } 
       else if (status === 'upcoming') {
-        console.log('جلب المباريات القادمة...')
-        const dates = []
-        for (let i = 0; i <= 10; i++) {
+        console.log('جلب المباريات القادمة للأسبوع القادم...')
+        
+        // جلب المباريات القادمة للأسبوع القادم
+        for (let i = 0; i <= 7; i++) {
           const futureDate = new Date(Date.now() + (i * 86400000))
-          dates.push(futureDate.toISOString().split('T')[0])
-        }
-        
-        const priorityLeagues = [39, 140, 135, 78, 61, 2, 3, 307]
-        
-        for (const searchDate of dates) {
-          for (const leagueId of priorityLeagues) {
-            try {
-              const controller = new AbortController()
-              const timeoutId = setTimeout(() => controller.abort(), 5000)
-              
-              const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&league=${leagueId}&status=NS`
-              
-              const response = await fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                  'X-RapidAPI-Key': apiKey,
-                  'X-RapidAPI-Host': 'v3.football.api-sports.io'
-                },
-                signal: controller.signal
-              })
-              
-              clearTimeout(timeoutId)
-              
-              if (response.ok) {
-                const data = await response.json()
-                if (data.response && data.response.length > 0) {
-                  allMatches = [...allMatches, ...data.response]
-                  console.log(`تم العثور على ${data.response.length} مباراة قادمة للدوري ${leagueId} في ${searchDate}`)
-                }
+          const searchDate = futureDate.toISOString().split('T')[0]
+          
+          const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=NS`
+          console.log(`جلب المباريات القادمة لتاريخ: ${searchDate}`)
+          
+          try {
+            const response = await fetch(apiUrl, {
+              method: 'GET',
+              headers: {
+                'X-RapidAPI-Key': apiKey,
+                'X-RapidAPI-Host': 'v3.football.api-sports.io'
               }
-              
-              await new Promise(resolve => setTimeout(resolve, 100))
-              
-              if (allMatches.length >= 40) break
-              
-            } catch (error) {
-              console.error(`خطأ في ${searchDate} للدوري ${leagueId}:`, error)
+            })
+            
+            if (response.ok) {
+              const data = await response.json()
+              if (data.response && data.response.length > 0) {
+                allMatches = [...allMatches, ...data.response]
+                console.log(`تم العثور على ${data.response.length} مباراة قادمة في ${searchDate}`)
+              }
             }
+            
+            // تأخير قصير بين الطلبات
+            await new Promise(resolve => setTimeout(resolve, 200))
+            
+          } catch (error) {
+            console.error(`خطأ في جلب المباريات لتاريخ ${searchDate}:`, error)
           }
-          if (allMatches.length >= 40) break
         }
       }
     } catch (error) {
@@ -256,7 +229,11 @@ serve(async (req) => {
           fromApi: false,
           requestedStatus: status,
           success: true,
-          message: 'لا توجد مباريات متاحة في الوقت الحالي'
+          message: `لا توجد مباريات ${
+            status === 'live' ? 'مباشرة الآن' :
+            status === 'upcoming' ? 'قادمة' :
+            'منتهية'
+          }`
         }),
         { 
           status: 200, 
@@ -317,7 +294,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         matches: processedMatches,
-        totalAvailable: allMatches.length || 0,
+        totalAvailable: processedMatches.length,
         fromApi: true,
         requestedStatus: status,
         success: true,

@@ -258,7 +258,7 @@ const HashtagPage = () => {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto p-6 pb-32">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
@@ -367,14 +367,18 @@ const HashtagPage = () => {
                 />
               ))}
               
+              {/* Load More Button - Now above footer */}
               {hasMore && posts.length < totalPostsCount && (
-                <div className="text-center py-4">
+                <div className="text-center py-8 mb-8">
                   {isLoadingMore ? (
-                    <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <div className="flex flex-col items-center space-y-3">
+                      <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-gray-400">جاري تحميل المزيد...</p>
+                    </div>
                   ) : (
                     <button
                       onClick={loadMore}
-                      className="text-blue-400 hover:text-blue-300 transition-colors"
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                     >
                       تحميل المزيد ({totalPostsCount - posts.length} متبقي)
                     </button>
@@ -383,7 +387,7 @@ const HashtagPage = () => {
               )}
               
               {posts.length >= totalPostsCount && totalPostsCount > 0 && (
-                <div className="text-center py-4">
+                <div className="text-center py-8 mb-8">
                   <p className="text-gray-400">تم عرض جميع المنشورات ({totalPostsCount})</p>
                 </div>
               )}

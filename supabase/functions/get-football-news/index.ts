@@ -26,40 +26,46 @@ serve(async (req) => {
     console.log('جلب أخبار الدوري السعودي...')
     try {
       const saudiQueries = [
-        'الهلال+كرة+القدم',
-        'النصر+السعودي',
-        'الاتحاد+السعودي', 
-        'الأهلي+السعودي',
-        'الدوري+السعودي+روشن',
-        'الشباب+السعودي'
+        'الهلال كرة القدم',
+        'النصر السعودي',
+        'الاتحاد السعودي', 
+        'الأهلي السعودي',
+        'الدوري السعودي روشن',
+        'الشباب السعودي'
       ]
 
       for (const query of saudiQueries) {
-        const saudiResponse = await fetch(`https://newsapi.org/v2/everything?q=${query}&language=ar&sortBy=publishedAt&pageSize=6&apiKey=${newsApiKey}`)
+        try {
+          const saudiResponse = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=ar&sortBy=publishedAt&pageSize=5&apiKey=${newsApiKey}`)
 
-        if (saudiResponse.ok) {
-          const saudiData = await saudiResponse.json()
-          console.log(`أخبار ${query}: ${saudiData.articles?.length || 0} مقال`)
-          
-          const saudiNews = saudiData.articles?.map((article: any, index: number) => ({
-            id: `saudi-${query}-${index}-${Date.now()}`,
-            title: article.title || 'أخبار الدوري السعودي',
-            description: article.description || article.content?.substring(0, 200) + '...' || 'أحدث أخبار الدوري السعودي والأندية السعودية',
-            image: article.urlToImage || '/placeholder.svg',
-            video: null,
-            date: article.publishedAt,
-            source: article.source?.name || 'مصدر سعودي',
-            url: article.url,
-            category: 'الدوري السعودي',
-            content: article.content || article.description || 'المحتوى غير متوفر'
-          })).filter((news: any) => 
-            news.title && 
-            news.description && 
-            !news.title.includes('[Removed]') &&
-            news.title !== 'أخبار الدوري السعودي'
-          ) || []
-          
-          allNews = [...allNews, ...saudiNews]
+          if (saudiResponse.ok) {
+            const saudiData = await saudiResponse.json()
+            console.log(`أخبار ${query}: ${saudiData.articles?.length || 0} مقال`)
+            
+            const saudiNews = saudiData.articles?.map((article: any, index: number) => ({
+              id: `saudi-${query.replace(/\s+/g, '-')}-${index}-${Date.now()}`,
+              title: article.title || 'أخبار الدوري السعودي',
+              description: article.description || article.content?.substring(0, 200) + '...' || 'أحدث أخبار الدوري السعودي والأندية السعودية',
+              image: article.urlToImage || '/placeholder.svg',
+              video: null,
+              date: article.publishedAt,
+              source: article.source?.name || 'مصدر سعودي',
+              url: article.url,
+              category: 'الدوري السعودي',
+              content: article.content || article.description || 'المحتوى غير متوفر'
+            })).filter((news: any) => 
+              news.title && 
+              news.description && 
+              !news.title.includes('[Removed]') &&
+              news.title !== 'أخبار الدوري السعودي'
+            ) || []
+            
+            allNews = [...allNews, ...saudiNews]
+          } else {
+            console.error(`خطأ في استجابة API للاستعلام ${query}:`, saudiResponse.status)
+          }
+        } catch (error) {
+          console.error(`خطأ في جلب أخبار ${query}:`, error)
         }
         
         await new Promise(resolve => setTimeout(resolve, 300))
@@ -72,41 +78,47 @@ serve(async (req) => {
     console.log('جلب أخبار الدوريات الأوروبية...')
     try {
       const europeQueries = [
-        'ريال+مدريد+اليوم',
-        'برشلونة+أخبار',
-        'ليفربول+جديد',
-        'مانشستر+سيتي+اليوم',
-        'إنتر+ميلان+فوز',
-        'بايرن+ميونيخ',
-        'باريس+سان+جيرمان+جديد'
+        'ريال مدريد',
+        'برشلونة',
+        'ليفربول',
+        'مانشستر سيتي',
+        'إنتر ميلان',
+        'بايرن ميونيخ',
+        'باريس سان جيرمان'
       ]
 
       for (const query of europeQueries) {
-        const europeResponse = await fetch(`https://newsapi.org/v2/everything?q=${query}&language=ar&sortBy=publishedAt&pageSize=4&apiKey=${newsApiKey}`)
+        try {
+          const europeResponse = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=ar&sortBy=publishedAt&pageSize=3&apiKey=${newsApiKey}`)
 
-        if (europeResponse.ok) {
-          const europeData = await europeResponse.json()
-          console.log(`أخبار ${query}: ${europeData.articles?.length || 0} مقال`)
-          
-          const europeNews = europeData.articles?.map((article: any, index: number) => ({
-            id: `europe-${query}-${index}-${Date.now()}`,
-            title: article.title || 'أخبار الدوريات الأوروبية',
-            description: article.description || article.content?.substring(0, 200) + '...' || 'أحدث أخبار الدوريات الأوروبية',
-            image: article.urlToImage || '/placeholder.svg',
-            video: null,
-            date: article.publishedAt,
-            source: article.source?.name || 'مصدر أوروبي',
-            url: article.url,
-            category: 'دوريات أوروبية',
-            content: article.content || article.description || 'المحتوى غير متوفر'
-          })).filter((news: any) => 
-            news.title && 
-            news.description && 
-            !news.title.includes('[Removed]') &&
-            news.title !== 'أخبار الدوريات الأوروبية'
-          ) || []
-          
-          allNews = [...allNews, ...europeNews]
+          if (europeResponse.ok) {
+            const europeData = await europeResponse.json()
+            console.log(`أخبار ${query}: ${europeData.articles?.length || 0} مقال`)
+            
+            const europeNews = europeData.articles?.map((article: any, index: number) => ({
+              id: `europe-${query.replace(/\s+/g, '-')}-${index}-${Date.now()}`,
+              title: article.title || 'أخبار الدوريات الأوروبية',
+              description: article.description || article.content?.substring(0, 200) + '...' || 'أحدث أخبار الدوريات الأوروبية',
+              image: article.urlToImage || '/placeholder.svg',
+              video: null,
+              date: article.publishedAt,
+              source: article.source?.name || 'مصدر أوروبي',
+              url: article.url,
+              category: 'دوريات أوروبية',
+              content: article.content || article.description || 'المحتوى غير متوفر'
+            })).filter((news: any) => 
+              news.title && 
+              news.description && 
+              !news.title.includes('[Removed]') &&
+              news.title !== 'أخبار الدوريات الأوروبية'
+            ) || []
+            
+            allNews = [...allNews, ...europeNews]
+          } else {
+            console.error(`خطأ في استجابة API للاستعلام ${query}:`, europeResponse.status)
+          }
+        } catch (error) {
+          console.error(`خطأ في جلب أخبار ${query}:`, error)
         }
         
         await new Promise(resolve => setTimeout(resolve, 300))
@@ -119,89 +131,50 @@ serve(async (req) => {
     console.log('جلب أخبار الانتقالات...')
     try {
       const transferQueries = [
-        'انتقالات+كرة+القدم+اليوم',
-        'صفقات+جديدة+2025',
-        'ميركاتو+شتوي',
-        'لاعب+جديد+انتقال'
+        'انتقالات كرة القدم',
+        'صفقات جديدة',
+        'ميركاتو شتوي',
+        'انتقال لاعب'
       ]
 
       for (const query of transferQueries) {
-        const transfersResponse = await fetch(`https://newsapi.org/v2/everything?q=${query}&language=ar&sortBy=publishedAt&pageSize=4&apiKey=${newsApiKey}`)
+        try {
+          const transfersResponse = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=ar&sortBy=publishedAt&pageSize=3&apiKey=${newsApiKey}`)
 
-        if (transfersResponse.ok) {
-          const transferData = await transfersResponse.json()
-          console.log(`أخبار ${query}: ${transferData.articles?.length || 0} مقال`)
-          
-          const transferNews = transferData.articles?.map((article: any, index: number) => ({
-            id: `transfer-${query}-${index}-${Date.now()}`,
-            title: article.title || 'أخبار الانتقالات',
-            description: article.description || article.content?.substring(0, 200) + '...' || 'آخر أخبار انتقالات اللاعبين والميركاتو',
-            image: article.urlToImage || '/placeholder.svg',
-            video: null,
-            date: article.publishedAt,
-            source: article.source?.name || 'مصدر رياضي',
-            url: article.url,
-            category: 'انتقالات وميركاتو',
-            content: article.content || article.description || 'المحتوى غير متوفر'
-          })).filter((news: any) => 
-            news.title && 
-            news.description && 
-            !news.title.includes('[Removed]') &&
-            news.title !== 'أخبار الانتقالات'
-          ) || []
-          
-          allNews = [...allNews, ...transferNews]
+          if (transfersResponse.ok) {
+            const transferData = await transfersResponse.json()
+            console.log(`أخبار ${query}: ${transferData.articles?.length || 0} مقال`)
+            
+            const transferNews = transferData.articles?.map((article: any, index: number) => ({
+              id: `transfer-${query.replace(/\s+/g, '-')}-${index}-${Date.now()}`,
+              title: article.title || 'أخبار الانتقالات',
+              description: article.description || article.content?.substring(0, 200) + '...' || 'آخر أخبار انتقالات اللاعبين والميركاتو',
+              image: article.urlToImage || '/placeholder.svg',
+              video: null,
+              date: article.publishedAt,
+              source: article.source?.name || 'مصدر رياضي',
+              url: article.url,
+              category: 'انتقالات وميركاتو',
+              content: article.content || article.description || 'المحتوى غير متوفر'
+            })).filter((news: any) => 
+              news.title && 
+              news.description && 
+              !news.title.includes('[Removed]') &&
+              news.title !== 'أخبار الانتقالات'
+            ) || []
+            
+            allNews = [...allNews, ...transferNews]
+          } else {
+            console.error(`خطأ في استجابة API للاستعلام ${query}:`, transfersResponse.status)
+          }
+        } catch (error) {
+          console.error(`خطأ في جلب أخبار ${query}:`, error)
         }
         
         await new Promise(resolve => setTimeout(resolve, 300))
       }
     } catch (error) {
       console.error('خطأ في جلب أخبار الانتقالات:', error)
-    }
-
-    // 4. أخبار النجوم العالميين
-    console.log('جلب أخبار النجوم...')
-    try {
-      const starsQueries = [
-        'محمد+صلاح+أخبار',
-        'كريستيانو+رونالدو+النصر',
-        'ليونيل+ميسي+اليوم',
-        'كيليان+مبابي+ريال',
-        'إيرلينغ+هالاند+جديد'
-      ]
-
-      for (const query of starsQueries) {
-        const starsResponse = await fetch(`https://newsapi.org/v2/everything?q=${query}&language=ar&sortBy=publishedAt&pageSize=3&apiKey=${newsApiKey}`)
-
-        if (starsResponse.ok) {
-          const starsData = await starsResponse.json()
-          console.log(`أخبار ${query}: ${starsData.articles?.length || 0} مقال`)
-          
-          const starsNews = starsData.articles?.map((article: any, index: number) => ({
-            id: `stars-${query}-${index}-${Date.now()}`,
-            title: article.title || 'أخبار النجوم العالميين',
-            description: article.description || article.content?.substring(0, 200) + '...' || 'أحدث أخبار نجوم كرة القدم العالميين',
-            image: article.urlToImage || '/placeholder.svg',
-            video: null,
-            date: article.publishedAt,
-            source: article.source?.name || 'مصدر رياضي',
-            url: article.url,
-            category: 'نجوم عالميون',
-            content: article.content || article.description || 'المحتوى غير متوفر'
-          })).filter((news: any) => 
-            news.title && 
-            news.description && 
-            !news.title.includes('[Removed]') &&
-            news.title !== 'أخبار النجوم العالميين'
-          ) || []
-          
-          allNews = [...allNews, ...starsNews]
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 300))
-      }
-    } catch (error) {
-      console.error('خطأ في جلب أخبار النجوم:', error)
     }
 
     // إذا لم نحصل على أخبار حقيقية، نرجع قائمة فارغة مع رسالة
@@ -230,8 +203,8 @@ serve(async (req) => {
     // ترتيب حسب التاريخ (الأحدث أولاً)
     uniqueNews.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
     
-    // أخذ أفضل 35 خبر حقيقي
-    const finalNews = uniqueNews.slice(0, 35)
+    // أخذ أفضل 25 خبر حقيقي
+    const finalNews = uniqueNews.slice(0, 25)
 
     console.log(`=== إرجاع ${finalNews.length} خبر رياضي حقيقي ===`)
 
@@ -240,7 +213,7 @@ serve(async (req) => {
         news: finalNews,
         success: true,
         source: 'real-newsapi',
-        totalCategories: 4,
+        totalCategories: 3,
         language: 'ar'
       }),
       { 
