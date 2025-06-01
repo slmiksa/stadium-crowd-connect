@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -17,7 +16,7 @@ serve(async (req) => {
 
   try {
     // استخدام مفتاح API الجديد
-    const apiKey = '821aee6f9e3f494ab98d299588b8ad53'
+    const apiKey = '5879d532d5877f431c3cadfd42d19ccf'
     
     console.log('Using API Key for match details:', apiKey.substring(0, 8) + '...')
 
