@@ -16,8 +16,8 @@ serve(async (req) => {
   }
 
   try {
-    // استخدام مفتاح API
-    const apiKey = '1718fbf0680b579a071488f3516fd243'
+    // استخدام مفتاح API الجديد
+    const apiKey = 'cc800cbaffd9f1c8a39ba4cd742815c0'
     
     console.log('Using API Key for match details:', apiKey.substring(0, 8) + '...')
 
