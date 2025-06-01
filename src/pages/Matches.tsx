@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { Clock, Users, MapPin, RefreshCw, Newspaper, ExternalLink } from 'lucide-react';
 
 interface Match {
@@ -51,75 +51,101 @@ const Matches = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'finished' | 'news'>('live');
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  const [dataLoaded, setDataLoaded] = useState({
+    live: false,
+    upcoming: false,
+    finished: false,
+    news: false
+  });
 
   useEffect(() => {
-    fetchAllData();
+    fetchInitialData();
   }, []);
 
-  const fetchAllData = async () => {
+  const fetchInitialData = async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching all matches data...');
+      console.log('بدء تحميل البيانات...');
       
-      // جلب المباريات المباشرة
-      const { data: liveData } = await supabase.functions.invoke('get-football-matches', {
-        body: { 
-          status: 'live',
-          date: new Date().toISOString().split('T')[0]
-        }
-      });
-
-      // جلب المباريات القادمة
-      const { data: upcomingData } = await supabase.functions.invoke('get-football-matches', {
-        body: { 
-          status: 'upcoming',
-          date: new Date().toISOString().split('T')[0]
-        }
-      });
-
-      // جلب المباريات المنتهية
-      const { data: finishedData } = await supabase.functions.invoke('get-football-matches', {
-        body: { 
-          status: 'finished',
-          date: new Date().toISOString().split('T')[0]
-        }
-      });
-
-      // جلب الأخبار
-      const { data: newsData } = await supabase.functions.invoke('get-football-news', {
-        body: { limit: 50 }
-      });
-
-      setAllMatches({
-        live: liveData?.matches || [],
-        upcoming: upcomingData?.matches || [],
-        finished: finishedData?.matches || []
-      });
-
-      setNews(newsData?.news || []);
-
-      console.log('All data fetched:', {
-        live: liveData?.matches?.length || 0,
-        upcoming: upcomingData?.matches?.length || 0,
-        finished: finishedData?.matches?.length || 0,
-        news: newsData?.news?.length || 0
-      });
-
+      // تحميل المباريات المباشرة أولاً (الأهم)
+      const livePromise = fetchMatchData('live');
+      const newsPromise = fetchNewsData();
+      
+      // تحميل البيانات المباشرة والأخبار بسرعة
+      await Promise.all([livePromise, newsPromise]);
+      
+      // تحميل باقي البيانات في الخلفية
+      fetchMatchData('upcoming');
+      fetchMatchData('finished');
+      
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('خطأ في تحميل البيانات:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const fetchMatchData = async (status: 'live' | 'upcoming' | 'finished') => {
+    try {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 8000)
+      );
+      
+      const dataPromise = supabase.functions.invoke('get-football-matches', {
+        body: { 
+          status,
+          date: new Date().toISOString().split('T')[0]
+        }
+      });
+
+      const { data } = await Promise.race([dataPromise, timeoutPromise]) as any;
+      
+      setAllMatches(prev => ({
+        ...prev,
+        [status]: data?.matches || []
+      }));
+      
+      setDataLoaded(prev => ({ ...prev, [status]: true }));
+      
+      console.log(`تم تحميل ${status}:`, data?.matches?.length || 0);
+      
+    } catch (error) {
+      console.error(`خطأ في تحميل ${status}:`, error);
+      setDataLoaded(prev => ({ ...prev, [status]: true }));
+    }
+  };
+
+  const fetchNewsData = async () => {
+    try {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 8000)
+      );
+      
+      const dataPromise = supabase.functions.invoke('get-football-news', {
+        body: { limit: 30 }
+      });
+
+      const { data } = await Promise.race([dataPromise, timeoutPromise]) as any;
+      
+      setNews(data?.news || []);
+      setDataLoaded(prev => ({ ...prev, news: true }));
+      
+      console.log('تم تحميل الأخبار:', data?.news?.length || 0);
+      
+    } catch (error) {
+      console.error('خطأ في تحميل الأخبار:', error);
+      setDataLoaded(prev => ({ ...prev, news: true }));
+    }
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchAllData();
+    await fetchInitialData();
     setIsRefreshing(false);
   };
 
   const handleMatchClick = (matchId: string) => {
-    console.log('Navigating to match details:', matchId);
+    console.log('الانتقال لتفاصيل المباراة:', matchId);
     navigate(`/match-details/${matchId}`);
   };
 
@@ -168,7 +194,6 @@ const Matches = () => {
       onClick={() => handleMatchClick(match.id)}
       className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
     >
-      {/* Competition Badge */}
       <div className="flex items-center justify-center mb-4">
         <div className="flex items-center space-x-2 space-x-reverse bg-blue-600/15 border border-blue-500/25 rounded-xl px-3 py-1.5">
           {match.leagueFlag && (
@@ -178,9 +203,7 @@ const Matches = () => {
         </div>
       </div>
 
-      {/* Teams and Score */}
       <div className="flex items-center justify-between mb-4">
-        {/* Home Team */}
         <div className="flex-1 text-center">
           <div className="w-12 h-12 bg-gray-700/40 rounded-xl p-2 mx-auto mb-2 flex items-center justify-center border border-gray-600/30">
             {match.homeLogo ? (
@@ -192,7 +215,6 @@ const Matches = () => {
           <p className="font-bold text-white text-sm">{match.homeTeam}</p>
         </div>
 
-        {/* Score and Status */}
         <div className="mx-4 text-center min-w-[100px]">
           {match.status === 'live' && (
             <div className="flex items-center justify-center mb-2">
@@ -226,7 +248,6 @@ const Matches = () => {
           )}
         </div>
 
-        {/* Away Team */}
         <div className="flex-1 text-center">
           <div className="w-12 h-12 bg-gray-700/40 rounded-xl p-2 mx-auto mb-2 flex items-center justify-center border border-gray-600/30">
             {match.awayLogo ? (
@@ -239,7 +260,6 @@ const Matches = () => {
         </div>
       </div>
 
-      {/* Match Info */}
       <div className="border-t border-gray-700/50 pt-3">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center text-gray-400">
@@ -263,7 +283,6 @@ const Matches = () => {
       onClick={() => handleNewsClick(newsItem)}
       className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
     >
-      {/* News Image */}
       {newsItem.image && newsItem.image !== '/placeholder.svg' && (
         <div className="mb-4 rounded-xl overflow-hidden">
           <img 
@@ -274,9 +293,7 @@ const Matches = () => {
         </div>
       )}
 
-      {/* News Content */}
       <div className="space-y-3">
-        {/* Category Badge */}
         {newsItem.category && (
           <div className="inline-block">
             <span className="bg-purple-600/20 text-purple-300 px-2 py-1 rounded-lg text-xs font-medium">
@@ -301,7 +318,6 @@ const Matches = () => {
     </div>
   );
 
-  // News Modal
   const NewsModal = () => {
     if (!selectedNews) return null;
 
@@ -309,7 +325,6 @@ const Matches = () => {
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6">
-            {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-white">{selectedNews.title}</h2>
               <button
@@ -320,7 +335,6 @@ const Matches = () => {
               </button>
             </div>
 
-            {/* Image */}
             {selectedNews.image && selectedNews.image !== '/placeholder.svg' && (
               <div className="mb-4 rounded-xl overflow-hidden">
                 <img 
@@ -331,7 +345,6 @@ const Matches = () => {
               </div>
             )}
 
-            {/* Content */}
             <div className="space-y-4">
               <div className="flex items-center justify-between text-sm text-gray-400">
                 <span>{selectedNews.source}</span>
@@ -369,18 +382,12 @@ const Matches = () => {
   };
 
   const currentMatches = allMatches[activeTab as keyof typeof allMatches] || [];
+  const isTabLoading = !dataLoaded[activeTab as keyof typeof dataLoaded];
 
   if (isLoading) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gray-900">
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
-              <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-6"></div>
-              <p className="text-gray-300 text-xl font-medium">جاري تحميل البيانات...</p>
-            </div>
-          </div>
-        </div>
+        <LoadingSpinner />
       </Layout>
     );
   }
@@ -389,7 +396,6 @@ const Matches = () => {
     <Layout>
       <div className="min-h-screen bg-gray-900">
         <div className="p-4 space-y-6 pb-20">
-          {/* Header */}
           <div className="text-center">
             <div className="flex items-center justify-between mb-2">
               <div></div>
@@ -405,7 +411,6 @@ const Matches = () => {
             <p className="text-gray-400">تابع أحدث المباريات والنتائج والأخبار الرياضية</p>
           </div>
 
-          {/* Tabs */}
           <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-1 border border-gray-700/50">
             <div className="grid grid-cols-4 gap-1">
               <button
@@ -451,9 +456,13 @@ const Matches = () => {
             </div>
           </div>
 
-          {/* Content */}
           <div className="space-y-4">
-            {activeTab === 'news' ? (
+            {isTabLoading ? (
+              <div className="text-center py-12">
+                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-400">جاري التحميل...</p>
+              </div>
+            ) : activeTab === 'news' ? (
               news.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -493,7 +502,6 @@ const Matches = () => {
           </div>
         </div>
 
-        {/* News Modal */}
         <NewsModal />
       </div>
     </Layout>

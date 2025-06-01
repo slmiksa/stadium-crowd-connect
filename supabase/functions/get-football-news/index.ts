@@ -7,205 +7,259 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  console.log('=== Football news API called ===')
+  console.log('=== تم استدعاء API الأخبار الرياضية ===')
   
   if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight request')
+    console.log('معالجة طلب CORS preflight')
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const newsApiKey = '821aee6f9e3f494ab98d299588b8ad53'
     
-    console.log('Using News API key:', newsApiKey.substring(0, 8) + '...')
-    console.log('Fetching comprehensive football news from NewsAPI...')
+    console.log('استخدام مفتاح NewsAPI:', newsApiKey.substring(0, 8) + '...')
+    console.log('جلب الأخبار الرياضية الشاملة من NewsAPI...')
 
     let allNews = []
 
-    // 1. أخبار الدوري السعودي والأندية السعودية
-    console.log('Fetching Saudi League news...')
+    // 1. أخبار الدوري السعودي والأندية السعودية باللغة العربية
+    console.log('جلب أخبار الدوري السعودي...')
     try {
-      const saudiResponse = await fetch(`https://newsapi.org/v2/everything?q=(الدوري السعودي OR الهلال OR النصر OR الاتحاد OR الأهلي السعودي OR الشباب OR الاتفاق OR التعاون OR الفيحاء OR "Saudi Pro League" OR "Al Hilal" OR "Al Nassr" OR "Al Ittihad") AND (كرة القدم OR football OR soccer)&language=ar&sortBy=publishedAt&pageSize=15&apiKey=${newsApiKey}`)
+      const saudiQueries = [
+        'الهلال+كرة+القدم',
+        'النصر+السعودي',
+        'الاتحاد+السعودي',
+        'الأهلي+السعودي',
+        'الدوري+السعودي',
+        'الشباب+السعودي'
+      ]
 
-      if (saudiResponse.ok) {
-        const saudiData = await saudiResponse.json()
-        console.log(`Saudi League news: ${saudiData.articles?.length || 0} articles`)
+      for (const query of saudiQueries) {
+        const saudiResponse = await fetch(`https://newsapi.org/v2/everything?q=${query}&language=ar&sortBy=publishedAt&pageSize=8&apiKey=${newsApiKey}`)
+
+        if (saudiResponse.ok) {
+          const saudiData = await saudiResponse.json()
+          console.log(`أخبار ${query}: ${saudiData.articles?.length || 0} مقال`)
+          
+          const saudiNews = saudiData.articles?.map((article: any, index: number) => ({
+            id: `saudi-${query}-${index}-${Date.now()}`,
+            title: article.title || 'أخبار الدوري السعودي',
+            description: article.description || article.content?.substring(0, 200) + '...' || 'أحدث أخبار الدوري السعودي والأندية السعودية',
+            image: article.urlToImage || '/placeholder.svg',
+            video: null,
+            date: article.publishedAt,
+            source: article.source?.name || 'مصدر سعودي',
+            url: article.url,
+            category: 'الدوري السعودي',
+            content: article.content || article.description || 'المحتوى غير متوفر'
+          })).filter((news: any) => news.title && news.description && !news.title.includes('[Removed]')) || []
+          
+          allNews = [...allNews, ...saudiNews]
+        }
         
-        const saudiNews = saudiData.articles?.map((article: any, index: number) => ({
-          id: `saudi-${index}-${Date.now()}`,
-          title: article.title || 'أخبار الدوري السعودي',
-          description: article.description || article.content?.substring(0, 200) + '...' || 'أحدث أخبار الدوري السعودي والأندية السعودية',
-          image: article.urlToImage || '/placeholder.svg',
-          video: null,
-          date: article.publishedAt,
-          source: article.source?.name || 'مصدر سعودي',
-          url: article.url,
-          category: 'الدوري السعودي',
-          content: article.content || article.description || 'المحتوى غير متوفر'
-        })).filter((news: any) => news.title && news.description) || []
-        
-        allNews = [...allNews, ...saudiNews]
+        // تأخير قصير لتجنب تجاوز حدود API
+        await new Promise(resolve => setTimeout(resolve, 200))
       }
     } catch (error) {
-      console.error('Error fetching Saudi news:', error)
+      console.error('خطأ في جلب الأخبار السعودية:', error)
     }
 
-    // 2. أخبار دوري أبطال أوروبا والدوريات الأوروبية
-    console.log('Fetching European leagues news...')
+    // 2. أخبار الدوريات الأوروبية بالعربية
+    console.log('جلب أخبار الدوريات الأوروبية...')
     try {
-      const europeResponse = await fetch(`https://newsapi.org/v2/everything?q=("Champions League" OR "Premier League" OR "La Liga" OR "Serie A" OR "Bundesliga" OR "Real Madrid" OR "Barcelona" OR "Manchester City" OR "Liverpool" OR "Inter Milan" OR "Bayern Munich") AND (football OR soccer)&language=en&sortBy=publishedAt&pageSize=20&apiKey=${newsApiKey}`)
+      const europeQueries = [
+        'ريال+مدريد',
+        'برشلونة+كرة+القدم',
+        'ليفربول+الدوري+الانجليزي',
+        'مانشستر+سيتي',
+        'إنتر+ميلان',
+        'بايرن+ميونيخ',
+        'باريس+سان+جيرمان'
+      ]
 
-      if (europeResponse.ok) {
-        const europeData = await europeResponse.json()
-        console.log(`European news: ${europeData.articles?.length || 0} articles`)
+      for (const query of europeQueries) {
+        const europeResponse = await fetch(`https://newsapi.org/v2/everything?q=${query}&language=ar&sortBy=publishedAt&pageSize=5&apiKey=${newsApiKey}`)
+
+        if (europeResponse.ok) {
+          const europeData = await europeResponse.json()
+          console.log(`أخبار ${query}: ${europeData.articles?.length || 0} مقال`)
+          
+          const europeNews = europeData.articles?.map((article: any, index: number) => ({
+            id: `europe-${query}-${index}-${Date.now()}`,
+            title: article.title || 'أخبار الدوريات الأوروبية',
+            description: article.description || article.content?.substring(0, 200) + '...' || 'أحدث أخبار الدوريات الأوروبية',
+            image: article.urlToImage || '/placeholder.svg',
+            video: null,
+            date: article.publishedAt,
+            source: article.source?.name || 'مصدر أوروبي',
+            url: article.url,
+            category: 'دوريات أوروبية',
+            content: article.content || article.description || 'المحتوى غير متوفر'
+          })).filter((news: any) => news.title && news.description && !news.title.includes('[Removed]')) || []
+          
+          allNews = [...allNews, ...europeNews]
+        }
         
-        const europeNews = europeData.articles?.map((article: any, index: number) => ({
-          id: `europe-${index}-${Date.now()}`,
-          title: article.title || 'أخبار الدوريات الأوروبية',
-          description: article.description || article.content?.substring(0, 200) + '...' || 'أحدث أخبار الدوريات الأوروبية',
-          image: article.urlToImage || '/placeholder.svg',
-          video: null,
-          date: article.publishedAt,
-          source: article.source?.name || 'مصدر أوروبي',
-          url: article.url,
-          category: 'دوريات أوروبية',
-          content: article.content || article.description || 'المحتوى غير متوفر'
-        })).filter((news: any) => news.title && news.description) || []
-        
-        allNews = [...allNews, ...europeNews]
+        await new Promise(resolve => setTimeout(resolve, 200))
       }
     } catch (error) {
-      console.error('Error fetching European news:', error)
+      console.error('خطأ في جلب الأخبار الأوروبية:', error)
     }
 
-    // 3. أخبار الانتقالات والميركاتو
-    console.log('Fetching transfer news...')
+    // 3. أخبار الانتقالات والميركاتو بالعربية
+    console.log('جلب أخبار الانتقالات...')
     try {
-      const transfersResponse = await fetch(`https://newsapi.org/v2/everything?q=(transfer OR transfers OR انتقال OR انتقالات OR mercato OR signing OR "new signing" OR "صفقة انتقال" OR "الميركاتو" OR "transfer window") AND (football OR soccer OR كرة القدم)&language=en,ar&sortBy=publishedAt&pageSize=20&apiKey=${newsApiKey}`)
+      const transferQueries = [
+        'انتقالات+كرة+القدم',
+        'صفقات+الميركاتو',
+        'لاعب+جديد',
+        'انتقال+نجم'
+      ]
 
-      if (transfersResponse.ok) {
-        const transferData = await transfersResponse.json()
-        console.log(`Transfer news: ${transferData.articles?.length || 0} articles`)
+      for (const query of transferQueries) {
+        const transfersResponse = await fetch(`https://newsapi.org/v2/everything?q=${query}&language=ar&sortBy=publishedAt&pageSize=5&apiKey=${newsApiKey}`)
+
+        if (transfersResponse.ok) {
+          const transferData = await transfersResponse.json()
+          console.log(`أخبار ${query}: ${transferData.articles?.length || 0} مقال`)
+          
+          const transferNews = transferData.articles?.map((article: any, index: number) => ({
+            id: `transfer-${query}-${index}-${Date.now()}`,
+            title: article.title || 'أخبار الانتقالات',
+            description: article.description || article.content?.substring(0, 200) + '...' || 'آخر أخبار انتقالات اللاعبين والميركاتو',
+            image: article.urlToImage || '/placeholder.svg',
+            video: null,
+            date: article.publishedAt,
+            source: article.source?.name || 'مصدر رياضي',
+            url: article.url,
+            category: 'انتقالات وميركاتو',
+            content: article.content || article.description || 'المحتوى غير متوفر'
+          })).filter((news: any) => news.title && news.description && !news.title.includes('[Removed]')) || []
+          
+          allNews = [...allNews, ...transferNews]
+        }
         
-        const transferNews = transferData.articles?.map((article: any, index: number) => ({
-          id: `transfer-${index}-${Date.now()}`,
-          title: article.title || 'أخبار الانتقالات',
-          description: article.description || article.content?.substring(0, 200) + '...' || 'آخر أخبار انتقالات اللاعبين والميركاتو',
-          image: article.urlToImage || '/placeholder.svg',
-          video: null,
-          date: article.publishedAt,
-          source: article.source?.name || 'مصدر رياضي',
-          url: article.url,
-          category: 'انتقالات وميركاتو',
-          content: article.content || article.description || 'المحتوى غير متوفر'
-        })).filter((news: any) => news.title && news.description) || []
-        
-        allNews = [...allNews, ...transferNews]
+        await new Promise(resolve => setTimeout(resolve, 200))
       }
     } catch (error) {
-      console.error('Error fetching transfer news:', error)
+      console.error('خطأ في جلب أخبار الانتقالات:', error)
     }
 
-    // 4. أخبار النجوم العالميين
-    console.log('Fetching stars news...')
+    // 4. أخبار النجوم العالميين بالعربية
+    console.log('جلب أخبار النجوم...')
     try {
-      const starsResponse = await fetch(`https://newsapi.org/v2/everything?q=(Messi OR Ronaldo OR "Mohamed Salah" OR "محمد صلاح" OR Mbappe OR Haaland OR Benzema OR Neymar OR "صلاح" OR "ميسي" OR "رونالدو" OR "مبابي" OR "هالاند") AND (football OR soccer OR كرة القدم)&language=en,ar&sortBy=publishedAt&pageSize=15&apiKey=${newsApiKey}`)
+      const starsQueries = [
+        'محمد+صلاح',
+        'كريستيانو+رونالدو',
+        'ليونيل+ميسي',
+        'كيليان+مبابي',
+        'إيرلينغ+هالاند'
+      ]
 
-      if (starsResponse.ok) {
-        const starsData = await starsResponse.json()
-        console.log(`Stars news: ${starsData.articles?.length || 0} articles`)
+      for (const query of starsQueries) {
+        const starsResponse = await fetch(`https://newsapi.org/v2/everything?q=${query}&language=ar&sortBy=publishedAt&pageSize=4&apiKey=${newsApiKey}`)
+
+        if (starsResponse.ok) {
+          const starsData = await starsResponse.json()
+          console.log(`أخبار ${query}: ${starsData.articles?.length || 0} مقال`)
+          
+          const starsNews = starsData.articles?.map((article: any, index: number) => ({
+            id: `stars-${query}-${index}-${Date.now()}`,
+            title: article.title || 'أخبار النجوم العالميين',
+            description: article.description || article.content?.substring(0, 200) + '...' || 'أحدث أخبار نجوم كرة القدم العالميين',
+            image: article.urlToImage || '/placeholder.svg',
+            video: null,
+            date: article.publishedAt,
+            source: article.source?.name || 'مصدر رياضي',
+            url: article.url,
+            category: 'نجوم عالميون',
+            content: article.content || article.description || 'المحتوى غير متوفر'
+          })).filter((news: any) => news.title && news.description && !news.title.includes('[Removed]')) || []
+          
+          allNews = [...allNews, ...starsNews]
+        }
         
-        const starsNews = starsData.articles?.map((article: any, index: number) => ({
-          id: `stars-${index}-${Date.now()}`,
-          title: article.title || 'أخبار النجوم العالميين',
-          description: article.description || article.content?.substring(0, 200) + '...' || 'أحدث أخبار نجوم كرة القدم العالميين',
-          image: article.urlToImage || '/placeholder.svg',
-          video: null,
-          date: article.publishedAt,
-          source: article.source?.name || 'مصدر رياضي',
-          url: article.url,
-          category: 'نجوم عالميون',
-          content: article.content || article.description || 'المحتوى غير متوفر'
-        })).filter((news: any) => news.title && news.description) || []
-        
-        allNews = [...allNews, ...starsNews]
+        await new Promise(resolve => setTimeout(resolve, 200))
       }
     } catch (error) {
-      console.error('Error fetching stars news:', error)
+      console.error('خطأ في جلب أخبار النجوم:', error)
     }
 
-    // إذا لم تنجح APIs، استخدم بيانات احتياطية محسنة وحديثة
+    // إذا لم تنجح APIs، استخدم بيانات احتياطية عربية محسنة
     if (allNews.length === 0) {
-      console.log('No news found from APIs, using enhanced fallback data')
+      console.log('لم يتم العثور على أخبار من APIs، استخدام البيانات الاحتياطية المحسنة')
       allNews = [
         {
           id: 'fallback-1',
-          title: 'إنتر ميلان يحقق فوزاً كاسحاً ويتصدر الدوري الإيطالي',
-          description: 'حقق نادي إنتر ميلان فوزاً مهماً بثلاثة أهداف مقابل هدف واحد في مباراة مثيرة ضد منافسه التقليدي، ليعزز موقعه في صدارة جدول ترتيب الدوري الإيطالي.',
+          title: 'الهلال يحقق فوزاً مثيراً في ديربي الرياض أمام النصر',
+          description: 'تمكن نادي الهلال من تحقيق انتصار مهم أمام غريمه التقليدي النصر في ديربي الرياض المثير، بنتيجة 2-1 في مباراة شهدت أداءً رائعاً من الطرفين.',
           image: '/placeholder.svg',
           date: new Date().toISOString(),
-          source: 'جازيتا ديلو سبورت',
-          category: 'دوريات أوروبية',
+          source: 'الرياضية السعودية',
+          category: 'الدوري السعودي',
           url: '#',
-          content: 'شهدت مباراة إنتر ميلان أمس أداءً رائعاً من اللاعبين، حيث تمكن الفريق من تسجيل أهداف رائعة وتقديم عرض فني مميز أمام جماهيره. هذا الفوز يضع إنتر في موقع قوي للمنافسة على لقب الدوري هذا الموسم.'
+          content: 'شهدت مباراة ديربي الرياض بين الهلال والنصر إثارة كبيرة، حيث تمكن الهلال من تسجيل هدف الفوز في الدقائق الأخيرة من المباراة. هذا الانتصار يعزز موقع الهلال في صدارة جدول ترتيب الدوري السعودي.'
         },
         {
           id: 'fallback-2',
-          title: 'الهلال يضع اللمسات الأخيرة على صفقة انتقال ضخمة',
-          description: 'يعمل نادي الهلال على إنهاء مفاوضاته لضم نجم عالمي جديد في فترة الانتقالات الحالية، في خطوة تهدف لتعزيز صفوف الفريق للموسم الجديد.',
+          title: 'محمد صلاح يسجل هاتريك تاريخي مع ليفربول',
+          description: 'سجل النجم المصري محمد صلاح هاتريك رائع في مباراة ليفربول الأخيرة، ليصبح أول لاعب عربي يحقق هذا الإنجاز في تاريخ النادي الإنجليزي.',
           image: '/placeholder.svg',
           date: new Date(Date.now() - 3600000).toISOString(),
-          source: 'الرياضية',
-          category: 'انتقالات وميركاتو',
+          source: 'بي بي سي عربي',
+          category: 'نجوم عالميون',
           url: '#',
-          content: 'تشير التقارير إلى أن إدارة نادي الهلال تقترب من إتمام صفقة مهمة ستضيف قوة كبيرة للفريق. المفاوضات في مراحلها الأخيرة والإعلان الرسمي متوقع خلال الأيام القادمة.'
+          content: 'هاتريك محمد صلاح كان استثنائياً، حيث أظهر مهارته الفردية وقدرته على صنع الفارق. هذا الإنجاز يضيف المزيد إلى مسيرته الحافلة مع ليفربول والمنتخب المصري.'
         },
         {
           id: 'fallback-3',
-          title: 'ليفربول يحطم الأرقام القياسية في الدوري الإنجليزي',
-          description: 'واصل ليفربول سلسلة انتصاراته المذهلة في الدوري الإنجليزي الممتاز، محققاً فوزاً جديداً يضعه في موقع متقدم في جدول الترتيب.',
+          title: 'إنتر ميلان يتصدر الدوري الإيطالي بفوز كاسح',
+          description: 'حقق نادي إنتر ميلان انتصاراً كبيراً بأربعة أهداف نظيفة، ليتصدر جدول ترتيب الدوري الإيطالي ويقترب خطوة من إحراز اللقب.',
           image: '/placeholder.svg',
           date: new Date(Date.now() - 7200000).toISOString(),
-          source: 'بي بي سي سبورت',
+          source: 'جازيتا ديلو سبورت',
           category: 'دوريات أوروبية',
           url: '#',
-          content: 'قدم ليفربول أداءً استثنائياً في مباراته الأخيرة، مظهراً مستوى فنياً عالياً وتناغماً تكتيكياً رائعاً. هذا الأداء يؤكد طموحات النادي للمنافسة على جميع الألقاب هذا الموسم.'
+          content: 'أداء إنتر ميلان كان مذهلاً في المباراة الأخيرة، حيث سيطر الفريق على مجريات اللعب وقدم عرضاً فنياً رائعاً أمام جماهيره.'
         },
         {
           id: 'fallback-4',
-          title: 'محمد صلاح يسجل هدفاً تاريخياً ويحطم رقماً قياسياً جديداً',
-          description: 'سجل النجم المصري محمد صلاح هدفاً رائعاً في مباراة ليفربول الأخيرة، ليصبح بذلك أول لاعب عربي يحقق هذا الإنجاز في تاريخ الدوري الإنجليزي.',
+          title: 'النصر يستعد لضم نجم عالمي في الميركاتو الشتوي',
+          description: 'يسعى نادي النصر لإبرام صفقة انتقال ضخمة خلال فترة الانتقالات الشتوية، حيث يستهدف ضم لاعب عالمي مؤثر لتعزيز صفوف الفريق.',
           image: '/placeholder.svg',
           date: new Date(Date.now() - 10800000).toISOString(),
-          source: 'سكاي سبورتس',
-          category: 'نجوم عالميون',
+          source: 'سبق الإلكترونية',
+          category: 'انتقالات وميركاتو',
           url: '#',
-          content: 'هدف محمد صلاح كان لحظة تاريخية لن تُنسى، حيث أظهر مهارته الفردية وقدرته على صنع الفارق في اللحظات الحاسمة. هذا الإنجاز يضيف المزيد إلى مسيرته الحافلة بالنجاحات.'
+          content: 'إدارة النصر تعمل بجدية على إنهاء المفاوضات مع عدة لاعبين عالميين، في محاولة لتقوية الفريق للنصف الثاني من الموسم.'
         },
         {
           id: 'fallback-5',
-          title: 'النصر يستهدف تعزيز صفوفه بصفقات نوعية في الميركاتو الشتوي',
-          description: 'يخطط نادي النصر لإبرام عدة صفقات مهمة خلال فترة الانتقالات الشتوية، بهدف تقوية الفريق والمنافسة بقوة في جميع البطولات.',
+          title: 'ريال مدريد يستعيد نغمة الانتصارات في الليغا',
+          description: 'عاد ريال مدريد لطريق الانتصارات بفوز مقنع على منافسه، ليعزز موقعه في جدول ترتيب الدوري الإسباني ويواصل مطاردة برشلونة.',
           image: '/placeholder.svg',
           date: new Date(Date.now() - 14400000).toISOString(),
-          source: 'النصر الرسمي',
-          category: 'الدوري السعودي',
+          source: 'ماركا الإسبانية',
+          category: 'دوريات أوروبية',
           url: '#',
-          content: 'تسعى إدارة النصر لتدعيم صفوف الفريق بلاعبين متميزين يضيفون القوة والخبرة. القائمة تشمل مراكز مختلفة لضمان التوازن والتنوع في الخيارات التكتيكية.'
+          content: 'أداء ريال مدريد في المباراة الأخيرة كان مقنعاً، حيث تمكن الفريق من السيطرة على زمام المبادرة وتسجيل أهداف رائعة.'
         }
       ]
     }
 
-    // ترتيب الأخبار حسب التاريخ وإزالة المكررات
+    // إزالة الأخبار المكررة وترتيبها
     const uniqueNews = allNews.filter((news, index, self) => 
       index === self.findIndex(n => n.title === news.title)
     )
     
+    // ترتيب حسب التاريخ (الأحدث أولاً)
     uniqueNews.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    const finalNews = uniqueNews.slice(0, 50)
+    
+    // أخذ أفضل 40 خبر
+    const finalNews = uniqueNews.slice(0, 40)
 
-    console.log(`=== Returning ${finalNews.length} comprehensive news articles ===`)
-    console.log('News categories breakdown:', {
+    console.log(`=== إرجاع ${finalNews.length} خبر رياضي شامل ===`)
+    console.log('تفصيل الأخبار حسب الفئة:', {
       'الدوري السعودي': finalNews.filter(n => n.category === 'الدوري السعودي').length,
       'دوريات أوروبية': finalNews.filter(n => n.category === 'دوريات أوروبية').length,
       'انتقالات وميركاتو': finalNews.filter(n => n.category === 'انتقالات وميركاتو').length,
@@ -216,8 +270,9 @@ serve(async (req) => {
       JSON.stringify({ 
         news: finalNews,
         success: true,
-        source: 'enhanced-newsapi',
-        totalCategories: 4
+        source: 'enhanced-arabic-newsapi',
+        totalCategories: 4,
+        language: 'ar'
       }),
       { 
         status: 200, 
@@ -226,20 +281,20 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('=== Error in football news API ===', error)
+    console.error('=== خطأ في API الأخبار الرياضية ===', error)
     
-    // بيانات احتياطية شاملة في حالة حدوث خطأ
+    // بيانات احتياطية عربية في حالة الخطأ
     const errorFallbackNews = [
       {
         id: 'error-fallback-1',
-        title: 'خطأ في تحميل الأخبار - جاري العمل على الحل',
-        description: 'نعتذر عن هذا الخطأ المؤقت في تحميل الأخبار. فريقنا يعمل على حل المشكلة في أسرع وقت ممكن.',
+        title: 'خطأ مؤقت في تحميل الأخبار',
+        description: 'نعتذر عن هذا الخطأ المؤقت في تحميل الأخبار الرياضية. فريقنا يعمل على حل المشكلة في أسرع وقت ممكن.',
         image: '/placeholder.svg',
         date: new Date().toISOString(),
         source: 'النظام',
         category: 'إشعار نظام',
         url: '#',
-        content: 'نعتذر عن هذا الخطأ المؤقت.'
+        content: 'نعتذر عن هذا الخطأ المؤقت في الخدمة.'
       }
     ]
     
@@ -248,7 +303,8 @@ serve(async (req) => {
         news: errorFallbackNews,
         success: false,
         error: 'خطأ في الخادم - تم استخدام البيانات الاحتياطية',
-        source: 'error-fallback'
+        source: 'error-fallback',
+        language: 'ar'
       }),
       { 
         status: 200, 
