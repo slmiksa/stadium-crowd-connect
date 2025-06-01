@@ -135,22 +135,30 @@ html, body {
 /* Safe area support for mobile devices */
 @supports (padding: max(0px)) {
   .pb-safe-bottom {
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
   }
   
   .pt-safe-top {
     padding-top: max(12px, env(safe-area-inset-top));
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
 /* Fallback for devices without safe area support */
 @supports not (padding: max(0px)) {
   .pb-safe-bottom {
-    padding-bottom: 12px;
+    padding-bottom: 16px;
   }
   
   .pt-safe-top {
     padding-top: 12px;
+  }
+
+  .safe-area-bottom {
+    padding-bottom: 0;
   }
 }
 
@@ -225,4 +233,18 @@ html, body {
     position: fixed;
     bottom: 0;
   }
+}
+
+/* Modal specific fixes for comments */
+.comments-modal {
+  max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
+.comments-input-area {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  position: sticky;
+  bottom: 0;
+  background: rgba(31, 41, 55, 0.95);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(75, 85, 99, 0.3);
 }

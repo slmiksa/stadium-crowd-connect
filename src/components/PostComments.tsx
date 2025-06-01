@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -258,9 +259,9 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-gray-900/95 backdrop-blur-md w-full sm:max-w-lg h-[85vh] sm:h-[80vh] rounded-t-3xl sm:rounded-3xl border border-gray-700/50 shadow-2xl flex flex-col overflow-hidden">
+      <div className="bg-gray-900/95 backdrop-blur-md w-full sm:max-w-lg h-[90vh] sm:h-[85vh] rounded-t-3xl sm:rounded-3xl border border-gray-700/50 shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700/50 bg-gray-800/50">
+        <div className="flex items-center justify-between p-6 border-b border-gray-700/50 bg-gray-800/50 flex-shrink-0">
           <h3 className="text-xl font-bold text-white">التعليقات</h3>
           <button
             onClick={onClose}
@@ -271,7 +272,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         </div>
 
         {/* Comments List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
           {isLoading ? (
             <div className="flex justify-center py-12">
               <div className="relative">
@@ -300,15 +301,17 @@ const PostComments: React.FC<PostCommentsProps> = ({
           )}
         </div>
 
-        {/* Comment Input */}
-        <div className="p-4 border-t border-gray-700/50 bg-gray-800/30">
-          <CommentInput
-            onSubmit={handleSubmitComment}
-            isSubmitting={isSubmitting}
-            placeholder="اكتب تعليقاً..."
-            replyTo={replyTo}
-            onCancelReply={handleCancelReply}
-          />
+        {/* Comment Input - Fixed to bottom with safe area */}
+        <div className="flex-shrink-0 border-t border-gray-700/50 bg-gray-800/30 safe-area-bottom">
+          <div className="p-4 pb-safe-bottom">
+            <CommentInput
+              onSubmit={handleSubmitComment}
+              isSubmitting={isSubmitting}
+              placeholder="اكتب تعليقاً..."
+              replyTo={replyTo}
+              onCancelReply={handleCancelReply}
+            />
+          </div>
         </div>
       </div>
     </div>
