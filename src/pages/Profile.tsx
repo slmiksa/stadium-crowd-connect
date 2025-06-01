@@ -177,13 +177,24 @@ const Profile = () => {
         return;
       }
 
-      // Transform the data to match our interface
-      const transformedData = data?.map(invitation => ({
-        ...invitation,
-        inviter_profile: invitation.profiles
-      })) || [];
+      // التحقق من وجود الغرف - إذا تم حذف الغرفة، احذف الدعوة
+      const validInvitations = [];
+      for (const invitation of data || []) {
+        if (invitation.chat_rooms) {
+          validInvitations.push({
+            ...invitation,
+            inviter_profile: invitation.profiles
+          });
+        } else {
+          // إذا لم تعد الغرفة موجودة، احذف الدعوة
+          await supabase
+            .from('room_invitations')
+            .delete()
+            .eq('id', invitation.id);
+        }
+      }
 
-      setRoomInvitations(transformedData);
+      setRoomInvitations(validInvitations);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -306,7 +317,8 @@ const Profile = () => {
         description: "تم رفض الدعوة"
       });
 
-      fetchRoomInvitations();
+      // إزالة الدعوة من القائمة فوراً
+      setRoomInvitations(prev => prev.filter(inv => inv.id !== invitationId));
     } catch (error) {
       console.error('Error:', error);
       toast({
@@ -319,7 +331,13 @@ const Profile = () => {
 
   const handleDeleteRoom = async (roomId: string) => {
     try {
-      // حذف أعضاء الغرفة أولاً
+      // حذف دعوات الغرفة أولاً
+      await supabase
+        .from('room_invitations')
+        .delete()
+        .eq('room_id', roomId);
+
+      // حذف أعضاء الغرفة
       await supabase
         .from('room_members')
         .delete()
@@ -350,11 +368,12 @@ const Profile = () => {
 
       toast({
         title: "تم الحذف",
-        description: "تم حذف الغرفة بنجاح"
+        description: "تم حذف الغرفة وجميع الدعوات المرتبطة بها"
       });
 
-      // تحديث قائمة الغرف
+      // تحديث قائمة الغرف والدعوات
       fetchMyRooms();
+      fetchRoomInvitations(); // تحديث الدعوات أيضاً
     } catch (error) {
       console.error('Error:', error);
       toast({
