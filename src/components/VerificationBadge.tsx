@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Star, Award, Crown, Gem } from 'lucide-react';
+import { Star } from 'lucide-react';
 
 interface VerificationBadgeProps {
   verificationStatus: string | null;
@@ -29,7 +29,7 @@ const VerificationBadge: React.FC<VerificationBadgeProps> = ({
         };
       case 'silver':
         return {
-          icon: Award,
+          icon: Star,
           color: 'text-gray-500',
           bgColor: 'bg-gray-100',
           label: 'فضي',
@@ -37,7 +37,7 @@ const VerificationBadge: React.FC<VerificationBadgeProps> = ({
         };
       case 'gold':
         return {
-          icon: Crown,
+          icon: Star,
           color: 'text-yellow-500',
           bgColor: 'bg-yellow-100',
           label: 'ذهبي',
@@ -45,7 +45,7 @@ const VerificationBadge: React.FC<VerificationBadgeProps> = ({
         };
       case 'diamond':
         return {
-          icon: Gem,
+          icon: Star,
           color: 'text-blue-500',
           bgColor: 'bg-blue-100',
           label: 'ماسي',
@@ -63,9 +63,7 @@ const VerificationBadge: React.FC<VerificationBadgeProps> = ({
 
   return (
     <div className="inline-flex items-center gap-1" title={`${config.label} - ${config.description}`}>
-      <div className={`rounded-full p-1 ${config.bgColor}`}>
-        <IconComponent size={size} className={config.color} />
-      </div>
+      <IconComponent size={size} className={config.color} fill="currentColor" />
       {showLabel && (
         <span className={`text-xs font-medium ${config.color}`}>
           {config.label}
