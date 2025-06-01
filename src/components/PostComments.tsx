@@ -166,7 +166,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
     return matches ? matches.map(tag => tag.slice(1)) : [];
   };
 
-  const handleSubmitComment = async (content: string, mediaFile?: File, parentId?: string, mediaType?: string) => {
+  const handleSubmitComment = async (content: string, mediaFile?: File, mediaType?: string) => {
     if (!user) {
       console.log('No user found');
       return;
@@ -177,7 +177,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
       return;
     }
 
-    console.log('Submitting comment:', { content, hasMedia: !!mediaFile, parentId, mediaType });
+    console.log('Submitting comment:', { content, hasMedia: !!mediaFile, replyTo, mediaType });
     setIsSubmitting(true);
     
     try {
@@ -197,21 +197,32 @@ const PostComments: React.FC<PostCommentsProps> = ({
       const hashtags = extractHashtags(content);
       console.log('Extracted hashtags:', hashtags);
 
-      // Use the actual parent_id from replyTo
-      const actualParentId = replyTo ? replyTo.id : parentId;
-
       console.log('Inserting comment into database...');
+      
+      // Prepare comment data
+      const commentData: any = {
+        post_id: postId,
+        user_id: user.id,
+        content: content.trim() || '',
+        hashtags: hashtags
+      };
+
+      // Add parent_id if replying to a comment
+      if (replyTo) {
+        commentData.parent_id = replyTo.id;
+      }
+
+      // Add media fields if available
+      if (mediaUrl && mediaType) {
+        commentData.media_url = mediaUrl;
+        commentData.media_type = mediaType;
+      }
+
+      console.log('Comment data to insert:', commentData);
+
       const { data: insertData, error: insertError } = await supabase
         .from('hashtag_comments')
-        .insert({
-          post_id: postId,
-          user_id: user.id,
-          content: content.trim() || '',
-          media_url: mediaUrl,
-          media_type: mediaType || null,
-          parent_id: actualParentId || null,
-          hashtags: hashtags
-        })
+        .insert(commentData)
         .select();
 
       if (insertError) {
@@ -280,7 +291,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         </div>
 
         {/* Comments List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 pb-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 pb-40">
           {isLoading ? (
             <div className="flex justify-center py-12">
               <div className="relative">
@@ -309,11 +320,11 @@ const PostComments: React.FC<PostCommentsProps> = ({
           )}
         </div>
 
-        {/* Comment Input - Fixed to bottom */}
-        <div className="flex-shrink-0 border-t border-gray-700/50 bg-gray-800/50 backdrop-blur-sm">
-          <div className="p-4 pb-8">
+        {/* Comment Input - Fixed to bottom with more space */}
+        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-700/50 bg-gray-800/90 backdrop-blur-md">
+          <div className="p-4 pb-12">
             <CommentInput
-              onSubmit={(content, mediaFile, mediaType) => handleSubmitComment(content, mediaFile, undefined, mediaType)}
+              onSubmit={handleSubmitComment}
               isSubmitting={isSubmitting}
               placeholder="اكتب تعليقاً..."
               replyTo={replyTo}
