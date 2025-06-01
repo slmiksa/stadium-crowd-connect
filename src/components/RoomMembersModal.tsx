@@ -38,13 +38,26 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   const [members, setMembers] = useState<Member[]>([]);
   const [roomOwner, setRoomOwner] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
 
   useEffect(() => {
     if (isOpen && roomId) {
       fetchMembers();
       fetchRoomOwner();
+      getCurrentUser();
     }
   }, [isOpen, roomId]);
+
+  const getCurrentUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    } catch (error) {
+      console.error('Error getting current user:', error);
+    }
+  };
 
   const fetchRoomOwner = async () => {
     try {
@@ -97,7 +110,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       const { data, error } = await supabase.rpc('promote_to_moderator', {
         room_id_param: roomId,
         user_id_param: userId,
-        promoter_id_param: (await supabase.auth.getUser()).data.user?.id
+        promoter_id_param: currentUserId
       });
 
       if (error) {
@@ -121,7 +134,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       const { data, error } = await supabase.rpc('demote_from_moderator', {
         room_id_param: roomId,
         user_id_param: userId,
-        demoter_id_param: (await supabase.auth.getUser()).data.user?.id
+        demoter_id_param: currentUserId
       });
 
       if (error) {
@@ -205,9 +218,8 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   };
 
   const isCurrentUserModerator = (): boolean => {
-    const currentUser = supabase.auth.getUser();
     return members.some(member => 
-      member.user_id === currentUser && member.role === 'moderator'
+      member.user_id === currentUserId && member.role === 'moderator'
     );
   };
 
