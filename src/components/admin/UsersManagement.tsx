@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -102,6 +103,7 @@ const UsersManagement = () => {
   };
 
   const viewUserProfile = (userId: string) => {
+    // تصحيح المسار للذهاب للبروفايل
     navigate(`/profile/${userId}`);
   };
 

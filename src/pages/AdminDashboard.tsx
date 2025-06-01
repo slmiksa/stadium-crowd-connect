@@ -72,11 +72,11 @@ const AdminDashboard = () => {
         </div>
 
         {/* Main Content - مع scroll محسن */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="max-w-7xl mx-auto w-full p-3 md:p-6 flex-1 flex flex-col min-h-0">
-            <Tabs defaultValue="stats" className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 overflow-hidden">
+          <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
+            <Tabs defaultValue="stats" className="flex-1 flex flex-col h-full">
               {/* Tabs Navigation - محسن للجوال */}
-              <div className="flex-shrink-0 mb-4 md:mb-6">
+              <div className="flex-shrink-0 p-3 md:p-6 pb-0">
                 <ScrollArea className="w-full">
                   <TabsList className="grid w-full grid-cols-5 bg-zinc-900 min-w-[500px] h-auto">
                     <TabsTrigger value="stats" className="data-[state=active]:bg-blue-600 text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row items-center gap-1 md:gap-2">
@@ -103,43 +103,43 @@ const AdminDashboard = () => {
                 </ScrollArea>
               </div>
 
-              {/* Tab Contents - مع scroll محسن */}
-              <div className="flex-1 min-h-0">
-                <TabsContent value="stats" className="h-full m-0">
+              {/* Tab Contents - مع scroll محسن ومساحة إضافية */}
+              <div className="flex-1 overflow-hidden">
+                <TabsContent value="stats" className="h-full m-0 overflow-hidden">
                   <ScrollArea className="h-full">
-                    <div className="pr-4">
+                    <div className="p-3 md:p-6 pb-20">
                       <StatsOverview />
                     </div>
                   </ScrollArea>
                 </TabsContent>
 
-                <TabsContent value="users" className="h-full m-0">
+                <TabsContent value="users" className="h-full m-0 overflow-hidden">
                   <ScrollArea className="h-full">
-                    <div className="pr-4">
+                    <div className="p-3 md:p-6 pb-20">
                       <UsersManagement />
                     </div>
                   </ScrollArea>
                 </TabsContent>
 
-                <TabsContent value="reports" className="h-full m-0">
+                <TabsContent value="reports" className="h-full m-0 overflow-hidden">
                   <ScrollArea className="h-full">
-                    <div className="pr-4">
+                    <div className="p-3 md:p-6 pb-20">
                       <ReportsManagement />
                     </div>
                   </ScrollArea>
                 </TabsContent>
 
-                <TabsContent value="hashtags" className="h-full m-0">
+                <TabsContent value="hashtags" className="h-full m-0 overflow-hidden">
                   <ScrollArea className="h-full">
-                    <div className="pr-4">
+                    <div className="p-3 md:p-6 pb-20">
                       <HashtagsManagement />
                     </div>
                   </ScrollArea>
                 </TabsContent>
 
-                <TabsContent value="settings" className="h-full m-0">
+                <TabsContent value="settings" className="h-full m-0 overflow-hidden">
                   <ScrollArea className="h-full">
-                    <div className="pr-4">
+                    <div className="p-3 md:p-6 pb-20">
                       <PasswordChange adminId={adminData?.id} />
                     </div>
                   </ScrollArea>

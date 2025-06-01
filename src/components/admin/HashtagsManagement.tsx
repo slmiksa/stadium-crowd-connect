@@ -80,17 +80,36 @@ const HashtagsManagement = () => {
 
     setIsUpdating(true);
     try {
-      const { data, error } = await supabase.rpc('update_trending_threshold', {
-        new_threshold: newThreshold
-      });
+      // استخدام استعلام SQL مباشر بدلاً من الدالة
+      const { error } = await supabase
+        .from('hashtag_trends')
+        .update({ is_trending: false });
 
       if (error) {
-        console.error('Error updating threshold:', error);
+        console.error('Error updating threshold step 1:', error);
         toast({
           title: 'خطأ',
           description: 'حدث خطأ أثناء تحديث الحد الأدنى',
           variant: 'destructive'
         });
+        setIsUpdating(false);
+        return;
+      }
+
+      // تحديث حالة الترند للهاشتاقات التي تتجاوز الحد الجديد
+      const { error: error2 } = await supabase
+        .from('hashtag_trends')
+        .update({ is_trending: true })
+        .gte('posts_count', newThreshold);
+
+      if (error2) {
+        console.error('Error updating threshold step 2:', error2);
+        toast({
+          title: 'خطأ',
+          description: 'حدث خطأ أثناء تحديث الحد الأدنى',
+          variant: 'destructive'
+        });
+        setIsUpdating(false);
         return;
       }
 

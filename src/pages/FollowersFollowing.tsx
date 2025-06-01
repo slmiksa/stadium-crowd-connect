@@ -134,7 +134,8 @@ const FollowersFollowing = () => {
   };
 
   const handleUserProfileClick = (userProfileId: string) => {
-    navigate(`/user-profile/${userProfileId}`);
+    // تصحيح المسار للذهاب للبروفايل
+    navigate(`/profile/${userProfileId}`);
   };
 
   if (isLoading) {
