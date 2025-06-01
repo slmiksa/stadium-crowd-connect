@@ -116,13 +116,13 @@ const HashtagsManagement = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="space-y-4 md:space-y-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="bg-zinc-900 border-zinc-800">
-              <CardHeader className="animate-pulse">
-                <div className="h-4 bg-zinc-700 rounded w-3/4"></div>
-                <div className="h-8 bg-zinc-700 rounded w-1/2"></div>
+              <CardHeader className="animate-pulse pb-2">
+                <div className="h-3 md:h-4 bg-zinc-700 rounded w-3/4"></div>
+                <div className="h-6 md:h-8 bg-zinc-700 rounded w-1/2"></div>
               </CardHeader>
             </Card>
           ))}
@@ -132,87 +132,87 @@ const HashtagsManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-white mb-2">إدارة الهاشتاقات</h2>
-        <p className="text-zinc-400">إحصائيات وإعدادات الهاشتاقات والترند</p>
+        <h2 className="text-lg md:text-2xl font-bold text-white mb-2">إدارة الهاشتاقات</h2>
+        <p className="text-zinc-400 text-sm md:text-base">إحصائيات وإعدادات الهاشتاقات والترند</p>
       </div>
 
       {/* إحصائيات الهاشتاقات */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-zinc-400">
               إجمالي الهاشتاقات
             </CardTitle>
-            <Hash className="h-4 w-4 text-blue-400" />
+            <Hash className="h-3 w-3 md:h-4 md:w-4 text-blue-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-400">
+          <CardContent className="p-3 md:p-6 pt-0">
+            <div className="text-lg md:text-2xl font-bold text-blue-400">
               {stats?.total_hashtags || 0}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-zinc-400">
               هاشتاقات ترند
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-orange-400" />
+            <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-orange-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-400">
+          <CardContent className="p-3 md:p-6 pt-0">
+            <div className="text-lg md:text-2xl font-bold text-orange-400">
               {stats?.trending_hashtags || 0}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-zinc-400">
               أشهر هاشتاق
             </CardTitle>
-            <Hash className="h-4 w-4 text-green-400" />
+            <Hash className="h-3 w-3 md:h-4 md:w-4 text-green-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold text-green-400">
+          <CardContent className="p-3 md:p-6 pt-0">
+            <div className="text-sm md:text-lg font-bold text-green-400 truncate">
               #{stats?.top_hashtag || 'لا يوجد'}
             </div>
-            <div className="text-sm text-zinc-400">
+            <div className="text-xs md:text-sm text-zinc-400">
               {stats?.top_hashtag_count || 0} منشور
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-zinc-400">
               حد الترند الحالي
             </CardTitle>
-            <Settings className="h-4 w-4 text-purple-400" />
+            <Settings className="h-3 w-3 md:h-4 md:w-4 text-purple-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-400">
+          <CardContent className="p-3 md:p-6 pt-0">
+            <div className="text-lg md:text-2xl font-bold text-purple-400">
               {trendThreshold}
             </div>
-            <div className="text-sm text-zinc-400">منشور</div>
+            <div className="text-xs md:text-sm text-zinc-400">منشور</div>
           </CardContent>
         </Card>
       </div>
 
       {/* إعدادات حد الترند */}
       <Card className="bg-zinc-900 border-zinc-800">
-        <CardHeader>
-          <CardTitle className="text-white">إعدادات حد الترند</CardTitle>
-          <CardDescription className="text-zinc-400">
+        <CardHeader className="p-4 md:p-6">
+          <CardTitle className="text-white text-base md:text-lg">إعدادات حد الترند</CardTitle>
+          <CardDescription className="text-zinc-400 text-sm">
             تحديد الحد الأدنى لعدد المنشورات لكي يصبح الهاشتاق ترند
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-end space-x-4 space-x-reverse">
+        <CardContent className="space-y-4 p-4 md:p-6 pt-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 sm:gap-4">
             <div className="flex-1">
-              <Label htmlFor="threshold" className="text-white">
+              <Label htmlFor="threshold" className="text-white text-sm">
                 الحد الأدنى لعدد المنشورات
               </Label>
               <Input
@@ -227,12 +227,12 @@ const HashtagsManagement = () => {
             <Button
               onClick={updateTrendThreshold}
               disabled={isUpdating || newThreshold === trendThreshold}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
             >
               {isUpdating ? 'جاري التحديث...' : 'تحديث'}
             </Button>
           </div>
-          <p className="text-sm text-zinc-400">
+          <p className="text-xs md:text-sm text-zinc-400">
             الحد الحالي: {trendThreshold} منشور. أي هاشتاق يحتوي على {trendThreshold} منشور أو أكثر سيظهر كترند.
           </p>
         </CardContent>
@@ -240,10 +240,10 @@ const HashtagsManagement = () => {
 
       {/* قائمة أشهر الهاشتاقات */}
       <Card className="bg-zinc-900 border-zinc-800">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 md:p-6">
           <div>
-            <CardTitle className="text-white">أشهر الهاشتاقات</CardTitle>
-            <CardDescription className="text-zinc-400">
+            <CardTitle className="text-white text-base md:text-lg">أشهر الهاشتاقات</CardTitle>
+            <CardDescription className="text-zinc-400 text-sm">
               قائمة بأكثر الهاشتاقات استخداماً
             </CardDescription>
           </div>
@@ -252,53 +252,55 @@ const HashtagsManagement = () => {
             size="sm"
             onClick={fetchData}
             disabled={isLoading}
-            className="text-white border-zinc-700 hover:bg-zinc-800"
+            className="text-white border-zinc-700 hover:bg-zinc-800 w-full sm:w-auto"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3 w-3 md:h-4 md:w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             تحديث
           </Button>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {trends.length === 0 ? (
-              <div className="text-center py-8">
-                <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
-                <p className="text-zinc-400">لا توجد هاشتاقات بعد</p>
-              </div>
-            ) : (
-              trends.map((trend, index) => (
-                <div
-                  key={trend.id}
-                  className="flex items-center justify-between p-3 bg-zinc-800 rounded-lg"
-                >
-                  <div className="flex items-center space-x-3 space-x-reverse">
-                    <div className="flex items-center justify-center w-8 h-8 bg-zinc-700 rounded-full text-sm font-bold text-white">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                        <span className="text-white font-medium">#{trend.hashtag}</span>
-                        {trend.is_trending && (
-                          <TrendingUp className="h-4 w-4 text-orange-400" />
-                        )}
-                      </div>
-                      <div className="text-sm text-zinc-400">
-                        {trend.posts_count} منشور
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`px-2 py-1 rounded text-xs font-medium ${
-                      trend.is_trending 
-                        ? 'bg-orange-500/20 text-orange-400' 
-                        : 'bg-zinc-700 text-zinc-400'
-                    }`}>
-                      {trend.is_trending ? 'ترند' : 'عادي'}
-                    </div>
-                  </div>
+        <CardContent className="p-0">
+          <div className="max-h-[400px] overflow-y-auto">
+            <div className="space-y-2 md:space-y-3 p-4 md:p-6 pt-0">
+              {trends.length === 0 ? (
+                <div className="text-center py-8">
+                  <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
+                  <p className="text-zinc-400">لا توجد هاشتاقات بعد</p>
                 </div>
-              ))
-            )}
+              ) : (
+                trends.map((trend, index) => (
+                  <div
+                    key={trend.id}
+                    className="flex items-center justify-between p-3 bg-zinc-800 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
+                      <div className="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 bg-zinc-700 rounded-full text-xs md:text-sm font-bold text-white flex-shrink-0">
+                        {index + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-2 space-x-reverse flex-wrap gap-1">
+                          <span className="text-white font-medium text-sm md:text-base truncate">#{trend.hashtag}</span>
+                          {trend.is_trending && (
+                            <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-orange-400 flex-shrink-0" />
+                          )}
+                        </div>
+                        <div className="text-xs md:text-sm text-zinc-400">
+                          {trend.posts_count} منشور
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className={`px-2 py-1 rounded text-xs font-medium ${
+                        trend.is_trending 
+                          ? 'bg-orange-500/20 text-orange-400' 
+                          : 'bg-zinc-700 text-zinc-400'
+                      }`}>
+                        {trend.is_trending ? 'ترند' : 'عادي'}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
