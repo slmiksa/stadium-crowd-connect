@@ -60,7 +60,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         .from('hashtag_comments')
         .select('*')
         .eq('post_id', postId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false }); // Changed to descending for newest first
 
       if (commentsError) {
         console.error('Error fetching comments:', commentsError);
@@ -235,7 +235,19 @@ const PostComments: React.FC<PostCommentsProps> = ({
       // Clear reply state after successful submission
       setReplyTo(null);
       
-      await fetchComments();
+      // Add the new comment to the top of the list without full refresh
+      if (insertData && insertData[0]) {
+        const newComment = {
+          ...insertData[0],
+          profiles: {
+            id: user.id,
+            username: user.email?.split('@')[0] || 'مستخدم',
+            avatar_url: null
+          }
+        };
+        setComments(prevComments => [newComment, ...prevComments]);
+      }
+      
       await updateCommentsCount();
       onCommentAdded();
       
@@ -291,7 +303,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         </div>
 
         {/* Comments List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 pb-40">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent" style={{ paddingBottom: '160px' }}>
           {isLoading ? (
             <div className="flex justify-center py-12">
               <div className="relative">
@@ -320,9 +332,9 @@ const PostComments: React.FC<PostCommentsProps> = ({
           )}
         </div>
 
-        {/* Comment Input - Fixed to bottom with more space */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-700/50 bg-gray-800/90 backdrop-blur-md">
-          <div className="p-4 pb-12">
+        {/* Comment Input - Fixed to bottom with proper spacing */}
+        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-lg shadow-2xl">
+          <div className="p-4 pb-6 safe-area-bottom">
             <CommentInput
               onSubmit={handleSubmitComment}
               isSubmitting={isSubmitting}
