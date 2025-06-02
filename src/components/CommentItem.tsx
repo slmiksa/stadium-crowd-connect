@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Reply, MoreVertical, Clock, X, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,9 +46,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     
-    if (diffMins < 60) return `${diffMins}م`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}س`;
-    return `${Math.floor(diffMins / 1440)}ي`;
+    if (diffMins < 60) return `${diffMins} دقيقة`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)} ساعة`;
+    return `${Math.floor(diffMins / 1440)} يوم`;
   };
 
   const renderContentWithHashtags = (content: string) => {

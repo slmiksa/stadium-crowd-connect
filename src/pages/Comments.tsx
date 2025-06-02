@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,7 +87,7 @@ const Comments = () => {
         .from('hashtag_comments')
         .select('*')
         .eq('post_id', postId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }); // تغيير لعرض الأحدث أولاً
 
       if (commentsError) {
         console.error('Error fetching comments:', commentsError);
@@ -218,6 +217,7 @@ const Comments = () => {
           }
         };
 
+        // إضافة التعليق الجديد في المقدمة
         setComments(prevComments => [newComment, ...prevComments]);
       }
 
