@@ -270,6 +270,30 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
               </div>
             )}
 
+            {/* Post notifications - existing buttons */}
+            {notification.type === 'post' && (
+              <div className="flex flex-col gap-2 w-full">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => onProfileClick(notification, e)}
+                  className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto w-full"
+                >
+                  الذهاب إلى البروفايل
+                </Button>
+                {notification.data?.post_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => onPostClick(notification, e)}
+                    className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto w-full"
+                  >
+                    الذهاب إلى المنشور
+                  </Button>
+                )}
+              </div>
+            )}
+
             {/* Other notification types - existing buttons */}
             {notification.type === 'follow' && (
               <Button
@@ -283,29 +307,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             )}
 
             {notification.type === 'like' && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => onProfileClick(notification, e)}
-                  className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
-                >
-                  البروفايل
-                </Button>
-                {notification.data?.post_id && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => onPostClick(notification, e)}
-                    className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
-                  >
-                    المنشور
-                  </Button>
-                )}
-              </>
-            )}
-
-            {notification.type === 'post' && (
               <>
                 <Button
                   size="sm"
