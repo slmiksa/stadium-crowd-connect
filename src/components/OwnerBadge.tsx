@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Crown } from 'lucide-react';
-import VerificationBadge from './VerificationBadge';
 
 interface OwnerBadgeProps {
   isOwner: boolean;
@@ -11,23 +10,14 @@ interface OwnerBadgeProps {
 
 const OwnerBadge: React.FC<OwnerBadgeProps> = ({ 
   isOwner, 
-  verificationStatus,
   size = 16 
 }) => {
+  if (!isOwner) return null;
+
   return (
-    <div className="flex items-center gap-1">
-      {isOwner && (
-        <div title="منشئ الغرفة">
-          <Crown 
-            size={size} 
-            className="text-yellow-500" 
-          />
-        </div>
-      )}
-      <VerificationBadge 
-        verificationStatus={verificationStatus} 
-        size={size} 
-      />
+    <div className="inline-flex items-center bg-yellow-600/20 text-yellow-400 px-2 py-1 rounded-md text-xs border border-yellow-600/30">
+      <Crown size={12} className="mr-1" />
+      <span>المؤسس</span>
     </div>
   );
 };

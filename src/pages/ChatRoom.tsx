@@ -60,6 +60,7 @@ const ChatRoom = () => {
   const [quotedMessage, setQuotedMessage] = useState<Message | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [imageModal, setImageModal] = useState<string | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,6 +69,7 @@ const ChatRoom = () => {
       checkMembership();
       fetchMessages();
       fetchUserRoles();
+      fetchCurrentUserProfile();
       setupRealtimeSubscription();
     }
   }, [roomId, user]);
@@ -425,6 +427,27 @@ const ChatRoom = () => {
     }
   };
 
+  const fetchCurrentUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, avatar_url, verification_status')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching current user profile:', error);
+        return;
+      }
+
+      setCurrentUserProfile(data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   const renderMessage = (message: any) => {
     const isOwnMessage = message.user_id === user?.id;
 
@@ -515,12 +538,18 @@ const ChatRoom = () => {
         </div>
 
         {isOwnMessage && (
-          <Avatar className="w-8 h-8">
-            <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.email} />
-            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-              {user?.email?.charAt(0).toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
+          <div className="flex flex-col items-center gap-1">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={currentUserProfile?.avatar_url} alt={currentUserProfile?.username} />
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                {currentUserProfile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <VerificationBadge 
+              verificationStatus={currentUserProfile?.verification_status || null} 
+              size={12} 
+            />
+          </div>
         )}
       </div>
     );
