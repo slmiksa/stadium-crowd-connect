@@ -36,6 +36,15 @@ const UserProfile = () => {
   const { userId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // Redirect to /profile if user is viewing their own profile
+  useEffect(() => {
+    if (user && userId === user.id) {
+      navigate('/profile', { replace: true });
+      return;
+    }
+  }, [user, userId, navigate]);
+
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [posts, setPosts] = useState<HashtagPost[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -45,7 +54,7 @@ const UserProfile = () => {
   const [realFollowingCount, setRealFollowingCount] = useState(0);
 
   useEffect(() => {
-    if (userId && user) {
+    if (userId && user && userId !== user.id) {
       fetchUserProfile();
       fetchUserPosts();
       checkFollowStatus();
@@ -238,6 +247,10 @@ const UserProfile = () => {
     return `${Math.floor(diffMins / 1440)}ي`;
   };
 
+  if (user && userId === user.id) {
+    return null;
+  }
+
   if (isLoading) {
     return (
       <Layout>
@@ -269,11 +282,6 @@ const UserProfile = () => {
         </div>
       </Layout>
     );
-  }
-
-  if (user?.id === userId) {
-    navigate('/profile');
-    return null;
   }
 
   return (
