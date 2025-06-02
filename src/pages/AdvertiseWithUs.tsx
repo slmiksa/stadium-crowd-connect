@@ -87,54 +87,17 @@ const AdvertiseWithUs = () => {
     }
   };
 
-  const createBucketIfNotExists = async () => {
-    try {
-      // فحص وجود الـ bucket
-      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-      
-      if (listError) {
-        console.error('Error listing buckets:', listError);
-        return false;
-      }
-
-      const bucketExists = buckets?.some(bucket => bucket.name === 'advertisements');
-      
-      if (!bucketExists) {
-        console.log('Creating advertisements bucket...');
-        const { error: createError } = await supabase.storage.createBucket('advertisements', {
-          public: true,
-          allowedMimeTypes: ['image/*'],
-          fileSizeLimit: 5242880 // 5MB
-        });
-        
-        if (createError) {
-          console.error('Error creating bucket:', createError);
-          return false;
-        }
-        
-        console.log('Bucket created successfully');
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error in createBucketIfNotExists:', error);
-      return false;
-    }
-  };
-
   const uploadImage = async (file: File): Promise<string> => {
     try {
       console.log('Starting image upload process...');
       
-      // إنشاء الـ bucket إذا لم يكن موجوداً
-      const bucketReady = await createBucketIfNotExists();
-      if (!bucketReady) {
-        throw new Error('فشل في إعداد مساحة التخزين');
-      }
-
-      const fileName = `ad-${user?.id}-${Date.now()}-${file.name}`;
+      // إنشاء اسم ملف فريد
+      const fileExt = file.name.split('.').pop();
+      const fileName = `ad-${user?.id}-${Date.now()}.${fileExt}`;
+      
       console.log('Uploading file:', fileName);
       
+      // محاولة رفع الملف مباشرة إلى مجلد advertisements
       const { data, error } = await supabase.storage
         .from('advertisements')
         .upload(fileName, file, {
@@ -144,11 +107,44 @@ const AdvertiseWithUs = () => {
 
       if (error) {
         console.error('Upload error:', error);
-        throw new Error(`فشل في رفع الصورة: ${error.message}`);
+        
+        // إذا كان الخطأ متعلق بعدم وجود البكت، نحاول إنشاؤه
+        if (error.message.includes('Bucket not found')) {
+          console.log('Bucket not found, creating it...');
+          
+          const { error: createBucketError } = await supabase.storage.createBucket('advertisements', {
+            public: true,
+            allowedMimeTypes: ['image/*'],
+            fileSizeLimit: 5242880 // 5MB
+          });
+          
+          if (createBucketError) {
+            console.error('Error creating bucket:', createBucketError);
+            throw new Error(`فشل في إنشاء مساحة التخزين: ${createBucketError.message}`);
+          }
+          
+          // محاولة الرفع مرة أخرى بعد إنشاء البكت
+          const { data: retryData, error: retryError } = await supabase.storage
+            .from('advertisements')
+            .upload(fileName, file, {
+              cacheControl: '3600',
+              upsert: false
+            });
+            
+          if (retryError) {
+            console.error('Retry upload error:', retryError);
+            throw new Error(`فشل في رفع الصورة: ${retryError.message}`);
+          }
+          
+          console.log('File uploaded successfully on retry:', retryData);
+        } else {
+          throw new Error(`فشل في رفع الصورة: ${error.message}`);
+        }
+      } else {
+        console.log('File uploaded successfully:', data);
       }
 
-      console.log('File uploaded successfully:', data);
-
+      // الحصول على الرابط العام للصورة
       const { data: { publicUrl } } = supabase.storage
         .from('advertisements')
         .getPublicUrl(fileName);
