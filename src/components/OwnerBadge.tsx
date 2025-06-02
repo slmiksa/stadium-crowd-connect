@@ -17,7 +17,7 @@ const OwnerBadge: React.FC<OwnerBadgeProps> = ({
   return (
     <div className="inline-flex items-center bg-yellow-600/20 text-yellow-400 px-2 py-1 rounded-md text-xs border border-yellow-600/30">
       <Crown size={12} className="mr-1" />
-      <span>المؤسس</span>
+      <span>مالك الغرفة</span>
     </div>
   );
 };
