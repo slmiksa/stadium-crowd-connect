@@ -56,23 +56,14 @@
     font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     width: 100vw;
     height: 100vh;
-    overflow: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    margin: 0;
+    padding: 0;
   }
 
   #root {
     width: 100vw;
     height: 100vh;
-    overflow: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    overflow: auto;
   }
 
   html {
@@ -115,18 +106,14 @@
   }
 }
 
-/* Mobile app fixed layout */
+/* Enable touch scrolling on mobile */
 body {
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  touch-action: manipulation;
-  -webkit-user-select: none;
-  user-select: none;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
-/* Prevent bounce scrolling on iOS */
+/* Prevent bounce scrolling on iOS while allowing normal scrolling */
 html, body {
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
