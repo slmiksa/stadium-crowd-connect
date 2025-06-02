@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { Reply, MoreVertical, Clock, X, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import LikeButton from './LikeButton';
+import VerificationBadge from './VerificationBadge';
 
 interface CommentItemProps {
   comment: {
@@ -18,6 +20,7 @@ interface CommentItemProps {
       id: string;
       username: string;
       avatar_url?: string;
+      verification_status?: string;
     };
   };
   replies?: CommentItemProps['comment'][];
@@ -114,21 +117,37 @@ const CommentItem: React.FC<CommentItemProps> = ({
         <div className="flex space-x-3 space-x-reverse group">
           <button
             onClick={handleProfileClick}
-            className={`w-8 h-8 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center flex-shrink-0 shadow-md hover:scale-105 transition-transform duration-200`}
+            className="flex-shrink-0"
           >
-            <span className="text-xs font-bold text-white">
-              {comment.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-            </span>
+            {comment.profiles?.avatar_url ? (
+              <img
+                src={comment.profiles.avatar_url}
+                alt={comment.profiles.username}
+                className="w-8 h-8 rounded-full object-cover shadow-md hover:scale-105 transition-transform duration-200"
+              />
+            ) : (
+              <div className={`w-8 h-8 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center flex-shrink-0 shadow-md hover:scale-105 transition-transform duration-200`}>
+                <span className="text-xs font-bold text-white">
+                  {comment.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              </div>
+            )}
           </button>
           <div className="flex-1">
             <div className={`${cardBgColor} backdrop-blur-sm rounded-lg p-3 border ${borderColor} group-hover:bg-opacity-80 transition-all duration-200`}>
               <div className="flex items-center justify-between mb-2">
-                <button
-                  onClick={handleProfileClick}
-                  className="text-xs font-semibold text-white hover:text-blue-400 transition-colors"
-                >
-                  {comment.profiles?.username || 'مستخدم مجهول'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleProfileClick}
+                    className="text-xs font-semibold text-white hover:text-blue-400 transition-colors"
+                  >
+                    {comment.profiles?.username || 'مستخدم مجهول'}
+                  </button>
+                  <VerificationBadge 
+                    verificationStatus={comment.profiles?.verification_status || null} 
+                    size={14} 
+                  />
+                </div>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center text-gray-500 text-xs">
                     <Clock size={10} className="ml-1" />
