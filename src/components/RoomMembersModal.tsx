@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, Crown, UserX, Ban, Shield, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -275,7 +274,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
   const navigateToProfile = (userId: string) => {
     onClose();
-    navigate(`/user/${userId}`);
+    navigate(`/profile/${userId}`);
   };
 
   const formatJoinDate = (timestamp: string) => {
