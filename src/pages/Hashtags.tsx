@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -427,8 +428,8 @@ const Hashtags = () => {
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 flex flex-col">
         <div className="max-w-4xl mx-auto flex flex-col h-screen">
-          {/* Header */}
-          <div className="p-6 border-b border-gray-800/50 bg-black/50 backdrop-blur-sm flex-shrink-0">
+          {/* Fixed Header */}
+          <div className="sticky top-0 z-40 p-6 border-b border-gray-800/50 bg-black/80 backdrop-blur-sm flex-shrink-0">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl border border-blue-500/30">

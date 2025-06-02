@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Share2, MoreVertical, Flag, Trash2 } from 'lucide-react';
@@ -271,7 +272,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
           </button>
           
           {showMenu && (
-            <div className="absolute left-0 top-8 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px] overflow-hidden">
+            <div className="absolute right-0 top-8 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px] overflow-hidden">
               {post.user_id === user?.id ? (
                 <button
                   onClick={(e) => {
