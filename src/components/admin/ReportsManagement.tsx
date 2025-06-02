@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, X, Eye, Trash2, ExternalLink } from 'lucide-react';
+import { Check, X, Eye, Trash2, ExternalLink, AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Report {
@@ -176,15 +176,34 @@ const ReportsManagement = () => {
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      'pending': { label: 'قيد المراجعة', color: 'bg-yellow-500' },
-      'reviewed': { label: 'تمت المراجعة', color: 'bg-blue-500' },
-      'resolved': { label: 'تم الحل', color: 'bg-green-500' },
-      'dismissed': { label: 'مرفوض', color: 'bg-red-500' }
+      'pending': { 
+        label: 'قيد المراجعة', 
+        icon: Clock,
+        className: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800'
+      },
+      'reviewed': { 
+        label: 'تمت المراجعة', 
+        icon: Eye,
+        className: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
+      },
+      'resolved': { 
+        label: 'تم الحل', 
+        icon: CheckCircle,
+        className: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
+      },
+      'dismissed': { 
+        label: 'مرفوض', 
+        icon: XCircle,
+        className: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
+      }
     };
     
     const badge = badges[status as keyof typeof badges] || badges.pending;
+    const IconComponent = badge.icon;
+    
     return (
-      <Badge className={`${badge.color} text-white text-xs`}>
+      <Badge className={`${badge.className} flex items-center gap-1 text-xs font-medium border`}>
+        <IconComponent size={12} />
         {badge.label}
       </Badge>
     );
@@ -200,27 +219,50 @@ const ReportsManagement = () => {
     return types[type as keyof typeof types] || type;
   };
 
+  const getReportTypeIcon = (type: string) => {
+    switch (type) {
+      case 'post':
+        return '📝';
+      case 'comment':
+        return '💬';
+      case 'user':
+        return '👤';
+      case 'room':
+        return '🏠';
+      default:
+        return '⚠️';
+    }
+  };
+
   if (isLoading) {
     return (
-      <Card className="bg-zinc-900 border-zinc-800">
-        <CardHeader>
-          <CardTitle className="text-white">جاري تحميل البلاغات...</CardTitle>
-        </CardHeader>
-      </Card>
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-zinc-400">جاري تحميل البلاغات...</p>
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card className="bg-zinc-900 border-zinc-800">
-        <CardHeader>
-          <CardTitle className="text-white">إدارة البلاغات</CardTitle>
-          <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-zinc-800 to-zinc-700 rounded-xl p-6 border border-zinc-600">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+              <AlertTriangle className="text-orange-400" size={28} />
+              إدارة البلاغات
+            </h1>
+            <p className="text-zinc-300 mt-2">مراجعة والتعامل مع بلاغات المستخدمين</p>
+          </div>
+          <div className="flex items-center gap-4">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48 bg-zinc-800 border-zinc-700 text-white">
+              <SelectTrigger className="w-48 bg-zinc-700 border-zinc-600 text-white">
                 <SelectValue placeholder="تصفية حسب الحالة" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent className="bg-zinc-700 border-zinc-600">
                 <SelectItem value="all">جميع البلاغات</SelectItem>
                 <SelectItem value="pending">قيد المراجعة</SelectItem>
                 <SelectItem value="reviewed">تمت المراجعة</SelectItem>
@@ -228,92 +270,132 @@ const ReportsManagement = () => {
                 <SelectItem value="dismissed">مرفوض</SelectItem>
               </SelectContent>
             </Select>
-            <Badge variant="secondary" className="bg-zinc-800 text-white">
+            <Badge variant="secondary" className="bg-zinc-700 text-white px-4 py-2 text-sm font-medium">
               {filteredReports.length} بلاغ
             </Badge>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {filteredReports.map((report) => (
-              <div key={report.id} className="p-4 bg-zinc-800 rounded-lg">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <Badge variant="outline" className="text-white border-zinc-600">
-                        {getReportTypeLabel(report.report_type)}
-                      </Badge>
-                      {getStatusBadge(report.status)}
-                    </div>
-                    <h3 className="font-medium text-white">{report.reason}</h3>
-                    <p className="text-sm text-zinc-400">{report.description}</p>
-                    <p className="text-xs text-zinc-500">
-                      تم الإبلاغ في {new Date(report.created_at).toLocaleDateString('ar-SA')}
+        </div>
+      </div>
+
+      {/* Reports List */}
+      <div className="grid gap-4">
+        {filteredReports.map((report) => (
+          <Card key={report.id} className="bg-zinc-800 border-zinc-700 hover:bg-zinc-750 transition-colors">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-2xl">{getReportTypeIcon(report.report_type)}</span>
+                    <Badge variant="outline" className="text-white border-zinc-600 bg-zinc-700">
+                      {getReportTypeLabel(report.report_type)}
+                    </Badge>
+                    {getStatusBadge(report.status)}
+                  </div>
+                  
+                  <h3 className="font-semibold text-white text-lg mb-2">{report.reason}</h3>
+                  
+                  {report.description && (
+                    <p className="text-zinc-300 mb-3 bg-zinc-700 rounded-lg p-3 border-r-4 border-blue-500">
+                      {report.description}
                     </p>
-                    
-                    {/* Post Details */}
-                    {report.reported_post_id && postDetails[report.reported_post_id] && (
-                      <div className="mt-3 p-3 bg-zinc-700 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-medium text-white">المنشور المبلغ عنه:</h4>
-                          <div className="flex space-x-2 space-x-reverse">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-white border-zinc-600"
-                              onClick={() => window.open(`/post/${report.reported_post_id}`, '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4 mr-1" />
-                              عرض المنشور
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteReportedPost(report.reported_post_id!, report.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              حذف المنشور
-                            </Button>
-                          </div>
+                  )}
+                  
+                  <div className="flex items-center gap-4 text-sm text-zinc-400">
+                    <span>📅 {new Date(report.created_at).toLocaleDateString('ar-SA')}</span>
+                    <span>🕒 {new Date(report.created_at).toLocaleTimeString('ar-SA')}</span>
+                  </div>
+                  
+                  {/* Post Details */}
+                  {report.reported_post_id && postDetails[report.reported_post_id] && (
+                    <div className="mt-4 p-4 bg-zinc-700 rounded-lg border border-zinc-600">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-white font-medium flex items-center gap-2">
+                          📝 المنشور المبلغ عنه
+                        </h4>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-blue-400 border-blue-500 hover:bg-blue-500/10"
+                            onClick={() => window.open(`/post/${report.reported_post_id}`, '_blank')}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            عرض المنشور
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => deleteReportedPost(report.reported_post_id!, report.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            حذف المنشور
+                          </Button>
                         </div>
-                        <p className="text-sm text-zinc-300">
+                      </div>
+                      <div className="bg-zinc-800 rounded-lg p-3 border border-zinc-600">
+                        <p className="text-zinc-300 mb-2">
                           {postDetails[report.reported_post_id].content.substring(0, 200)}
                           {postDetails[report.reported_post_id].content.length > 200 && '...'}
                         </p>
-                        <p className="text-xs text-zinc-500 mt-1">
-                          بواسطة: {postDetails[report.reported_post_id].profiles?.username || 'مستخدم مجهول'}
+                        <p className="text-xs text-zinc-500">
+                          👤 بواسطة: {postDetails[report.reported_post_id].profiles?.username || 'مستخدم مجهول'}
                         </p>
                       </div>
-                    )}
-                  </div>
-                  <div className="flex space-x-2 space-x-reverse">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="text-white border-zinc-700"
-                      onClick={() => setSelectedReport(report)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      عرض التفاصيل
-                    </Button>
-                  </div>
+                    </div>
+                  )}
                 </div>
                 
-                {selectedReport?.id === report.id && (
-                  <div className="mt-4 p-4 bg-zinc-700 rounded-lg space-y-4">
+                <div className="flex flex-col gap-2 ml-4">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-white border-zinc-600 hover:bg-zinc-700"
+                    onClick={() => setSelectedReport(report)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    مراجعة
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Admin Response Section */}
+              {selectedReport?.id === report.id && (
+                <div className="mt-6 p-4 bg-zinc-700 rounded-lg border-t-2 border-blue-500">
+                  <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-white mb-2">
-                        رد المشرف
+                      <label className="block text-sm font-medium text-white mb-2 flex items-center gap-2">
+                        💬 رد المشرف
                       </label>
                       <Textarea
                         value={adminResponse}
                         onChange={(e) => setAdminResponse(e.target.value)}
-                        placeholder="اكتب ردك على هذا البلاغ..."
-                        className="bg-zinc-800 border-zinc-600 text-white"
+                        placeholder="اكتب ردك على هذا البلاغ... (اختياري)"
+                        className="bg-zinc-800 border-zinc-600 text-white placeholder-zinc-400 resize-none"
                         rows={3}
                       />
                     </div>
-                    <div className="flex space-x-2 space-x-reverse">
+                    <div className="flex gap-3 justify-end">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="text-zinc-300 border-zinc-600 hover:bg-zinc-800"
+                        onClick={() => {
+                          setSelectedReport(null);
+                          setAdminResponse('');
+                        }}
+                      >
+                        إلغاء
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        className="bg-red-600 hover:bg-red-700"
+                        onClick={() => updateReportStatus(report.id, 'dismissed', adminResponse)}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        رفض البلاغ
+                      </Button>
                       <Button 
                         size="sm" 
                         className="bg-green-600 hover:bg-green-700"
@@ -322,36 +404,22 @@ const ReportsManagement = () => {
                         <Check className="h-4 w-4 mr-1" />
                         حل البلاغ
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive"
-                        onClick={() => updateReportStatus(report.id, 'dismissed', adminResponse)}
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        رفض البلاغ
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="text-white border-zinc-600"
-                        onClick={() => setSelectedReport(null)}
-                      >
-                        إلغاء
-                      </Button>
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
-            
-            {filteredReports.length === 0 && (
-              <div className="text-center py-8 text-zinc-400">
-                لا توجد بلاغات
-              </div>
-            )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+        
+        {filteredReports.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📭</div>
+            <h3 className="text-xl text-zinc-400 mb-2">لا توجد بلاغات</h3>
+            <p className="text-zinc-500">لا توجد بلاغات تطابق المرشح المحدد</p>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
     </div>
   );
 };

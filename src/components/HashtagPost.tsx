@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import LikeButton from './LikeButton';
 import ReportButton from './ReportButton';
+import VerificationBadge from './VerificationBadge';
 
 interface HashtagPostProps {
   post: {
@@ -23,6 +24,7 @@ interface HashtagPostProps {
       id: string;
       username: string;
       avatar_url?: string;
+      verification_status?: string;
     };
   };
   onLikeChange?: () => void;
@@ -250,12 +252,18 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
             )}
           </button>
           <div>
-            <button
-              onClick={handleProfileClick}
-              className="font-bold text-white hover:text-blue-400 transition-colors text-sm"
-            >
-              {post.profiles?.username || 'مستخدم مجهول'}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleProfileClick}
+                className="font-bold text-white hover:text-blue-400 transition-colors text-sm"
+              >
+                {post.profiles?.username || 'مستخدم مجهول'}
+              </button>
+              <VerificationBadge 
+                verificationStatus={post.profiles?.verification_status || null} 
+                size={14} 
+              />
+            </div>
             <p className="text-xs text-gray-500">{formatTimestamp(post.created_at)}</p>
           </div>
         </div>
@@ -272,7 +280,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
           </button>
           
           {showMenu && (
-            <div className="absolute right-0 top-8 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px] overflow-hidden">
+            <div className="absolute left-0 top-8 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px] overflow-hidden">
               {post.user_id === user?.id ? (
                 <button
                   onClick={(e) => {

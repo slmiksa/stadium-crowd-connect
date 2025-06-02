@@ -6,6 +6,7 @@ import NotificationsHeader from '@/components/notifications/NotificationsHeader'
 import NotificationsList from '@/components/notifications/NotificationsList';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useNotificationHandlers } from '@/hooks/useNotificationHandlers';
+import { useVerificationNotifications } from '@/hooks/useVerificationNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +16,9 @@ const Notifications = () => {
   const { notifications, isLoading, markAsRead, markAllAsRead } = useNotifications();
   const { handleProfileClick, handlePostClick, handleRoomClick, handleNotificationClick } = useNotificationHandlers(markAsRead);
   const { toast } = useToast();
+  
+  // تفعيل نظام إشعارات التوثيق
+  useVerificationNotifications();
 
   if (isLoading) {
     return (

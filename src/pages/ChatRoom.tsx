@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import MediaInput from '@/components/MediaInput';
 import OwnerBadge from '@/components/OwnerBadge';
 import ModeratorBadge from '@/components/ModeratorBadge';
+import VerificationBadge from '@/components/VerificationBadge';
 import RoomMembersModal from '@/components/RoomMembersModal';
 import ChatRoomSettingsModal from '@/components/ChatRoomSettingsModal';
 import ChatRoomAnnouncement from '@/components/ChatRoomAnnouncement';
@@ -24,6 +26,7 @@ interface Message {
   profiles: {
     username: string;
     avatar_url?: string;
+    verification_status?: string;
   };
 }
 
@@ -218,7 +221,7 @@ const ChatRoom = () => {
         .from('room_messages')
         .select(`
           *,
-          profiles (username, avatar_url)
+          profiles (username, avatar_url, verification_status)
         `)
         .eq('room_id', roomId)
         .order('created_at', { ascending: true });
@@ -506,6 +509,10 @@ const ChatRoom = () => {
                 </span>
                 <OwnerBadge isOwner={isOwner(message.user_id)} />
                 <ModeratorBadge isModerator={isModerator(message.user_id)} />
+                <VerificationBadge 
+                  verificationStatus={message.profiles?.verification_status || null} 
+                  size={12} 
+                />
                 <span className="text-xs text-zinc-500">
                   {formatTimestamp(message.created_at)}
                 </span>
