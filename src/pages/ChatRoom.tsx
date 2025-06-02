@@ -428,260 +428,192 @@ const ChatRoom = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="p-4 flex items-center justify-center min-h-64">
-          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (isBanned) {
-    return (
-      <Layout>
-        <div className="p-4 text-center">
-          <h2 className="text-xl font-bold text-white mb-4">محظور من الغرفة</h2>
-          <p className="text-zinc-400 mb-6">تم حظرك من هذه الغرفة ولا يمكنك المشاركة فيها.</p>
-          <Button
-            onClick={() => navigate('/chat-rooms')}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            العودة للغرف
-          </Button>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!isMember && roomInfo?.is_private) {
-    return (
-      <Layout>
-        <div className="p-4 text-center">
-          <h2 className="text-xl font-bold text-white mb-4">غرفة خاصة</h2>
-          <p className="text-zinc-400 mb-6">هذه غرفة خاصة. تحتاج إلى دعوة للانضمام.</p>
-          <Button
-            onClick={() => navigate('/chat-rooms')}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            العودة للغرف
-          </Button>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!isMember) {
-    return (
-      <Layout>
-        <div className="p-4 text-center">
-          <h2 className="text-xl font-bold text-white mb-4">{roomInfo?.name}</h2>
-          <p className="text-zinc-400 mb-6">{roomInfo?.description}</p>
-          <div className="flex items-center justify-center space-x-4 mb-6">
-            <div className="flex items-center space-x-2 text-zinc-300">
-              <Users size={18} />
-              <span>{roomInfo?.members_count} عضو</span>
-            </div>
-          </div>
-          <Button
-            onClick={joinRoom}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            انضمام للغرفة
-          </Button>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
-    <Layout showBottomNav={false}>
-      <div className="flex flex-col h-screen bg-zinc-900 relative">
-        {/* Header */}
-        <div className="bg-zinc-800 border-b border-zinc-700 p-4 flex-shrink-0 pt-safe-top">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <button 
-                onClick={() => navigate('/chat-rooms')}
-                className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
-              >
-                <ArrowLeft size={20} className="text-white" />
-              </button>
-              <div>
-                <h1 className="text-lg font-bold text-white">{roomInfo?.name}</h1>
-                <div className="flex items-center space-x-2 text-sm text-zinc-400">
-                  <Users size={14} />
-                  <span>{roomInfo?.members_count} عضو</span>
-                </div>
+    <div className="min-h-screen bg-zinc-900 flex flex-col">
+      {/* Header */}
+      <div className="bg-zinc-800 border-b border-zinc-700 p-4 flex-shrink-0 pt-safe-top">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => navigate('/chat-rooms')}
+              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
+            >
+              <ArrowLeft size={20} className="text-white" />
+            </button>
+            <div>
+              <h1 className="text-lg font-bold text-white">{roomInfo?.name}</h1>
+              <div className="flex items-center space-x-2 text-sm text-zinc-400">
+                <Users size={14} />
+                <span>{roomInfo?.members_count} عضو</span>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+          </div>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => setShowMembersModal(true)}
+              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
+            >
+              <Users size={20} className="text-white" />
+            </button>
+            {user?.id === roomInfo?.owner_id && (
               <button 
-                onClick={() => setShowMembersModal(true)}
+                onClick={() => setShowSettingsModal(true)}
                 className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
               >
-                <Users size={20} className="text-white" />
+                <Settings size={20} className="text-white" />
               </button>
-              {user?.id === roomInfo?.owner_id && (
-                <button 
-                  onClick={() => setShowSettingsModal(true)}
-                  className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
-                >
-                  <Settings size={20} className="text-white" />
-                </button>
-              )}
-              {/* Leave Room Button - only show if user is not the owner */}
-              {user?.id !== roomInfo?.owner_id && (
-                <button 
-                  onClick={leaveRoom}
-                  className="p-2 hover:bg-red-700 rounded-lg transition-colors"
-                  title="مغادرة الغرفة"
-                >
-                  <ArrowLeft size={20} className="text-red-400" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Announcement */}
-        {roomInfo?.announcement && (
-          <div className="flex-shrink-0">
-            <ChatRoomAnnouncement announcement={roomInfo.announcement} />
-          </div>
-        )}
-
-        {/* Messages Container */}
-        <div className="flex-1 overflow-hidden pb-20">
-          <div className="h-full overflow-y-auto p-4 space-y-4" style={{ paddingBottom: '100px' }}>
-            {messages.map((message) => (
-              <div key={message.id} className="flex items-start space-x-3 group">
-                <div 
-                  className="cursor-pointer"
-                  onClick={() => navigateToUserProfile(message.user_id)}
-                >
-                  <Avatar className="w-8 h-8 flex-shrink-0">
-                    <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                      {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span 
-                      className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
-                      onClick={() => navigateToUserProfile(message.user_id)}
-                    >
-                      {message.profiles?.username || 'مستخدم مجهول'}
-                    </span>
-                    <OwnerBadge isOwner={isOwner(message.user_id)} />
-                    <ModeratorBadge isModerator={isModerator(message.user_id)} />
-                    <span className="text-xs text-zinc-500">
-                      {formatTimestamp(message.created_at)}
-                    </span>
-                    <button
-                      onClick={() => quoteMessage(message)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
-                    >
-                      <Quote size={14} className="text-zinc-400" />
-                    </button>
-                  </div>
-                  
-                  {/* Media Display */}
-                  {message.media_url && (
-                    <div className="mb-2">
-                      {message.media_type === 'image' ? (
-                        <img 
-                          src={message.media_url} 
-                          alt="صورة مرسلة" 
-                          className="max-w-xs max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity border border-zinc-600"
-                          onClick={() => openImageModal(message.media_url!)}
-                          onError={(e) => {
-                            console.error('Image failed to load:', message.media_url);
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      ) : message.media_type === 'video' ? (
-                        <video 
-                          src={message.media_url} 
-                          className="max-w-xs max-h-64 rounded-lg border border-zinc-600" 
-                          controls
-                          onError={(e) => {
-                            console.error('Video failed to load:', message.media_url);
-                          }}
-                        />
-                      ) : (
-                        <a 
-                          href={message.media_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline inline-flex items-center bg-zinc-700 px-3 py-2 rounded-lg"
-                        >
-                          📎 عرض المرفق
-                        </a>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Message Content */}
-                  {message.content && (
-                    <div className="text-zinc-300 break-words">
-                      {message.content.split('\n').map((line, index) => (
-                        <div key={index}>
-                          {line.startsWith('> ') ? (
-                            <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic bg-zinc-800 rounded-r-lg p-2">
-                              {line.substring(2)}
-                            </div>
-                          ) : (
-                            <span>{line}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-
-        {/* Input Area */}
-        <div className="absolute bottom-0 left-0 right-0 mobile-input-container">
-          <MediaInput 
-            onSendMessage={sendMessage} 
-            isSending={isSending}
-            quotedMessage={quotedMessage}
-            onClearQuote={() => setQuotedMessage(null)}
-          />
-        </div>
-
-        {/* Image Modal */}
-        {imageModal && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
-            onClick={closeImageModal}
-          >
-            <div className="relative max-w-full max-h-full">
-              <button
-                onClick={closeImageModal}
-                className="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors z-10"
+            )}
+            {/* Leave Room Button - only show if user is not the owner */}
+            {user?.id !== roomInfo?.owner_id && (
+              <button 
+                onClick={leaveRoom}
+                className="p-2 hover:bg-red-700 rounded-lg transition-colors"
+                title="مغادرة الغرفة"
               >
-                <X size={24} />
+                <ArrowLeft size={20} className="text-red-400" />
               </button>
-              <img 
-                src={imageModal} 
-                alt="صورة مكبرة" 
-                className="max-w-full max-h-full object-contain rounded-lg"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
+      {/* Announcement */}
+      {roomInfo?.announcement && (
+        <div className="flex-shrink-0">
+          <ChatRoomAnnouncement announcement={roomInfo.announcement} />
+        </div>
+      )}
+
+      {/* Messages Container */}
+      <div className="flex-1 overflow-hidden pb-20">
+        <div className="h-full overflow-y-auto p-4 space-y-4" style={{ paddingBottom: '100px' }}>
+          {messages.map((message) => (
+            <div key={message.id} className="flex items-start space-x-3 group">
+              <div 
+                className="cursor-pointer"
+                onClick={() => navigateToUserProfile(message.user_id)}
+              >
+                <Avatar className="w-8 h-8 flex-shrink-0">
+                  <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                    {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2 mb-1">
+                  <span 
+                    className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
+                    onClick={() => navigateToUserProfile(message.user_id)}
+                  >
+                    {message.profiles?.username || 'مستخدم مجهول'}
+                  </span>
+                  <OwnerBadge isOwner={isOwner(message.user_id)} />
+                  <ModeratorBadge isModerator={isModerator(message.user_id)} />
+                  <span className="text-xs text-zinc-500">
+                    {formatTimestamp(message.created_at)}
+                  </span>
+                  <button
+                    onClick={() => quoteMessage(message)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
+                  >
+                    <Quote size={14} className="text-zinc-400" />
+                  </button>
+                </div>
+                
+                {/* Media Display */}
+                {message.media_url && (
+                  <div className="mb-2">
+                    {message.media_type === 'image' ? (
+                      <img 
+                        src={message.media_url} 
+                        alt="صورة مرسلة" 
+                        className="max-w-xs max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity border border-zinc-600"
+                        onClick={() => openImageModal(message.media_url!)}
+                        onError={(e) => {
+                          console.error('Image failed to load:', message.media_url);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : message.media_type === 'video' ? (
+                      <video 
+                        src={message.media_url} 
+                        className="max-w-xs max-h-64 rounded-lg border border-zinc-600" 
+                        controls
+                        onError={(e) => {
+                          console.error('Video failed to load:', message.media_url);
+                        }}
+                      />
+                    ) : (
+                      <a 
+                        href={message.media_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:underline inline-flex items-center bg-zinc-700 px-3 py-2 rounded-lg"
+                      >
+                        📎 عرض المرفق
+                      </a>
+                    )}
+                  </div>
+                )}
+                
+                {/* Message Content */}
+                {message.content && (
+                  <div className="text-zinc-300 break-words">
+                    {message.content.split('\n').map((line, index) => (
+                      <div key={index}>
+                        {line.startsWith('> ') ? (
+                          <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic bg-zinc-800 rounded-r-lg p-2">
+                            {line.substring(2)}
+                          </div>
+                        ) : (
+                          <span>{line}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Input Area */}
+      <div className="absolute bottom-0 left-0 right-0 mobile-input-container">
+        <MediaInput 
+          onSendMessage={sendMessage} 
+          isSending={isSending}
+          quotedMessage={quotedMessage}
+          onClearQuote={() => setQuotedMessage(null)}
+        />
+      </div>
+
+      {/* Image Modal */}
+      {imageModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          onClick={closeImageModal}
+        >
+          <div className="relative max-w-full max-h-full">
+            <button
+              onClick={closeImageModal}
+              className="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors z-10"
+            >
+              <X size={24} />
+            </button>
+            <img 
+              src={imageModal} 
+              alt="صورة مكبرة" 
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
       {showMembersModal && roomId && (
         <RoomMembersModal
           roomId={roomId}
@@ -704,7 +636,7 @@ const ChatRoom = () => {
           onAnnouncementUpdate={handleAnnouncementUpdate}
         />
       )}
-    </Layout>
+    </div>
   );
 };
 

@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import LikeButton from './LikeButton';
+import ReportButton from './ReportButton';
 
 interface HashtagPostProps {
   post: {
@@ -270,7 +271,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
           </button>
           
           {showMenu && (
-            <div className="absolute right-0 top-8 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px] overflow-hidden">
+            <div className="absolute left-0 top-8 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px] overflow-hidden">
               {post.user_id === user?.id ? (
                 <button
                   onClick={(e) => {
@@ -284,16 +285,9 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
                   {isDeleting ? 'جاري الحذف...' : 'حذف المنشور'}
                 </button>
               ) : (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleReportPost();
-                  }}
-                  className="w-full px-3 py-2 text-right text-orange-400 hover:bg-gray-600 transition-colors flex items-center text-sm"
-                >
-                  <Flag size={14} className="ml-2" />
-                  إبلاغ عن المنشور
-                </button>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <ReportButton type="post" targetId={post.id} size="sm" />
+                </div>
               )}
             </div>
           )}

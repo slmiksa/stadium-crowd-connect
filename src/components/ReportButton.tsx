@@ -40,7 +40,10 @@ const ReportButton: React.FC<ReportButtonProps> = ({ type, targetId, size = 'sm'
         reason,
         description,
         reporter_id: user.id,
-        [`reported_${type}_id`]: targetId
+        reported_post_id: type === 'post' ? targetId : null,
+        reported_comment_id: type === 'comment' ? targetId : null,
+        reported_user_id: type === 'user' ? targetId : null,
+        reported_room_id: type === 'room' ? targetId : null
       };
 
       const { error } = await supabase

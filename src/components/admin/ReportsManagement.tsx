@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, X, Eye } from 'lucide-react';
+import { Check, X, Eye, Trash2, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Report {
@@ -20,6 +20,19 @@ interface Report {
   reporter_id: string;
   reported_user_id: string | null;
   reported_post_id: string | null;
+  reported_comment_id: string | null;
+  reported_room_id: string | null;
+}
+
+interface PostDetails {
+  id: string;
+  content: string;
+  image_url?: string;
+  user_id: string;
+  created_at: string;
+  profiles?: {
+    username: string;
+  };
 }
 
 const ReportsManagement = () => {
@@ -29,6 +42,7 @@ const ReportsManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [adminResponse, setAdminResponse] = useState('');
+  const [postDetails, setPostDetails] = useState<{[key: string]: PostDetails}>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,11 +72,44 @@ const ReportsManagement = () => {
         });
       } else {
         setReports(data || []);
+        
+        // Fetch post details for post reports
+        const postReports = (data || []).filter(report => report.reported_post_id);
+        for (const report of postReports) {
+          if (report.reported_post_id && !postDetails[report.reported_post_id]) {
+            await fetchPostDetails(report.reported_post_id);
+          }
+        }
       }
     } catch (error) {
       console.error('Error:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchPostDetails = async (postId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('hashtag_posts')
+        .select(`
+          *,
+          profiles:user_id (username)
+        `)
+        .eq('id', postId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching post details:', error);
+        return;
+      }
+
+      setPostDetails(prev => ({
+        ...prev,
+        [postId]: data
+      }));
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
@@ -93,6 +140,35 @@ const ReportsManagement = () => {
         setSelectedReport(null);
         setAdminResponse('');
       }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const deleteReportedPost = async (postId: string, reportId: string) => {
+    try {
+      const { error } = await supabase
+        .from('hashtag_posts')
+        .delete()
+        .eq('id', postId);
+
+      if (error) {
+        console.error('Error deleting post:', error);
+        toast({
+          title: 'خطأ',
+          description: 'فشل في حذف المنشور',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Update report status to resolved
+      await updateReportStatus(reportId, 'resolved', 'تم حذف المنشور المبلغ عنه');
+      
+      toast({
+        title: 'تم الحذف',
+        description: 'تم حذف المنشور بنجاح'
+      });
     } catch (error) {
       console.error('Error:', error);
     }
@@ -174,6 +250,41 @@ const ReportsManagement = () => {
                     <p className="text-xs text-zinc-500">
                       تم الإبلاغ في {new Date(report.created_at).toLocaleDateString('ar-SA')}
                     </p>
+                    
+                    {/* Post Details */}
+                    {report.reported_post_id && postDetails[report.reported_post_id] && (
+                      <div className="mt-3 p-3 bg-zinc-700 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-medium text-white">المنشور المبلغ عنه:</h4>
+                          <div className="flex space-x-2 space-x-reverse">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-white border-zinc-600"
+                              onClick={() => window.open(`/post/${report.reported_post_id}`, '_blank')}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-1" />
+                              عرض المنشور
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => deleteReportedPost(report.reported_post_id!, report.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              حذف المنشور
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-zinc-300">
+                          {postDetails[report.reported_post_id].content.substring(0, 200)}
+                          {postDetails[report.reported_post_id].content.length > 200 && '...'}
+                        </p>
+                        <p className="text-xs text-zinc-500 mt-1">
+                          بواسطة: {postDetails[report.reported_post_id].profiles?.username || 'مستخدم مجهول'}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div className="flex space-x-2 space-x-reverse">
                     <Button 
