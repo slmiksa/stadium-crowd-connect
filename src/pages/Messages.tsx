@@ -396,7 +396,7 @@ const Messages = () => {
                             {formatTimestamp(notification.created_at)}
                           </span>
                         </div>
-                        <p className="my-0 px-0 py-0 text-xs mx-[37px]">
+                        <p className="my-0 px-0 py-0 mx-[37px] text-amber-300 text-xs font-medium">
                           {notification.message}
                         </p>
                         
