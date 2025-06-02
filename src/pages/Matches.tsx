@@ -241,33 +241,33 @@ const Matches = () => {
   const MatchCard = ({ match }: { match: Match }) => (
     <div 
       onClick={() => handleMatchClick(match.id)}
-      className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+      className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl mx-2 sm:mx-0"
     >
-      <div className="flex items-center justify-center mb-4">
-        <div className="flex items-center space-x-2 space-x-reverse bg-blue-600/15 border border-blue-500/25 rounded-xl px-3 py-1.5">
+      <div className="flex items-center justify-center mb-3 sm:mb-4">
+        <div className="flex items-center space-x-2 space-x-reverse bg-blue-600/15 border border-blue-500/25 rounded-xl px-2 sm:px-3 py-1 sm:py-1.5">
           {match.leagueFlag && (
-            <img src={match.leagueFlag} alt="" className="w-4 h-3 object-cover rounded shadow-sm" />
+            <img src={match.leagueFlag} alt="" className="w-3 h-2 sm:w-4 sm:h-3 object-cover rounded shadow-sm" />
           )}
           <span className="text-blue-300 font-bold text-xs">{match.competition}</span>
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3 sm:mb-4 px-1">
         <div className="flex-1 text-center">
-          <div className="w-12 h-12 bg-gray-700/40 rounded-xl p-2 mx-auto mb-2 flex items-center justify-center border border-gray-600/30">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-700/40 rounded-xl p-1.5 sm:p-2 mx-auto mb-2 flex items-center justify-center border border-gray-600/30">
             {match.homeLogo ? (
               <img src={match.homeLogo} alt={match.homeTeam} className="w-full h-full object-contain" />
             ) : (
-              <div className="w-8 h-8 bg-gray-600 rounded-full"></div>
+              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-600 rounded-full"></div>
             )}
           </div>
-          <p className="font-bold text-white text-sm">{match.homeTeam}</p>
+          <p className="font-bold text-white text-xs sm:text-sm leading-tight px-1">{match.homeTeam}</p>
         </div>
 
-        <div className="mx-4 text-center min-w-[100px]">
+        <div className="mx-2 sm:mx-4 text-center min-w-[80px] sm:min-w-[100px]">
           {match.status === 'live' && (
             <div className="flex items-center justify-center mb-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse ml-1"></div>
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 rounded-full animate-pulse ml-1"></div>
               <span className="text-red-400 text-xs font-bold">مباشر</span>
               {match.minute && (
                 <span className="text-red-400 text-xs mr-1 bg-red-500/20 px-1 py-0.5 rounded">
@@ -277,14 +277,14 @@ const Matches = () => {
             </div>
           )}
           
-          <div className="bg-gray-700/50 rounded-xl px-3 py-2 border border-gray-600/40">
+          <div className="bg-gray-700/50 rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-600/40">
             {match.homeScore !== null && match.homeScore !== undefined && 
              match.awayScore !== null && match.awayScore !== undefined ? (
-              <div className="text-2xl font-bold text-white">
+              <div className="text-xl sm:text-2xl font-bold text-white">
                 {match.homeScore} - {match.awayScore}
               </div>
             ) : (
-              <div className="text-gray-300 text-lg font-medium">
+              <div className="text-gray-300 text-base sm:text-lg font-medium">
                 {match.status === 'upcoming' ? formatTime(match.date) : 'vs'}
               </div>
             )}
@@ -298,24 +298,24 @@ const Matches = () => {
         </div>
 
         <div className="flex-1 text-center">
-          <div className="w-12 h-12 bg-gray-700/40 rounded-xl p-2 mx-auto mb-2 flex items-center justify-center border border-gray-600/30">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-700/40 rounded-xl p-1.5 sm:p-2 mx-auto mb-2 flex items-center justify-center border border-gray-600/30">
             {match.awayLogo ? (
               <img src={match.awayLogo} alt={match.awayTeam} className="w-full h-full object-contain" />
             ) : (
-              <div className="w-8 h-8 bg-gray-600 rounded-full"></div>
+              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-600 rounded-full"></div>
             )}
           </div>
-          <p className="font-bold text-white text-sm">{match.awayTeam}</p>
+          <p className="font-bold text-white text-xs sm:text-sm leading-tight px-1">{match.awayTeam}</p>
         </div>
       </div>
 
-      <div className="border-t border-gray-700/50 pt-3">
+      <div className="border-t border-gray-700/50 pt-2 sm:pt-3">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center text-gray-400">
-            <Clock size={12} className="ml-1 text-blue-400" />
-            <span>{formatTime(match.date)}</span>
+            <Clock size={10} className="sm:size-3 ml-1 text-blue-400" />
+            <span className="text-xs">{formatTime(match.date)}</span>
           </div>
-          <span className={`font-medium px-2 py-1 rounded-lg text-xs ${
+          <span className={`font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-xs ${
             match.status === 'live' ? 'text-red-400 bg-red-500/20' : 
             match.status === 'finished' ? 'text-green-400 bg-green-500/20' : 
             'text-blue-400 bg-blue-500/20'
@@ -330,19 +330,19 @@ const Matches = () => {
   const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => (
     <div 
       onClick={() => handleNewsClick(newsItem)}
-      className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+      className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl mx-2 sm:mx-0"
     >
       {newsItem.image && newsItem.image !== '/placeholder.svg' && (
-        <div className="mb-4 rounded-xl overflow-hidden">
+        <div className="mb-3 sm:mb-4 rounded-xl overflow-hidden">
           <img 
             src={newsItem.image} 
             alt={newsItem.title} 
-            className="w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
+            className="w-full h-40 sm:h-48 object-cover hover:scale-105 transition-transform duration-300"
           />
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {newsItem.category && (
           <div className="inline-block">
             <span className="bg-purple-600/20 text-purple-300 px-2 py-1 rounded-lg text-xs font-medium">
@@ -351,10 +351,10 @@ const Matches = () => {
           </div>
         )}
 
-        <h3 className="text-lg font-bold text-white leading-relaxed line-clamp-2">{newsItem.title}</h3>
+        <h3 className="text-base sm:text-lg font-bold text-white leading-relaxed line-clamp-2">{newsItem.title}</h3>
         <p className="text-gray-300 text-sm leading-relaxed line-clamp-3">{newsItem.description}</p>
         
-        <div className="flex items-center justify-between pt-3 border-t border-gray-700/30">
+        <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-700/30">
           <span className="text-xs text-gray-400">{newsItem.source}</span>
           <div className="flex items-center space-x-2 space-x-reverse">
             <span className="text-xs text-gray-400">{formatDate(newsItem.date)}</span>
@@ -371,14 +371,14 @@ const Matches = () => {
     if (!selectedNews) return null;
 
     return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="p-6">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+        <div className="bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-2">
+          <div className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white">{selectedNews.title}</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-white pr-4">{selectedNews.title}</h2>
               <button
                 onClick={() => setSelectedNews(null)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-white transition-colors text-xl"
               >
                 ✕
               </button>
@@ -389,7 +389,7 @@ const Matches = () => {
                 <img 
                   src={selectedNews.image} 
                   alt={selectedNews.title} 
-                  className="w-full h-64 object-cover"
+                  className="w-full h-48 sm:h-64 object-cover"
                 />
               </div>
             )}
@@ -431,12 +431,12 @@ const Matches = () => {
   };
 
   const EmptyState = ({ type, message }: { type: string, message: string }) => (
-    <div className="text-center py-12">
-      <div className="w-16 h-16 bg-gradient-to-r from-gray-600 to-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
-        <AlertCircle size={24} className="text-white" />
+    <div className="text-center py-8 sm:py-12 mx-2 sm:mx-0">
+      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-gray-600 to-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
+        <AlertCircle size={20} className="sm:size-6 text-white" />
       </div>
-      <p className="text-gray-400 text-lg">{message}</p>
-      <p className="text-gray-500 text-sm mt-2">يرجى المحاولة لاحقاً أو تحديث الصفحة</p>
+      <p className="text-gray-400 text-base sm:text-lg px-4">{message}</p>
+      <p className="text-gray-500 text-sm mt-2 px-4">يرجى المحاولة لاحقاً أو تحديث الصفحة</p>
     </div>
   );
 
@@ -455,71 +455,75 @@ const Matches = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gray-900">
-        <div className="p-4 space-y-6 pb-20">
-          <div className="text-center">
+        <div className="px-2 sm:px-4 py-4 space-y-4 sm:space-y-6 pb-20">
+          <div className="text-center px-2">
             <div className="flex items-center justify-between mb-2">
               <div></div>
-              <h1 className="text-3xl font-bold text-white">المباريات والأخبار</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">المباريات والأخبار</h1>
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
                 className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors"
               >
-                <RefreshCw size={20} className={`text-white ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw size={18} className={`sm:size-5 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
-            <p className="text-gray-400">تابع أحدث المباريات والنتائج والأخبار الرياضية</p>
+            <p className="text-gray-400 text-sm sm:text-base">تابع أحدث المباريات والنتائج والأخبار الرياضية</p>
           </div>
 
-          <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-1 border border-gray-700/50">
-            <div className="grid grid-cols-4 gap-1">
+          <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-1 border border-gray-700/50 mx-2 sm:mx-0">
+            <div className="grid grid-cols-4 gap-0.5 sm:gap-1">
               <button
                 onClick={() => setActiveTab('live')}
-                className={`py-3 px-2 rounded-xl text-xs font-bold transition-all duration-300 ${
+                className={`py-2 sm:py-3 px-1 sm:px-2 rounded-xl text-xs font-bold transition-all duration-300 ${
                   activeTab === 'live'
                     ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                مباشر ({allMatches.live.length})
+                <span className="block sm:inline">مباشر</span>
+                <span className="block sm:inline"> ({allMatches.live.length})</span>
               </button>
               <button
                 onClick={() => setActiveTab('upcoming')}
-                className={`py-3 px-2 rounded-xl text-xs font-bold transition-all duration-300 ${
+                className={`py-2 sm:py-3 px-1 sm:px-2 rounded-xl text-xs font-bold transition-all duration-300 ${
                   activeTab === 'upcoming'
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                غدا ({allMatches.upcoming.length})
+                <span className="block sm:inline">غدا</span>
+                <span className="block sm:inline"> ({allMatches.upcoming.length})</span>
               </button>
               <button
                 onClick={() => setActiveTab('finished')}
-                className={`py-3 px-2 rounded-xl text-xs font-bold transition-all duration-300 ${
+                className={`py-2 sm:py-3 px-1 sm:px-2 rounded-xl text-xs font-bold transition-all duration-300 ${
                   activeTab === 'finished'
                     ? 'bg-green-600 text-white shadow-lg shadow-green-600/30'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                أمس ({allMatches.finished.length})
+                <span className="block sm:inline">أمس</span>
+                <span className="block sm:inline"> ({allMatches.finished.length})</span>
               </button>
               <button
                 onClick={() => setActiveTab('news')}
-                className={`py-3 px-2 rounded-xl text-xs font-bold transition-all duration-300 ${
+                className={`py-2 sm:py-3 px-1 sm:px-2 rounded-xl text-xs font-bold transition-all duration-300 ${
                   activeTab === 'news'
                     ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                أخبار ({news.length})
+                <span className="block sm:inline">أخبار</span>
+                <span className="block sm:inline"> ({news.length})</span>
               </button>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {isTabLoading ? (
-              <div className="text-center py-12">
-                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <div className="text-center py-8 sm:py-12">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-gray-400">جاري التحميل...</p>
               </div>
             ) : activeTab === 'news' ? (
