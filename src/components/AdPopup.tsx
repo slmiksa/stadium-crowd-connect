@@ -184,7 +184,7 @@ const AdPopup = () => {
                 className="text-white border-zinc-700 hover:bg-zinc-800"
               >
                 إغلاق
-              </button>
+              </Button>
             </div>
           </div>
         </CardContent>
