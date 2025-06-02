@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import ImageCropModal from '@/components/ImageCropModal';
 import { useToast } from '@/hooks/use-toast';
-
 interface UserProfile {
   id: string;
   username: string;
@@ -266,11 +265,9 @@ const Profile = () => {
   };
   const handleRejectInvitation = async (invitationId: string) => {
     try {
-      const { error } = await supabase
-        .from('room_invitations')
-        .delete()
-        .eq('id', invitationId);
-      
+      const {
+        error
+      } = await supabase.from('room_invitations').delete().eq('id', invitationId);
       if (error) {
         console.error('Error rejecting invitation:', error);
         toast({
@@ -280,7 +277,6 @@ const Profile = () => {
         });
         return;
       }
-      
       toast({
         title: "تم",
         description: "تم رفض الدعوة"
@@ -441,7 +437,7 @@ const Profile = () => {
         </div>
 
         {/* Profile content */}
-        <div className="relative px-4 -mt-16">
+        <div className="relative px-4 -mt-16 my-[27px]">
           {/* زر أعلن معنا - محسن */}
           <div className="relative overflow-hidden bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-blue-600/10 border border-purple-400/20 rounded-xl p-6 mb-6 backdrop-blur-sm">
             {/* خلفية متحركة */}
@@ -464,10 +460,7 @@ const Profile = () => {
                 </div>
               </div>
               
-              <button
-                onClick={() => navigate('/advertise-with-us')}
-                className="relative group bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 flex items-center space-x-2 space-x-reverse"
-              >
+              <button onClick={() => navigate('/advertise-with-us')} className="relative group bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 flex items-center space-x-2 space-x-reverse">
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 rounded-xl blur opacity-20 group-hover:opacity-40 transition-opacity duration-300"></div>
                 <Megaphone className="h-4 w-4 relative z-10" />
                 <span className="relative z-10 font-semibold">أعلن معنا</span>
