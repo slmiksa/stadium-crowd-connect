@@ -36,6 +36,7 @@ interface Post {
 
 const Hashtags = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('trending');
   const [trendingHashtags, setTrendingHashtags] = useState<HashtagTrend[]>([]);
   const [recentHashtags, setRecentHashtags] = useState<HashtagTrend[]>([]);
   const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
@@ -242,7 +243,7 @@ const Hashtags = () => {
     <div className="min-h-screen bg-zinc-900">
       <AdPopup />
       
-      {/* Fixed Header and Tabs - جعلها ثابتة */}
+      {/* Fixed Header and Tabs */}
       <div className="sticky top-0 z-50 bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-800">
         <div className="max-w-4xl mx-auto p-4">
           <div className="flex items-center justify-between mb-4">
@@ -272,7 +273,7 @@ const Hashtags = () => {
           </div>
           
           {/* Tabs ثابتة مع الهيدر */}
-          <Tabs defaultValue="trending" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-zinc-900">
               <TabsTrigger value="trending" className="data-[state=active]:bg-blue-600">
                 <TrendingUp className="h-4 w-4 mr-2" />
@@ -293,8 +294,7 @@ const Hashtags = () => {
 
       {/* المحتوى القابل للتمرير */}
       <div className="max-w-4xl mx-auto">
-        <Tabs defaultValue="trending" className="w-full">
-          {/* إخفاء TabsList هنا لأنها موجودة في الهيدر الثابت */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="p-4 space-y-6">
             <TabsContent value="trending" className="space-y-6 mt-0">
               {trendingHashtags.length > 0 && (
