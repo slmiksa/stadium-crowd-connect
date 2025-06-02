@@ -58,6 +58,7 @@ const AdRequestsManagement = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
+      console.log('Fetching ad requests data...');
       
       // جلب طلبات الإعلانات
       const { data: requestsData, error: requestsError } = await supabase
@@ -65,22 +66,80 @@ const AdRequestsManagement = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('Ad requests response:', { requestsData, requestsError });
+
       if (requestsError) {
         console.error('Error fetching ad requests:', requestsError);
+        toast({
+          title: 'خطأ',
+          description: 'حدث خطأ أثناء جلب طلبات الإعلانات',
+          variant: 'destructive'
+        });
       } else {
+        console.log('Ad requests fetched successfully:', requestsData?.length || 0);
         setRequests(requestsData || []);
       }
 
       // جلب الإحصائيات
-      const { data: statsData, error: statsError } = await supabase.rpc('get_ad_requests_statistics');
-      if (statsError) {
-        console.error('Error fetching stats:', statsError);
-      } else if (statsData && statsData.length > 0) {
-        setStats(statsData[0]);
+      try {
+        const { data: statsData, error: statsError } = await supabase.rpc('get_ad_requests_statistics');
+        console.log('Stats response:', { statsData, statsError });
+        
+        if (statsError) {
+          console.error('Error fetching stats:', statsError);
+          // حساب الإحصائيات يدوياً إذا فشلت الدالة
+          if (requestsData) {
+            const manualStats = {
+              total_requests: requestsData.length,
+              pending_requests: requestsData.filter(r => r.status === 'pending').length,
+              approved_requests: requestsData.filter(r => r.status === 'approved').length,
+              rejected_requests: requestsData.filter(r => r.status === 'rejected').length,
+              total_revenue: requestsData.filter(r => r.status === 'approved').reduce((sum, r) => sum + r.price, 0)
+            };
+            console.log('Manual stats calculated:', manualStats);
+            setStats(manualStats);
+          }
+        } else if (statsData && statsData.length > 0) {
+          console.log('Stats fetched successfully:', statsData[0]);
+          setStats(statsData[0]);
+        } else {
+          console.log('No stats data returned, calculating manually');
+          // حساب الإحصائيات يدوياً
+          if (requestsData) {
+            const manualStats = {
+              total_requests: requestsData.length,
+              pending_requests: requestsData.filter(r => r.status === 'pending').length,
+              approved_requests: requestsData.filter(r => r.status === 'approved').length,
+              rejected_requests: requestsData.filter(r => r.status === 'rejected').length,
+              total_revenue: requestsData.filter(r => r.status === 'approved').reduce((sum, r) => sum + r.price, 0)
+            };
+            console.log('Manual stats calculated (no RPC data):', manualStats);
+            setStats(manualStats);
+          }
+        }
+      } catch (statsError) {
+        console.error('Stats RPC error:', statsError);
+        // حساب الإحصائيات يدوياً عند حدوث خطأ
+        if (requestsData) {
+          const manualStats = {
+            total_requests: requestsData.length,
+            pending_requests: requestsData.filter(r => r.status === 'pending').length,
+            approved_requests: requestsData.filter(r => r.status === 'approved').length,
+            rejected_requests: requestsData.filter(r => r.status === 'rejected').length,
+            total_revenue: requestsData.filter(r => r.status === 'approved').reduce((sum, r) => sum + r.price, 0)
+          };
+          console.log('Manual stats calculated (RPC exception):', manualStats);
+          setStats(manualStats);
+        }
       }
 
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in fetchData:', error);
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء جلب البيانات',
+        variant: 'destructive'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -154,6 +213,8 @@ const AdRequestsManagement = () => {
     );
   }
 
+  console.log('Rendering AdRequestsManagement with requests:', requests.length);
+
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
@@ -161,6 +222,14 @@ const AdRequestsManagement = () => {
           <h2 className="text-lg md:text-2xl font-bold text-white mb-2">إدارة طلبات الإعلانات</h2>
           <p className="text-zinc-400 text-sm md:text-base">مراجعة وإدارة طلبات الإعلانات الواردة</p>
         </div>
+        <Button
+          onClick={fetchData}
+          variant="outline"
+          size="sm"
+          className="text-white border-zinc-700 hover:bg-zinc-800"
+        >
+          تحديث البيانات
+        </Button>
       </div>
 
       {/* إحصائيات طلبات الإعلانات */}
@@ -239,7 +308,7 @@ const AdRequestsManagement = () => {
       {/* قائمة طلبات الإعلانات */}
       <Card className="bg-zinc-900 border-zinc-800">
         <CardHeader>
-          <CardTitle className="text-white">طلبات الإعلانات</CardTitle>
+          <CardTitle className="text-white">طلبات الإعلانات ({requests.length})</CardTitle>
           <CardDescription className="text-zinc-400">
             مراجعة جميع طلبات الإعلانات الواردة
           </CardDescription>
@@ -249,6 +318,9 @@ const AdRequestsManagement = () => {
             <div className="text-center py-8">
               <Megaphone size={48} className="mx-auto text-zinc-600 mb-4" />
               <p className="text-zinc-400">لا توجد طلبات إعلانات بعد</p>
+              <p className="text-zinc-500 text-sm mt-2">
+                قد تحتاج إلى التحقق من إعدادات قاعدة البيانات أو إضافة طلبات جديدة
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
