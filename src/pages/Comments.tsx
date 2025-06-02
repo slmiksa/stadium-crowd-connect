@@ -68,14 +68,15 @@ const Comments = () => {
           )
         `)
         .eq('id', postId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching post:', error);
-        if (error.code === 'PGRST116') {
-          console.log('Post not found, navigating back');
-          navigate('/hashtags');
-        }
+        return;
+      }
+
+      if (!data) {
+        console.log('Post not found');
         return;
       }
 
@@ -83,7 +84,6 @@ const Comments = () => {
       setPost(data);
     } catch (error) {
       console.error('Error:', error);
-      navigate('/hashtags');
     }
   };
 

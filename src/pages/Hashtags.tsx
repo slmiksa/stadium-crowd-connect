@@ -72,7 +72,7 @@ const Hashtags = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch popular posts (posts with many likes)
+      // Fetch all popular posts (posts with many likes) - removed limit
       const { data: popularPostsData, error: postsError } = await supabase
         .from('hashtag_posts')
         .select(`
@@ -84,8 +84,7 @@ const Hashtags = () => {
             verification_status
           )
         `)
-        .order('likes_count', { ascending: false })
-        .limit(20);
+        .order('likes_count', { ascending: false });
 
       if (postsError) {
         console.error('Error fetching popular posts:', postsError);
@@ -150,11 +149,49 @@ const Hashtags = () => {
   };
 
   const renderPost = (post: PopularPost) => (
-    <HashtagPost 
-      key={post.id} 
-      post={post} 
-      onLikeChange={fetchData}
-    />
+    <div key={post.id} className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300">
+      <div className="flex items-start space-x-4 space-x-reverse mb-4">
+        <div className="flex-shrink-0">
+          {post.profiles?.avatar_url ? (
+            <Avatar className="w-12 h-12">
+              <AvatarImage src={post.profiles.avatar_url} alt={post.profiles.username} />
+              <AvatarFallback className={`bg-gradient-to-br ${getAvatarGradient(post.user_id)} text-white font-bold`}>
+                {post.profiles.username?.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          ) : (
+            <div className={`w-12 h-12 bg-gradient-to-br ${getAvatarGradient(post.user_id)} rounded-full flex items-center justify-center`}>
+              <span className="text-white font-bold text-lg">
+                {post.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              onClick={() => {
+                if (post.user_id === user?.id) {
+                  navigate('/profile');
+                } else {
+                  navigate(`/user-profile/${post.user_id}`);
+                }
+              }}
+              className="font-bold text-white hover:text-blue-400 transition-colors"
+            >
+              {post.profiles?.username || 'مستخدم مجهول'}
+            </button>
+            {post.profiles?.verification_status && post.profiles.verification_status !== 'none' && (
+              <VerificationBadge status={post.profiles.verification_status} />
+            )}
+          </div>
+          <HashtagPost 
+            post={{...post, hashtag: post.hashtags?.[0] || ''}} 
+            onLikeChange={fetchData}
+          />
+        </div>
+      </div>
+    </div>
   );
 
   const renderTrendingHashtag = (hashtagData: TrendingHashtag, index: number) => (
