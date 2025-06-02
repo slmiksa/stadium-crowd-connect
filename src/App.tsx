@@ -127,6 +127,11 @@ function App() {
                     <PrivateChat />
                   </AuthGuard>
                 } />
+                <Route path="/chat-rooms" element={
+                  <AuthGuard>
+                    <ChatRooms />
+                  </AuthGuard>
+                } />
                 <Route path="/rooms" element={
                   <AuthGuard>
                     <ChatRooms />
@@ -138,6 +143,11 @@ function App() {
                   </AuthGuard>
                 } />
                 <Route path="/room/:roomId" element={
+                  <AuthGuard>
+                    <ChatRoom />
+                  </AuthGuard>
+                } />
+                <Route path="/chat-room/:roomId" element={
                   <AuthGuard>
                     <ChatRoom />
                   </AuthGuard>
