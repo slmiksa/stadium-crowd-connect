@@ -14,6 +14,7 @@ import ReportsManagement from '@/components/admin/ReportsManagement';
 import StatsOverview from '@/components/admin/StatsOverview';
 import PasswordChange from '@/components/admin/PasswordChange';
 import HashtagsManagement from '@/components/admin/HashtagsManagement';
+import AdvertisementsManagement from '@/components/admin/AdvertisementsManagement';
 import { 
   LogOut, 
   Users, 
@@ -21,7 +22,8 @@ import {
   BarChart3, 
   Settings,
   Shield,
-  Hash
+  Hash,
+  Megaphone
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -78,7 +80,7 @@ const AdminDashboard = () => {
               {/* Tabs Navigation - محسن للجوال */}
               <div className="flex-shrink-0 p-3 md:p-6 pb-0">
                 <ScrollArea className="w-full">
-                  <TabsList className="grid w-full grid-cols-5 bg-zinc-900 min-w-[500px] h-auto">
+                  <TabsList className="grid w-full grid-cols-6 bg-zinc-900 min-w-[600px] h-auto">
                     <TabsTrigger value="stats" className="data-[state=active]:bg-blue-600 text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row items-center gap-1 md:gap-2">
                       <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
                       <span className="hidden sm:inline">الإحصائيات</span>
@@ -94,6 +96,10 @@ const AdminDashboard = () => {
                     <TabsTrigger value="hashtags" className="data-[state=active]:bg-blue-600 text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row items-center gap-1 md:gap-2">
                       <Hash className="h-3 w-3 md:h-4 md:w-4" />
                       <span className="hidden sm:inline">الهاشتاقات</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="ads" className="data-[state=active]:bg-blue-600 text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row items-center gap-1 md:gap-2">
+                      <Megaphone className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="hidden sm:inline">الإعلانات</span>
                     </TabsTrigger>
                     <TabsTrigger value="settings" className="data-[state=active]:bg-blue-600 text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row items-center gap-1 md:gap-2">
                       <Settings className="h-3 w-3 md:h-4 md:w-4" />
@@ -133,6 +139,14 @@ const AdminDashboard = () => {
                   <ScrollArea className="h-full">
                     <div className="p-3 md:p-6 pb-20">
                       <HashtagsManagement />
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="ads" className="h-full m-0 overflow-hidden">
+                  <ScrollArea className="h-full">
+                    <div className="p-3 md:p-6 pb-20">
+                      <AdvertisementsManagement />
                     </div>
                   </ScrollArea>
                 </TabsContent>

@@ -36,6 +36,88 @@ export type Database = {
         }
         Relationships: []
       }
+      advertisement_views: {
+        Row: {
+          advertisement_id: string
+          id: string
+          page_location: string
+          user_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          advertisement_id: string
+          id?: string
+          page_location: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          advertisement_id?: string
+          id?: string
+          page_location?: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advertisement_views_advertisement_id_fkey"
+            columns: ["advertisement_id"]
+            isOneToOne: false
+            referencedRelation: "advertisements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      advertisements: {
+        Row: {
+          admin_id: string
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          image_url: string
+          is_active: boolean
+          link_url: string | null
+          scheduled_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          image_url: string
+          is_active?: boolean
+          link_url?: string | null
+          scheduled_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          link_url?: string | null
+          scheduled_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advertisements_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_rooms: {
         Row: {
           announcement: string | null
@@ -713,6 +795,16 @@ export type Database = {
           demoter_id_param: string
         }
         Returns: boolean
+      }
+      get_advertisement_statistics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_ads: number
+          active_ads: number
+          total_views: number
+          top_ad_title: string
+          top_ad_views: number
+        }[]
       }
       get_app_statistics: {
         Args: Record<PropertyKey, never>
