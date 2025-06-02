@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Share2, MoreVertical, Flag, Trash2 } from 'lucide-react';
@@ -109,7 +108,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
     if (onCommentClick) {
       onCommentClick();
     } else {
-      navigate(`/comments/${post.id}`);
+      navigate(`/post/${post.id}`);
     }
   };
 
