@@ -67,7 +67,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
       if (userId === user?.id) {
         navigate('/profile');
       } else {
-        navigate(`/user/${userId}`);
+        navigate(`/user-profile/${userId}`);
       }
     }
   };
@@ -80,7 +80,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
     }
 
     if (notification.data?.post_id) {
-      navigate(`/post/${notification.data.post_id}`);
+      navigate(`/post-details/${notification.data.post_id}`);
     }
   };
 
@@ -104,7 +104,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
     }
 
     if (notification.data?.sender_id) {
-      navigate(`/chat/${notification.data.sender_id}`);
+      navigate(`/private-chat/${notification.data.sender_id}`);
     } else {
       navigate('/messages');
     }
@@ -122,7 +122,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
     if (notification.type === 'comment' || notification.type === 'like' || notification.type === 'post' || notification.type === 'follower_comment') {
       if (notification.data?.post_id) {
         console.log('Navigating to post:', notification.data.post_id);
-        navigate(`/post/${notification.data.post_id}`);
+        navigate(`/post-details/${notification.data.post_id}`);
       } else {
         console.log('No post_id found, going to hashtags');
         navigate('/hashtags');
@@ -134,7 +134,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
         if (userId === user?.id) {
           navigate('/profile');
         } else {
-          navigate(`/user/${userId}`);
+          navigate(`/user-profile/${userId}`);
         }
       } else {
         navigate('/hashtags');
@@ -142,7 +142,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
     } else if (notification.type === 'message') {
       if (notification.data?.sender_id) {
         console.log('Navigating to private chat with:', notification.data.sender_id);
-        navigate(`/chat/${notification.data.sender_id}`);
+        navigate(`/private-chat/${notification.data.sender_id}`);
       } else {
         console.log('No sender_id found, going to messages');
         navigate('/messages');

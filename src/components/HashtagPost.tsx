@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, MoreVertical, Share2 } from 'lucide-react';
@@ -48,7 +49,11 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, showComments = true, on
     // استخدام user_id من المنشور إذا لم تكن profiles متوفرة
     const userId = post.profiles?.id || post.user_id;
     if (userId) {
-      navigate(`/user/${userId}`);
+      if (userId === user?.id) {
+        navigate('/profile');
+      } else {
+        navigate(`/user-profile/${userId}`);
+      }
     }
   };
 

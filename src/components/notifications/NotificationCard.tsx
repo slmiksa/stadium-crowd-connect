@@ -3,6 +3,7 @@ import { Bell, MessageSquare, Users, Heart, UserPlus, Plus, Key, LogIn, User } f
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 interface NotificationData {
   post_id?: string;
@@ -56,6 +57,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   onRoomClick,
   onNotificationClick
 }) => {
+  const navigate = useNavigate();
+
   const getNotificationIcon = () => {
     switch (notification.type) {
       case 'like':
@@ -264,7 +267,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                       if (!notification.is_read) {
                         onMarkAsRead(notification.id);
                       }
-                      window.location.href = `/chat/${notification.data.sender_id}`;
+                      navigate(`/private-chat/${notification.data.sender_id}`);
                     }}
                     className="bg-purple-600/20 border-purple-500/30 text-purple-400 hover:bg-purple-600/30 hover:text-purple-300 text-xs px-3 py-1 h-auto w-full"
                   >
@@ -393,7 +396,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   if (!notification.is_read) {
                     onMarkAsRead(notification.id);
                   }
-                  window.location.href = '/profile';
+                  navigate('/profile');
                 }}
                 className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
               >
