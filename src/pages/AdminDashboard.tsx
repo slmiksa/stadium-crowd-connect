@@ -106,43 +106,43 @@ const AdminDashboard = () => {
               {/* Tab Contents - مع scroll محسن ومساحة إضافية */}
               <div className="flex-1 overflow-hidden">
                 <TabsContent value="stats" className="h-full m-0 overflow-hidden">
-                  <div className="h-full overflow-y-auto">
+                  <ScrollArea className="h-full">
                     <div className="p-3 md:p-6 pb-20">
                       <StatsOverview />
                     </div>
-                  </div>
+                  </ScrollArea>
                 </TabsContent>
 
                 <TabsContent value="users" className="h-full m-0 overflow-hidden">
-                  <div className="h-full overflow-y-auto">
+                  <ScrollArea className="h-full">
                     <div className="p-3 md:p-6 pb-20">
                       <UsersManagement />
                     </div>
-                  </div>
+                  </ScrollArea>
                 </TabsContent>
 
                 <TabsContent value="reports" className="h-full m-0 overflow-hidden">
-                  <div className="h-full overflow-y-auto">
+                  <ScrollArea className="h-full">
                     <div className="p-3 md:p-6 pb-20">
                       <ReportsManagement />
                     </div>
-                  </div>
+                  </ScrollArea>
                 </TabsContent>
 
                 <TabsContent value="hashtags" className="h-full m-0 overflow-hidden">
-                  <div className="h-full overflow-y-auto">
+                  <ScrollArea className="h-full">
                     <div className="p-3 md:p-6 pb-20">
                       <HashtagsManagement />
                     </div>
-                  </div>
+                  </ScrollArea>
                 </TabsContent>
 
                 <TabsContent value="settings" className="h-full m-0 overflow-hidden">
-                  <div className="h-full overflow-y-auto">
+                  <ScrollArea className="h-full">
                     <div className="p-3 md:p-6 pb-20">
                       <PasswordChange adminId={adminData?.id} />
                     </div>
-                  </div>
+                  </ScrollArea>
                 </TabsContent>
               </div>
             </Tabs>

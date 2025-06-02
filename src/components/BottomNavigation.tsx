@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -11,10 +12,6 @@ const BottomNavigation = () => {
   const { t, isRTL } = useLanguage();
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-
-  // Hide bottom navigation on chat pages
-  const hiddenRoutes = ['/chat-room/', '/private-chat/'];
-  const shouldHide = hiddenRoutes.some(route => location.pathname.includes(route));
 
   const tabs = [
     { 
@@ -123,10 +120,6 @@ const BottomNavigation = () => {
       };
     }
   }, [user]);
-
-  if (shouldHide) {
-    return null;
-  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 z-50 w-full">

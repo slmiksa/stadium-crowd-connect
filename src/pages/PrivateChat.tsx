@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -208,13 +207,13 @@ const PrivateChat = () => {
               <ArrowLeft size={20} className="text-white" />
             </button>
             <Avatar className="w-10 h-10">
-              <AvatarImage src={otherUser?.avatar_url} alt={otherUser?.username} />
+              <AvatarImage src={otherUser.avatar_url} alt={otherUser.username} />
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-green-500 text-white">
-                {otherUser?.username?.charAt(0).toUpperCase() || 'U'}
+                {otherUser.username?.charAt(0).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-lg font-bold text-white">{otherUser?.username}</h1>
+              <h1 className="text-lg font-bold text-white">{otherUser.username}</h1>
             </div>
           </div>
           <button
@@ -228,7 +227,7 @@ const PrivateChat = () => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-zinc-400">لا توجد رسائل بعد</p>

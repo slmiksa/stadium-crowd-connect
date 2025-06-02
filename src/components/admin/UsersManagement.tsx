@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -154,8 +155,8 @@ const UsersManagement = () => {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="max-h-96 overflow-y-auto">
-            <div className="space-y-3 p-4 md:p-6 pt-0 pb-6">
+          <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
+            <div className="space-y-3 p-4 md:p-6 pt-0">
               {filteredUsers.map((user) => (
                 <div key={user.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 bg-zinc-800 rounded-lg gap-3">
                   <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
