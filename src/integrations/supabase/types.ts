@@ -9,6 +9,51 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ad_requests: {
+        Row: {
+          ad_link: string | null
+          ad_name: string
+          admin_response: string | null
+          created_at: string
+          duration_hours: number
+          id: string
+          image_url: string
+          phone_number: string
+          price: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad_link?: string | null
+          ad_name: string
+          admin_response?: string | null
+          created_at?: string
+          duration_hours: number
+          id?: string
+          image_url: string
+          phone_number: string
+          price: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad_link?: string | null
+          ad_name?: string
+          admin_response?: string | null
+          created_at?: string
+          duration_hours?: number
+          id?: string
+          image_url?: string
+          phone_number?: string
+          price?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_users: {
         Row: {
           created_at: string | null
@@ -795,6 +840,16 @@ export type Database = {
           demoter_id_param: string
         }
         Returns: boolean
+      }
+      get_ad_requests_statistics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_requests: number
+          pending_requests: number
+          approved_requests: number
+          rejected_requests: number
+          total_revenue: number
+        }[]
       }
       get_advertisement_statistics: {
         Args: Record<PropertyKey, never>

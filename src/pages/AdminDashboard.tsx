@@ -1,169 +1,117 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useToast } from '@/hooks/use-toast';
-import { useIsMobile } from '@/hooks/use-mobile';
-import AdminGuard from '@/components/AdminGuard';
-import UsersManagement from '@/components/admin/UsersManagement';
-import ReportsManagement from '@/components/admin/ReportsManagement';
-import StatsOverview from '@/components/admin/StatsOverview';
-import PasswordChange from '@/components/admin/PasswordChange';
-import HashtagsManagement from '@/components/admin/HashtagsManagement';
-import AdvertisementsManagement from '@/components/admin/AdvertisementsManagement';
 import { 
-  LogOut, 
-  Users, 
-  Flag, 
   BarChart3, 
-  Settings,
-  Shield,
-  Hash,
-  Megaphone
+  Users, 
+  FileText, 
+  Hash, 
+  Shield, 
+  Key,
+  Megaphone,
+  MessageSquare
 } from 'lucide-react';
 
+// Import admin components
+import StatsOverview from '@/components/admin/StatsOverview';
+import UsersManagement from '@/components/admin/UsersManagement';
+import ReportsManagement from '@/components/admin/ReportsManagement';
+import HashtagsManagement from '@/components/admin/HashtagsManagement';
+import AdvertisementsManagement from '@/components/admin/AdvertisementsManagement';
+import AdRequestsManagement from '@/components/admin/AdRequestsManagement';
+import PasswordChange from '@/components/admin/PasswordChange';
+
 const AdminDashboard = () => {
-  const [adminData, setAdminData] = useState<any>(null);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState('stats');
+  
+  // Check if user is admin
+  const adminData = localStorage.getItem('admin_user');
+  if (!adminData) {
+    return <Navigate to="/admin-login" replace />;
+  }
 
-  useEffect(() => {
-    const admin = localStorage.getItem('admin_user');
-    if (admin) {
-      setAdminData(JSON.parse(admin));
+  const admin = JSON.parse(adminData);
+
+  const tabs = [
+    { id: 'stats', label: 'الإحصائيات', icon: BarChart3 },
+    { id: 'users', label: 'المستخدمين', icon: Users },
+    { id: 'reports', label: 'البلاغات', icon: FileText },
+    { id: 'hashtags', label: 'الهاشتاغات', icon: Hash },
+    { id: 'advertisements', label: 'الإعلانات', icon: Megaphone },
+    { id: 'ad-requests', label: 'طلبات الإعلانات', icon: MessageSquare },
+    { id: 'password', label: 'كلمة المرور', icon: Key },
+  ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'stats':
+        return <StatsOverview />;
+      case 'users':
+        return <UsersManagement />;
+      case 'reports':
+        return <ReportsManagement />;
+      case 'hashtags':
+        return <HashtagsManagement />;
+      case 'advertisements':
+        return <AdvertisementsManagement />;
+      case 'ad-requests':
+        return <AdRequestsManagement />;
+      case 'password':
+        return <PasswordChange />;
+      default:
+        return <StatsOverview />;
     }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('admin_user');
-    toast({
-      title: 'تم تسجيل الخروج',
-      description: 'تم تسجيل خروجك بنجاح'
-    });
-    navigate('/admin/login');
   };
 
   return (
-    <AdminGuard>
-      <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-        {/* Header - محسن للجوال */}
-        <div className="bg-zinc-900 border-b border-zinc-800 p-3 md:p-4 sticky top-0 z-50 flex-shrink-0">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center space-x-3 space-x-reverse">
-              <Shield className="h-5 w-5 md:h-8 md:w-8 text-blue-400 flex-shrink-0" />
-              <div className="min-w-0">
-                <h1 className="text-base md:text-2xl font-bold truncate">لوحة تحكم السوبر أدمن</h1>
-                <p className="text-zinc-400 text-xs md:text-sm truncate">مرحباً {adminData?.username}</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800">
+      <div className="flex">
+        {/* Sidebar */}
+        <div className="w-64 bg-zinc-900 border-r border-zinc-700 min-h-screen">
+          <div className="p-6">
+            <div className="flex items-center space-x-2 space-x-reverse mb-8">
+              <Shield className="h-8 w-8 text-blue-400" />
+              <div>
+                <h1 className="text-xl font-bold text-white">لوحة التحكم</h1>
+                <p className="text-zinc-400 text-sm">مرحباً {admin.username}</p>
               </div>
             </div>
-            <Button 
-              onClick={handleLogout}
-              variant="outline"
-              size={isMobile ? "sm" : "default"}
-              className="text-white border-zinc-700 hover:bg-zinc-800 text-xs md:text-sm flex-shrink-0"
-            >
-              <LogOut className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-              {!isMobile && "خروج"}
-            </Button>
+            
+            <nav className="space-y-2">
+              {tabs.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <Button
+                    key={tab.id}
+                    variant={activeTab === tab.id ? "default" : "ghost"}
+                    className={`w-full justify-start text-right ${
+                      activeTab === tab.id 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                    }`}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    <IconComponent className="h-4 w-4 ml-2" />
+                    {tab.label}
+                  </Button>
+                );
+              })}
+            </nav>
           </div>
         </div>
 
-        {/* Main Content - مع scroll محسن */}
-        <div className="flex-1 overflow-hidden">
-          <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
-            <Tabs defaultValue="stats" className="flex-1 flex flex-col h-full">
-              {/* Tabs Navigation - محسن للجوال */}
-              <div className="flex-shrink-0 p-3 md:p-6 pb-0">
-                <ScrollArea className="w-full">
-                  <TabsList className="grid w-full grid-cols-6 bg-zinc-900 min-w-[600px] h-auto">
-                    <TabsTrigger value="stats" className="data-[state=active]:bg-blue-600 text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row items-center gap-1 md:gap-2">
-                      <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="hidden sm:inline">الإحصائيات</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="users" className="data-[state=active]:bg-blue-600 text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row items-center gap-1 md:gap-2">
-                      <Users className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="hidden sm:inline">المستخدمين</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="reports" className="data-[state=active]:bg-blue-600 text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row items-center gap-1 md:gap-2">
-                      <Flag className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="hidden sm:inline">البلاغات</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="hashtags" className="data-[state=active]:bg-blue-600 text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row items-center gap-1 md:gap-2">
-                      <Hash className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="hidden sm:inline">الهاشتاقات</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="ads" className="data-[state=active]:bg-blue-600 text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row items-center gap-1 md:gap-2">
-                      <Megaphone className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="hidden sm:inline">الإعلانات</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="settings" className="data-[state=active]:bg-blue-600 text-xs md:text-sm p-2 md:p-3 flex flex-col md:flex-row items-center gap-1 md:gap-2">
-                      <Settings className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="hidden sm:inline">الإعدادات</span>
-                    </TabsTrigger>
-                  </TabsList>
-                </ScrollArea>
-              </div>
-
-              {/* Tab Contents - مع scroll محسن ومساحة إضافية */}
-              <div className="flex-1 overflow-hidden">
-                <TabsContent value="stats" className="h-full m-0 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <div className="p-3 md:p-6 pb-20">
-                      <StatsOverview />
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="users" className="h-full m-0 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <div className="p-3 md:p-6 pb-20">
-                      <UsersManagement />
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="reports" className="h-full m-0 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <div className="p-3 md:p-6 pb-20">
-                      <ReportsManagement />
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="hashtags" className="h-full m-0 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <div className="p-3 md:p-6 pb-20">
-                      <HashtagsManagement />
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="ads" className="h-full m-0 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <div className="p-3 md:p-6 pb-20">
-                      <AdvertisementsManagement />
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="settings" className="h-full m-0 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <div className="p-3 md:p-6 pb-20">
-                      <PasswordChange adminId={adminData?.id} />
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-              </div>
-            </Tabs>
-          </div>
+        {/* Main Content */}
+        <div className="flex-1 p-6">
+          <Card className="bg-zinc-900 border-zinc-800 min-h-[calc(100vh-3rem)]">
+            <CardContent className="p-6">
+              {renderContent()}
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </AdminGuard>
+    </div>
   );
 };
 

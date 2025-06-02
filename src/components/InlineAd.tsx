@@ -13,7 +13,7 @@ interface Advertisement {
 }
 
 interface InlineAdProps {
-  location: string; // 'hashtags', 'trending', 'my-posts', etc.
+  location: string;
   className?: string;
 }
 
@@ -25,7 +25,6 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
     console.log('InlineAd mounted with location:', location);
     fetchRandomAd();
     
-    // فحص الإعلانات كل 30 ثانية للتحديث السريع
     const interval = setInterval(fetchRandomAd, 30000);
     
     return () => clearInterval(interval);
@@ -38,7 +37,6 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
       console.log('Fetching ads from database for location:', location);
       console.log('Current time:', currentTime.toISOString());
       
-      // جلب جميع الإعلانات النشطة
       const { data: allAds, error: allAdsError } = await supabase
         .from('advertisements')
         .select('*')
@@ -48,14 +46,10 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
       console.log('Active ads data:', allAds);
 
       if (allAds && allAds.length > 0) {
-        // تصفية الإعلانات حسب الجدولة مع معالجة محسنة
         const validAds = allAds.filter(ad => {
           const scheduledTime = ad.scheduled_at ? new Date(ad.scheduled_at) : null;
           const expiryTime = ad.expires_at ? new Date(ad.expires_at) : null;
           
-          // الإعلان يظهر إذا:
-          // 1. لا يوجد وقت بداية محدد أو وقت البداية قد حان
-          // 2. لا يوجد وقت انتهاء أو وقت الانتهاء لم يحن بعد
           const isScheduled = !scheduledTime || scheduledTime <= currentTime;
           const notExpired = !expiryTime || expiryTime > currentTime;
           
@@ -76,12 +70,10 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
         console.log(`Valid ads for ${location} after filtering:`, validAds.length);
 
         if (validAds.length > 0) {
-          // اختيار عشوائي للتنويع
           const randomAd = validAds[Math.floor(Math.random() * validAds.length)];
           console.log(`Selected random ad for ${location}:`, randomAd.title);
           setAd(randomAd);
 
-          // تسجيل المشاهدة
           await recordAdView(randomAd.id, location);
         } else {
           console.log(`No valid ads found for ${location} after filtering`);
@@ -123,28 +115,27 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
 
   console.log(`InlineAd render state for ${location}:`, { isLoading, ad: !!ad });
 
-  // لا نعرض شيئاً إذا كان التحميل مستمراً أو لا يوجد إعلان
   if (isLoading || !ad) {
     return null;
   }
 
   return (
-    <Card className={`bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-500/30 ${className}`}>
+    <Card className={`bg-gradient-to-br from-purple-600/10 via-pink-500/10 to-orange-500/10 border-purple-400/30 shadow-lg hover:shadow-xl transition-all duration-300 ${className}`}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-blue-400 text-xs font-medium bg-blue-500/20 px-2 py-1 rounded">
-            إعلان
+          <span className="text-purple-300 text-xs font-medium bg-purple-500/20 px-3 py-1 rounded-full border border-purple-400/30">
+            إعلان مميز
           </span>
-          <span className="text-zinc-500 text-xs">
+          <span className="text-zinc-400 text-xs">
             {location}
           </span>
         </div>
         
         <div 
-          className={`flex items-center space-x-4 space-x-reverse ${ad.link_url ? 'cursor-pointer hover:bg-zinc-800/50 rounded-lg p-2 -m-2 transition-colors' : ''}`}
+          className={`flex items-center space-x-4 space-x-reverse ${ad.link_url ? 'cursor-pointer hover:bg-purple-500/10 rounded-lg p-2 -m-2 transition-all duration-300' : ''}`}
           onClick={handleClick}
         >
-          <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+          <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 border-purple-400/20">
             <img
               src={ad.image_url}
               alt={ad.title}
@@ -156,12 +147,12 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
           </div>
           
           <div className="flex-1 min-w-0">
-            <h3 className="text-white font-medium text-sm truncate">{ad.title}</h3>
+            <h3 className="text-white font-semibold text-sm truncate">{ad.title}</h3>
             {ad.description && (
-              <p className="text-zinc-400 text-xs truncate mt-1">{ad.description}</p>
+              <p className="text-zinc-300 text-xs truncate mt-1">{ad.description}</p>
             )}
             {ad.link_url && (
-              <div className="flex items-center text-blue-400 text-xs mt-1">
+              <div className="flex items-center text-purple-300 text-xs mt-2 bg-purple-500/10 px-2 py-1 rounded-full w-fit">
                 <ExternalLink className="h-3 w-3 mr-1" />
                 <span>انقر للمزيد</span>
               </div>

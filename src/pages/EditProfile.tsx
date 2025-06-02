@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Megaphone } from 'lucide-react';
 
 const EditProfile = () => {
   const navigate = useNavigate();
@@ -85,6 +85,23 @@ const EditProfile = () => {
 
           {/* Form */}
           <div className="p-4 space-y-6">
+            {/* زر أعلن معنا */}
+            <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-white font-semibold mb-1">روّج لعملك معنا</h3>
+                  <p className="text-zinc-400 text-sm">ابدأ حملتك الإعلانية الآن وصل لآلاف المستخدمين</p>
+                </div>
+                <button
+                  onClick={() => navigate('/advertise-with-us')}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 flex items-center space-x-2 space-x-reverse"
+                >
+                  <Megaphone className="h-4 w-4" />
+                  <span>أعلن معنا</span>
+                </button>
+              </div>
+            </div>
+
             <div>
               <label className="block text-white mb-2">اسم المستخدم</label>
               <input
