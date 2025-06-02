@@ -261,6 +261,9 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                     variant="outline"
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (!notification.is_read) {
+                        onMarkAsRead(notification.id);
+                      }
                       window.location.href = `/chat/${notification.data.sender_id}`;
                     }}
                     className="bg-purple-600/20 border-purple-500/30 text-purple-400 hover:bg-purple-600/30 hover:text-purple-300 text-xs px-3 py-1 h-auto w-full"
@@ -387,6 +390,9 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 variant="outline"
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (!notification.is_read) {
+                    onMarkAsRead(notification.id);
+                  }
                   window.location.href = '/profile';
                 }}
                 className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
