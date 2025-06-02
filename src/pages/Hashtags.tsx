@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -244,14 +245,14 @@ const Hashtags = () => {
       <div className="min-h-screen bg-zinc-900">
         <AdPopup />
         
-        {/* Fixed Header with Tabs at the very top */}
-        <div className="sticky top-0 z-50 bg-zinc-900 border-b border-zinc-800">
+        {/* Fixed Header with Tabs at the very top - moved higher */}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-zinc-900 border-b border-zinc-800">
           <div className="max-w-4xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4">
+            {/* Header - reduced padding */}
+            <div className="flex items-center justify-between p-3">
               <div>
-                <h1 className="text-2xl font-bold text-white mb-2">الهاشتاقات</h1>
-                <p className="text-zinc-400">اكتشف أحدث المواضيع والهاشتاقات الرائجة</p>
+                <h1 className="text-xl font-bold text-white mb-1">الهاشتاقات</h1>
+                <p className="text-sm text-zinc-400">اكتشف أحدث المواضيع والهاشتاقات الرائجة</p>
               </div>
               <div className="flex items-center space-x-2 space-x-reverse">
                 <Button
@@ -276,7 +277,7 @@ const Hashtags = () => {
             
             {/* Tabs moved to the top */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-zinc-900 rounded-none border-t border-zinc-800">
+              <TabsList className="grid w-full grid-cols-3 bg-zinc-900 rounded-none border-t border-zinc-800 h-12">
                 <TabsTrigger value="trending" className="data-[state=active]:bg-blue-600 rounded-none">
                   <TrendingUp className="h-4 w-4 mr-2" />
                   ترند
@@ -294,8 +295,8 @@ const Hashtags = () => {
           </div>
         </div>
 
-        {/* Content */}
-        <div className="max-w-4xl mx-auto">
+        {/* Content - adjusted top margin to account for smaller header */}
+        <div className="max-w-4xl mx-auto pt-28">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="p-4 space-y-6">
               <TabsContent value="trending" className="space-y-6 mt-0">
