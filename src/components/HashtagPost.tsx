@@ -99,12 +99,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
 
   const handleProfileClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Navigate to the post author's profile, not the current user's profile
-    if (post.user_id === user?.id) {
-      navigate('/profile');
-    } else {
-      navigate(`/user-profile/${post.user_id}`);
-    }
+    // Always navigate to the profile of the post author
+    navigate(`/profile/${post.user_id}`);
   };
 
   const handleCommentsClick = (e: React.MouseEvent) => {

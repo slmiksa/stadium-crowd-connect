@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -119,6 +120,13 @@ const App = () => (
                 <AuthGuard>
                   <Layout>
                     <HashtagPage />
+                  </Layout>
+                </AuthGuard>
+              } />
+              <Route path="/create-hashtag-post" element={
+                <AuthGuard>
+                  <Layout>
+                    <CreateHashtagPost />
                   </Layout>
                 </AuthGuard>
               } />
