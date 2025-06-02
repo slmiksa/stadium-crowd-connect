@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -236,7 +235,7 @@ const Hashtags = () => {
 
   // Helper functions to get limited items
   const getDisplayedRecentHashtags = () => {
-    return showAllRecentHashtags ? recentHashtags : recentHashtags.slice(0, 5);
+    return showAllRecentHashtags ? recentHashtags.slice(0, 50) : recentHashtags.slice(0, 5);
   };
 
   return (
