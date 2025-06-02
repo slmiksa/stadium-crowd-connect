@@ -224,9 +224,6 @@ const ChatRoom = () => {
             username,
             avatar_url,
             verification_status
-          ),
-          room_members:user_id (
-            role
           )
         `)
         .eq('room_id', roomId)
