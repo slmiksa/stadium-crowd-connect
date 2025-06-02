@@ -442,19 +442,35 @@ const Profile = () => {
 
         {/* Profile content */}
         <div className="relative px-4 -mt-16">
-          {/* زر أعلن معنا */}
-          <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-white font-semibold mb-1">روّج لعملك معنا</h3>
-                <p className="text-zinc-400 text-sm">ابدأ حملتك الإعلانية الآن وصل لآلاف المستخدمين</p>
+          {/* زر أعلن معنا - محسن */}
+          <div className="relative overflow-hidden bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-blue-600/10 border border-purple-400/20 rounded-xl p-6 mb-6 backdrop-blur-sm">
+            {/* خلفية متحركة */}
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-blue-500/5 animate-pulse"></div>
+            
+            <div className="relative flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center mb-2">
+                  <Megaphone className="h-5 w-5 text-purple-400 ml-2" />
+                  <h3 className="text-white font-bold text-lg">روّج لعملك معنا</h3>
+                </div>
+                <p className="text-zinc-300 text-sm leading-relaxed">
+                  ابدأ حملتك الإعلانية الآن وصل لآلاف المستخدمين عبر منصتنا
+                </p>
+                <div className="flex items-center mt-2">
+                  <div className="flex items-center text-xs text-purple-300">
+                    <span className="w-2 h-2 bg-green-400 rounded-full ml-1 animate-pulse"></span>
+                    باقات متنوعة تناسب جميع الميزانيات
+                  </div>
+                </div>
               </div>
+              
               <button
                 onClick={() => navigate('/advertise-with-us')}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 flex items-center space-x-2 space-x-reverse"
+                className="relative group bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 flex items-center space-x-2 space-x-reverse"
               >
-                <Megaphone className="h-4 w-4" />
-                <span>أعلن معنا</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 rounded-xl blur opacity-20 group-hover:opacity-40 transition-opacity duration-300"></div>
+                <Megaphone className="h-4 w-4 relative z-10" />
+                <span className="relative z-10 font-semibold">أعلن معنا</span>
               </button>
             </div>
           </div>

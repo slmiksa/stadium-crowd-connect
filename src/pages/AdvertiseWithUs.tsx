@@ -64,27 +64,98 @@ const AdvertiseWithUs = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // التحقق من حجم الملف (أقل من 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'خطأ',
+          description: 'حجم الصورة يجب أن يكون أقل من 5 ميجابايت',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      // التحقق من نوع الملف
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: 'خطأ',
+          description: 'يرجى اختيار ملف صورة صحيح',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
       setFormData({ ...formData, imageFile: file });
     }
   };
 
   const uploadImage = async (file: File): Promise<string> => {
-    const fileName = `ad-${Date.now()}-${file.name}`;
-    const { data, error } = await supabase.storage
-      .from('advertisements')
-      .upload(fileName, file);
+    try {
+      console.log('Starting image upload...', { fileName: file.name, fileSize: file.size });
+      
+      const fileName = `ad-${user?.id}-${Date.now()}-${file.name}`;
+      
+      // محاولة رفع الصورة
+      const { data, error } = await supabase.storage
+        .from('advertisements')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-    if (error) throw error;
+      if (error) {
+        console.error('Storage upload error:', error);
+        
+        // إذا كان الـ bucket غير موجود، سنحاول إنشاؤه
+        if (error.message.includes('Bucket not found')) {
+          console.log('Bucket not found, creating it...');
+          
+          // إنشاء الـ bucket
+          const { error: bucketError } = await supabase.storage
+            .createBucket('advertisements', {
+              public: true,
+              allowedMimeTypes: ['image/*'],
+              fileSizeLimit: 5242880 // 5MB
+            });
+          
+          if (bucketError) {
+            console.error('Error creating bucket:', bucketError);
+            throw new Error('فشل في إنشاء مساحة التخزين');
+          }
+          
+          // إعادة المحاولة بعد إنشاء الـ bucket
+          const { data: retryData, error: retryError } = await supabase.storage
+            .from('advertisements')
+            .upload(fileName, file);
+          
+          if (retryError) {
+            console.error('Retry upload error:', retryError);
+            throw retryError;
+          }
+          
+          console.log('Image uploaded successfully after bucket creation:', retryData);
+        } else {
+          throw error;
+        }
+      } else {
+        console.log('Image uploaded successfully:', data);
+      }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('advertisements')
-      .getPublicUrl(fileName);
+      const { data: { publicUrl } } = supabase.storage
+        .from('advertisements')
+        .getPublicUrl(fileName);
 
-    return publicUrl;
+      console.log('Public URL generated:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error('Upload image error:', error);
+      throw new Error('فشل في رفع الصورة');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('Form submission started...');
     
     if (!user) {
       toast({
@@ -115,10 +186,22 @@ const AdvertiseWithUs = () => {
 
     setIsSubmitting(true);
     try {
+      console.log('Uploading image...');
       const imageUrl = await uploadImage(formData.imageFile);
+      
       const selectedPlanData = plans.find(p => p.duration === selectedPlan);
+      
+      console.log('Inserting ad request...', {
+        user_id: user.id,
+        ad_name: formData.adName.trim(),
+        phone_number: formData.phoneNumber.trim(),
+        ad_link: formData.adLink.trim() || null,
+        image_url: imageUrl,
+        duration_hours: selectedPlan,
+        price: selectedPlanData?.price || 0
+      });
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('ad_requests')
         .insert([{
           user_id: user.id,
@@ -128,9 +211,15 @@ const AdvertiseWithUs = () => {
           image_url: imageUrl,
           duration_hours: selectedPlan,
           price: selectedPlanData?.price || 0
-        }]);
+        }])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database insertion error:', error);
+        throw error;
+      }
+
+      console.log('Ad request inserted successfully:', data);
 
       toast({
         title: 'تم الإرسال بنجاح',
@@ -151,11 +240,11 @@ const AdvertiseWithUs = () => {
         navigate(-1);
       }, 2000);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting ad request:', error);
       toast({
         title: 'خطأ',
-        description: 'حدث خطأ أثناء إرسال الطلب',
+        description: error.message || 'حدث خطأ أثناء إرسال الطلب',
         variant: 'destructive'
       });
     } finally {
