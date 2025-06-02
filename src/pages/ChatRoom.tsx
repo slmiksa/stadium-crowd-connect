@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -464,10 +465,6 @@ const ChatRoom = () => {
                 {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
-            <VerificationBadge 
-              verificationStatus={message.profiles?.verification_status || null} 
-              size={12} 
-            />
           </div>
         )}
 
@@ -486,6 +483,23 @@ const ChatRoom = () => {
                 verificationStatus={message.profiles?.verification_status}
               />
               <ModeratorBadge isModerator={isModerator(message.user_id)} />
+            </div>
+          )}
+
+          {isOwnMessage && (
+            <div className="flex items-center gap-2 mb-1 justify-end">
+              <ModeratorBadge isModerator={isModerator(message.user_id)} />
+              <OwnerBadge 
+                isOwner={isOwner(message.user_id)} 
+                verificationStatus={currentUserProfile?.verification_status}
+              />
+              <VerificationBadge 
+                verificationStatus={currentUserProfile?.verification_status || null} 
+                size={14} 
+              />
+              <p className="text-sm font-medium text-gray-300">
+                {currentUserProfile?.username || user?.email || 'أنت'}
+              </p>
             </div>
           )}
 
@@ -545,10 +559,6 @@ const ChatRoom = () => {
                 {currentUserProfile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
-            <VerificationBadge 
-              verificationStatus={currentUserProfile?.verification_status || null} 
-              size={12} 
-            />
           </div>
         )}
       </div>
