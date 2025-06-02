@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import ImageCropModal from '@/components/ImageCropModal';
 import { useToast } from '@/hooks/use-toast';
+
 interface UserProfile {
   id: string;
   username: string;
@@ -267,9 +268,8 @@ const Profile = () => {
     try {
       const {
         error
-      } = await supabase.from('room_invitations').update({
-        status: 'rejected'
-      }).eq('id', invitationId);
+      } = await supabase.from('room_invitations').delete().eq('id', invitationId);
+      
       if (error) {
         console.error('Error rejecting invitation:', error);
         toast({
@@ -279,6 +279,7 @@ const Profile = () => {
         });
         return;
       }
+      
       toast({
         title: "تم",
         description: "تم رفض الدعوة"

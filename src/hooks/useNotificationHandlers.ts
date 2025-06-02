@@ -1,3 +1,4 @@
+
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -64,7 +65,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
       if (userId === user?.id) {
         navigate('/profile');
       } else {
-        navigate(`/user-profile/${userId}`);
+        navigate(`/profile/${userId}`);
       }
     }
   };
@@ -115,7 +116,11 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
       const userId = notification.data?.follower_id;
       if (userId) {
         console.log('Navigating to user profile:', userId);
-        navigate(`/user-profile/${userId}`);
+        if (userId === user?.id) {
+          navigate('/profile');
+        } else {
+          navigate(`/profile/${userId}`);
+        }
       } else {
         navigate('/hashtags');
       }
