@@ -20,12 +20,18 @@ const AdPopup = () => {
   useEffect(() => {
     console.log('AdPopup component mounted');
     checkForActiveAds();
+    
+    // فحص الإعلانات كل 30 ثانية للتحديث التلقائي
+    const interval = setInterval(checkForActiveAds, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const checkForActiveAds = async () => {
     try {
       console.log('Checking for active ads...');
       const currentTime = new Date();
+      console.log('Current time:', currentTime.toISOString());
       
       const { data, error } = await supabase
         .from('advertisements')
@@ -40,6 +46,8 @@ const AdPopup = () => {
       }
 
       if (data && data.length > 0) {
+        console.log('Found active ads:', data.length);
+        
         // Filter ads based on scheduling
         const validAds = data.filter(ad => {
           const isScheduled = !ad.scheduled_at || new Date(ad.scheduled_at) <= currentTime;
@@ -57,6 +65,8 @@ const AdPopup = () => {
           
           return isScheduled && notExpired;
         });
+
+        console.log('Valid ads after filtering:', validAds.length);
 
         if (validAds.length > 0) {
           // Random selection from valid ads
@@ -94,7 +104,7 @@ const AdPopup = () => {
           console.log('No valid ads found after filtering');
         }
       } else {
-        console.log('No ads found for popup');
+        console.log('No active ads found for popup');
       }
     } catch (error) {
       console.error('Error:', error);

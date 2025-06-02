@@ -24,13 +24,19 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
   useEffect(() => {
     console.log('InlineAd mounted with location:', location);
     fetchRandomAd();
+    
+    // فحص الإعلانات كل دقيقة للتحديث التلقائي  
+    const interval = setInterval(fetchRandomAd, 60000);
+    
+    return () => clearInterval(interval);
   }, [location]);
 
   const fetchRandomAd = async () => {
     try {
       setIsLoading(true);
+      const currentTime = new Date();
       console.log('Fetching ads from database...');
-      console.log('Current time:', new Date().toISOString());
+      console.log('Current time:', currentTime.toISOString());
       
       // Fetch all active ads
       const { data: allAds, error: allAdsError } = await supabase
@@ -38,18 +44,16 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
         .select('*')
         .eq('is_active', true);
       
-      console.log('Active ads found:', allAds);
+      console.log('Active ads found:', allAds?.length || 0);
       console.log('Active ads error:', allAdsError);
 
       if (allAds && allAds.length > 0) {
-        const currentTime = new Date();
-        
         // Filter ads based on scheduling
         const validAds = allAds.filter(ad => {
           const isScheduled = !ad.scheduled_at || new Date(ad.scheduled_at) <= currentTime;
           const notExpired = !ad.expires_at || new Date(ad.expires_at) > currentTime;
           
-          console.log(`Ad ${ad.id}:`, {
+          console.log(`Inline Ad ${ad.id} at ${location}:`, {
             title: ad.title,
             scheduled_at: ad.scheduled_at,
             expires_at: ad.expires_at,
@@ -62,26 +66,26 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
           return isScheduled && notExpired;
         });
 
-        console.log('Valid ads after filtering:', validAds);
+        console.log(`Valid ads for ${location} after filtering:`, validAds.length);
 
         if (validAds.length > 0) {
           // Random selection for distribution like X platform
           const randomAd = validAds[Math.floor(Math.random() * validAds.length)];
-          console.log('Selected random ad:', randomAd);
+          console.log(`Selected random ad for ${location}:`, randomAd.title);
           setAd(randomAd);
 
           // Record the view
           await recordAdView(randomAd.id, location);
         } else {
-          console.log('No valid ads found after date filtering');
+          console.log(`No valid ads found for ${location} after date filtering`);
           setAd(null);
         }
       } else {
-        console.log('No active ads found in database');
+        console.log(`No active ads found in database for ${location}`);
         setAd(null);
       }
     } catch (error) {
-      console.error('Error fetching ads:', error);
+      console.error(`Error fetching ads for ${location}:`, error);
       setAd(null);
     } finally {
       setIsLoading(false);
@@ -110,7 +114,7 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
     }
   };
 
-  console.log('InlineAd render state:', { isLoading, ad: !!ad, location });
+  console.log(`InlineAd render state for ${location}:`, { isLoading, ad: !!ad });
 
   // Don't render anything if loading or no ad
   if (isLoading || !ad) {
@@ -123,6 +127,9 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
         <div className="flex items-center justify-between mb-2">
           <span className="text-blue-400 text-xs font-medium bg-blue-500/20 px-2 py-1 rounded">
             إعلان
+          </span>
+          <span className="text-zinc-500 text-xs">
+            {location}
           </span>
         </div>
         
