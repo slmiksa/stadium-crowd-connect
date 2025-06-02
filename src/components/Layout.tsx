@@ -10,9 +10,9 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   
-  // Hide footer in chat rooms and private chat
-  const hiddenFooterPaths = ['/chat-room/', '/private-chat/'];
-  const shouldHideFooter = hiddenFooterPaths.some(path => location.pathname.includes(path));
+  // Hide footer in chat rooms, private chat, and hashtags page
+  const hiddenFooterPaths = ['/chat-room/', '/private-chat/', '/hashtags'];
+  const shouldHideFooter = hiddenFooterPaths.some(path => location.pathname.includes(path)) || location.pathname === '/hashtags';
 
   return (
     <div className="min-h-screen bg-zinc-900">
