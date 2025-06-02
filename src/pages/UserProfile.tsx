@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import HashtagPost from '@/components/HashtagPost';
 import VerificationBadge from '@/components/VerificationBadge';
-import { ArrowLeft, Users, Heart, MessageSquare, UserPlus, UserMinus } from 'lucide-react';
+import { ArrowLeft, Users, Heart, MessageSquare, UserPlus, UserMinus, Megaphone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -299,6 +300,23 @@ const UserProfile = () => {
         </div>
 
         <div className="p-4 space-y-6">
+          {/* زر أعلن معنا */}
+          <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-semibold mb-1">روّج لعملك معنا</h3>
+                <p className="text-zinc-400 text-sm">ابدأ حملتك الإعلانية الآن وصل لآلاف المستخدمين</p>
+              </div>
+              <button
+                onClick={() => navigate('/advertise-with-us')}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 flex items-center space-x-2 space-x-reverse"
+              >
+                <Megaphone className="h-4 w-4" />
+                <span>أعلن معنا</span>
+              </button>
+            </div>
+          </div>
+
           {/* Profile Card with Enhanced Design */}
           <Card className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 border-zinc-700/50 backdrop-blur-sm shadow-2xl">
             <CardContent className="p-8">
