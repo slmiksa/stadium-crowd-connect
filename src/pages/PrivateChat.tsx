@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -195,9 +196,9 @@ const PrivateChat = () => {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 flex flex-col">
+    <div className="min-h-screen bg-zinc-900 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-zinc-800 border-b border-zinc-700 p-4">
+      <div className="bg-zinc-800 border-b border-zinc-700 p-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button 
@@ -278,7 +279,7 @@ const PrivateChat = () => {
       </div>
 
       {/* Message Input */}
-      <div className="bg-zinc-800 border-t border-zinc-700 p-4">
+      <div className="bg-zinc-800 border-t border-zinc-700 p-4 flex-shrink-0">
         <form onSubmit={sendMessage} className="flex space-x-2">
           <Input
             value={newMessage}

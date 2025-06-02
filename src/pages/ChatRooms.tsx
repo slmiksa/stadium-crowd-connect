@@ -247,7 +247,7 @@ const ChatRooms = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 overflow-y-auto">
         <div className="p-6 pb-32">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">

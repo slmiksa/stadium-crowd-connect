@@ -101,7 +101,7 @@ const ReportButton: React.FC<ReportButtonProps> = ({ type, targetId, size = 'sm'
           <Flag size={size === 'sm' ? 14 : 16} />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-w-[95vw] mx-auto">
         <DialogHeader>
           <DialogTitle>إبلاغ عن محتوى</DialogTitle>
           <DialogDescription>
