@@ -91,6 +91,10 @@ const App = () => (
                   </Layout>
                 </AuthGuard>
               } />
+              
+              {/* Redirect old route to new route */}
+              <Route path="/user-profile/:userId" element={<Navigate to="/profile/:userId" replace />} />
+              
               <Route path="/edit-profile" element={
                 <AuthGuard>
                   <Layout>
