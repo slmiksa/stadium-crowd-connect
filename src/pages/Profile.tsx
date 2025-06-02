@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Layout from '@/components/Layout';
 import VerificationBadge from '@/components/VerificationBadge';
-import { Camera, Edit3, Users, MessageSquare, Hash, Settings, LogOut, Trash2, Crown, Mail, Key, Check, X } from 'lucide-react';
+import { Camera, Edit3, Users, MessageSquare, Hash, Settings, LogOut, Trash2, Crown, Mail, Key, Check, X, Megaphone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -442,6 +442,23 @@ const Profile = () => {
 
         {/* Profile content */}
         <div className="relative px-4 -mt-16">
+          {/* زر أعلن معنا */}
+          <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-semibold mb-1">روّج لعملك معنا</h3>
+                <p className="text-zinc-400 text-sm">ابدأ حملتك الإعلانية الآن وصل لآلاف المستخدمين</p>
+              </div>
+              <button
+                onClick={() => navigate('/advertise-with-us')}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 flex items-center space-x-2 space-x-reverse"
+              >
+                <Megaphone className="h-4 w-4" />
+                <span>أعلن معنا</span>
+              </button>
+            </div>
+          </div>
+
           {/* Avatar */}
           <div className="flex justify-center mb-4">
             <div className="relative">
