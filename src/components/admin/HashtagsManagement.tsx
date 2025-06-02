@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -80,52 +79,65 @@ const HashtagsManagement = () => {
 
     setIsUpdating(true);
     try {
-      // استخدام استعلام SQL مباشر بدلاً من الدالة
-      const { error } = await supabase
+      console.log('Updating trend threshold to:', newThreshold);
+      
+      // أولاً، إعادة تعيين جميع الهاشتاقات لتكون غير ترند
+      const { error: resetError } = await supabase
         .from('hashtag_trends')
-        .update({ is_trending: false });
+        .update({ 
+          is_trending: false,
+          updated_at: new Date().toISOString()
+        })
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // تحديث جميع الصفوف
 
-      if (error) {
-        console.error('Error updating threshold step 1:', error);
+      if (resetError) {
+        console.error('Error resetting trending status:', resetError);
         toast({
           title: 'خطأ',
-          description: 'حدث خطأ أثناء تحديث الحد الأدنى',
+          description: 'حدث خطأ أثناء إعادة تعيين حالة الترند',
           variant: 'destructive'
         });
         setIsUpdating(false);
         return;
       }
 
-      // تحديث حالة الترند للهاشتاقات التي تتجاوز الحد الجديد
-      const { error: error2 } = await supabase
+      console.log('Successfully reset all trending status');
+
+      // ثانياً، تحديث الهاشتاقات التي تتجاوز الحد الجديد لتصبح ترند
+      const { error: updateError } = await supabase
         .from('hashtag_trends')
-        .update({ is_trending: true })
+        .update({ 
+          is_trending: true,
+          updated_at: new Date().toISOString()
+        })
         .gte('posts_count', newThreshold);
 
-      if (error2) {
-        console.error('Error updating threshold step 2:', error2);
+      if (updateError) {
+        console.error('Error updating trending hashtags:', updateError);
         toast({
           title: 'خطأ',
-          description: 'حدث خطأ أثناء تحديث الحد الأدنى',
+          description: 'حدث خطأ أثناء تحديث الهاشتاقات الترند',
           variant: 'destructive'
         });
         setIsUpdating(false);
         return;
       }
+
+      console.log('Successfully updated trending hashtags');
 
       setTrendThreshold(newThreshold);
       toast({
-        title: 'تم التحديث',
+        title: 'تم التحديث بنجاح',
         description: `تم تحديث الحد الأدنى للترند إلى ${newThreshold} منشور`
       });
 
-      // إعادة تحميل البيانات
+      // إعادة تحميل البيانات لإظهار التحديثات
       await fetchData();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Unexpected error:', error);
       toast({
-        title: 'خطأ',
-        description: 'حدث خطأ غير متوقع',
+        title: 'خطأ غير متوقع',
+        description: 'حدث خطأ غير متوقع أثناء التحديث',
         variant: 'destructive'
       });
     } finally {
