@@ -7,6 +7,7 @@ import { ArrowLeft, Send, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import VerificationBadge from '@/components/VerificationBadge';
 
 interface Message {
   id: string;
@@ -18,6 +19,7 @@ interface Message {
   sender_profile: {
     username: string;
     avatar_url?: string;
+    verification_status?: string;
   };
 }
 
@@ -25,6 +27,7 @@ interface UserProfile {
   id: string;
   username: string;
   avatar_url?: string;
+  verification_status?: string;
 }
 
 const PrivateChat = () => {
@@ -79,7 +82,7 @@ const PrivateChat = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url')
+        .select('id, username, avatar_url, verification_status')
         .eq('id', userId)
         .single();
 
@@ -103,7 +106,7 @@ const PrivateChat = () => {
         .from('private_messages')
         .select(`
           *,
-          sender_profile:profiles!private_messages_sender_id_fkey(username, avatar_url)
+          sender_profile:profiles!private_messages_sender_id_fkey(username, avatar_url, verification_status)
         `)
         .or(`and(sender_id.eq.${user?.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user?.id})`)
         .order('created_at', { ascending: true });
@@ -208,13 +211,19 @@ const PrivateChat = () => {
               <ArrowLeft size={20} className="text-white" />
             </button>
             <Avatar className="w-10 h-10">
-              <AvatarImage src={otherUser.avatar_url} alt={otherUser.username} />
+              <AvatarImage src={otherUser?.avatar_url} alt={otherUser?.username} />
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-green-500 text-white">
-                {otherUser.username?.charAt(0).toUpperCase() || 'U'}
+                {otherUser?.username?.charAt(0).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-lg font-bold text-white">{otherUser.username}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold text-white">{otherUser?.username}</h1>
+                <VerificationBadge 
+                  verificationStatus={otherUser?.verification_status || null} 
+                  size={16} 
+                />
+              </div>
             </div>
           </div>
           <button
@@ -241,12 +250,18 @@ const PrivateChat = () => {
               className={`flex items-start space-x-3 ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
             >
               {message.sender_id !== user?.id && (
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={message.sender_profile?.avatar_url} alt={message.sender_profile?.username} />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                    {message.sender_profile?.username?.charAt(0).toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="flex flex-col items-center gap-1">
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={message.sender_profile?.avatar_url} alt={message.sender_profile?.username} />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                      {message.sender_profile?.username?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <VerificationBadge 
+                    verificationStatus={message.sender_profile?.verification_status || null} 
+                    size={12} 
+                  />
+                </div>
               )}
               
               <div 

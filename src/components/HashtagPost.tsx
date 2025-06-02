@@ -261,7 +261,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
               </button>
               <VerificationBadge 
                 verificationStatus={post.profiles?.verification_status || null} 
-                size={14} 
+                size={16} 
               />
             </div>
             <p className="text-xs text-gray-500">{formatTimestamp(post.created_at)}</p>
@@ -280,7 +280,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
           </button>
           
           {showMenu && (
-            <div className="absolute left-0 top-8 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px] overflow-hidden">
+            <div className="absolute right-0 top-8 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px] overflow-hidden">
               {post.user_id === user?.id ? (
                 <button
                   onClick={(e) => {

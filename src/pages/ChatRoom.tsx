@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -215,24 +214,30 @@ const ChatRoom = () => {
 
   const fetchMessages = async () => {
     try {
-      console.log('Fetching messages for room:', roomId);
-      
       const { data, error } = await supabase
         .from('room_messages')
         .select(`
           *,
-          profiles (username, avatar_url, verification_status)
+          profiles:user_id (
+            id,
+            username,
+            avatar_url,
+            verification_status
+          ),
+          room_members:user_id (
+            role
+          )
         `)
         .eq('room_id', roomId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) {
         console.error('Error fetching messages:', error);
         return;
       }
 
-      console.log('Fetched room messages:', data);
-      setMessages(data || []);
+      setMessages(data?.reverse() || []);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -431,6 +436,73 @@ const ChatRoom = () => {
     }
   };
 
+  const renderMessage = (message: any) => {
+    const isOwnMessage = message.user_id === user?.id;
+    const senderRole = message.room_members?.role || 'member';
+
+    return (
+      <div
+        key={message.id}
+        className={`flex items-start space-x-3 ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4`}
+      >
+        {!isOwnMessage && (
+          <div className="flex flex-col items-center gap-1">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <VerificationBadge 
+              verificationStatus={message.profiles?.verification_status || null} 
+              size={12} 
+            />
+          </div>
+        )}
+
+        <div className={`max-w-xs lg:max-w-md ${isOwnMessage ? 'order-first' : ''}`}>
+          {!isOwnMessage && (
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-sm font-medium text-gray-300">
+                {message.profiles?.username || 'مستخدم مجهول'}
+              </p>
+              <VerificationBadge 
+                verificationStatus={message.profiles?.verification_status || null} 
+                size={14} 
+              />
+              {senderRole === 'owner' && <OwnerBadge />}
+              {senderRole === 'moderator' && <ModeratorBadge />}
+            </div>
+          )}
+
+          <div
+            className={`px-4 py-2 rounded-lg ${
+              isOwnMessage
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-700 text-white'
+            }`}
+          >
+            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+            <p className={`text-xs mt-1 ${
+              isOwnMessage ? 'text-blue-100' : 'text-gray-400'
+            }`}>
+              {formatTimestamp(message.created_at)}
+            </p>
+          </div>
+        </div>
+
+        {isOwnMessage && (
+          <Avatar className="w-8 h-8">
+            <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.email} />
+            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+              {user?.email?.charAt(0).toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-zinc-900 flex flex-col relative">
       {/* Fixed Header */}
@@ -486,99 +558,7 @@ const ChatRoom = () => {
 
       {/* Messages Container with proper scrolling */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
-        {messages.map((message) => (
-          <div key={message.id} className="flex items-start space-x-3 group">
-            <div 
-              className="cursor-pointer"
-              onClick={() => navigateToUserProfile(message.user_id)}
-            >
-              <Avatar className="w-8 h-8 flex-shrink-0">
-                <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                  {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-2 mb-1">
-                <span 
-                  className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
-                  onClick={() => navigateToUserProfile(message.user_id)}
-                >
-                  {message.profiles?.username || 'مستخدم مجهول'}
-                </span>
-                <OwnerBadge isOwner={isOwner(message.user_id)} />
-                <ModeratorBadge isModerator={isModerator(message.user_id)} />
-                <VerificationBadge 
-                  verificationStatus={message.profiles?.verification_status || null} 
-                  size={12} 
-                />
-                <span className="text-xs text-zinc-500">
-                  {formatTimestamp(message.created_at)}
-                </span>
-                <button
-                  onClick={() => quoteMessage(message)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
-                >
-                  <Quote size={14} className="text-zinc-400" />
-                </button>
-              </div>
-              
-              {/* Media Display */}
-              {message.media_url && (
-                <div className="mb-2">
-                  {message.media_type === 'image' ? (
-                    <img 
-                      src={message.media_url} 
-                      alt="صورة مرسلة" 
-                      className="max-w-xs max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity border border-zinc-600"
-                      onClick={() => openImageModal(message.media_url!)}
-                      onError={(e) => {
-                        console.error('Image failed to load:', message.media_url);
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  ) : message.media_type === 'video' ? (
-                    <video 
-                      src={message.media_url} 
-                      className="max-w-xs max-h-64 rounded-lg border border-zinc-600" 
-                      controls
-                      onError={(e) => {
-                        console.error('Video failed to load:', message.media_url);
-                      }}
-                    />
-                  ) : (
-                    <a 
-                      href={message.media_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:underline inline-flex items-center bg-zinc-700 px-3 py-2 rounded-lg"
-                    >
-                      📎 عرض المرفق
-                    </a>
-                  )}
-                </div>
-              )}
-              
-              {/* Message Content */}
-              {message.content && (
-                <div className="text-zinc-300 break-words">
-                  {message.content.split('\n').map((line, index) => (
-                    <div key={index}>
-                      {line.startsWith('> ') ? (
-                        <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic bg-zinc-800 rounded-r-lg p-2">
-                          {line.substring(2)}
-                        </div>
-                      ) : (
-                        <span>{line}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+        {messages.map(renderMessage)}
         <div ref={messagesEndRef} />
       </div>
 
