@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -182,7 +181,7 @@ const Hashtags = () => {
               {post.profiles?.username || 'مستخدم مجهول'}
             </button>
             {post.profiles?.verification_status && post.profiles.verification_status !== 'none' && (
-              <VerificationBadge status={post.profiles.verification_status} />
+              <VerificationBadge verificationStatus={post.profiles.verification_status} />
             )}
           </div>
           <HashtagPost 
