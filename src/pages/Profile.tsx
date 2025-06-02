@@ -641,7 +641,7 @@ const Profile = () => {
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button onClick={() => navigate(`/chat-room/${room.id}`)} size="sm" className="bg-blue-500 hover:bg-blue-600">
+                      <Button onClick={() => navigate(`/chat-room/${room.id}`)} size="sm" className="bg-blue-500 hover:bg-blue-600 text-slate-50">
                         دخول
                       </Button>
                       <Button onClick={() => handleDeleteRoom(room.id)} size="sm" variant="destructive" className="bg-red-500 hover:bg-red-600">
