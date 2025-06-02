@@ -59,6 +59,8 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
       userId = notification.data?.creator_id;
     } else if (notification.type === 'room_invitation') {
       userId = notification.data?.inviter_id;
+    } else if (notification.type === 'message') {
+      userId = notification.data?.sender_id;
     }
 
     if (userId) {
@@ -78,6 +80,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
     }
 
     if (notification.data?.post_id) {
+      // تأكد من استخدام المسار الصحيح للمنشور
       navigate(`/post/${notification.data.post_id}`);
     }
   };
@@ -91,6 +94,22 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
 
     if (notification.data?.room_id) {
       navigate(`/chat-room/${notification.data.room_id}`);
+    }
+  };
+
+  const handleMessageClick = (notification: Notification, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!notification.is_read) {
+      markAsRead(notification.id);
+    }
+
+    // للرسائل الخاصة، الذهاب للمحادثة مع المرسل
+    if (notification.data?.sender_id) {
+      navigate(`/private-chat/${notification.data.sender_id}`);
+    } else {
+      // fallback للرسائل العامة
+      navigate('/messages');
     }
   };
 
@@ -125,8 +144,14 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
         navigate('/hashtags');
       }
     } else if (notification.type === 'message') {
-      console.log('Navigating to messages');
-      navigate('/messages');
+      // للرسائل، الذهاب للمحادثة الخاصة مع المرسل
+      if (notification.data?.sender_id) {
+        console.log('Navigating to private chat with:', notification.data.sender_id);
+        navigate(`/private-chat/${notification.data.sender_id}`);
+      } else {
+        console.log('No sender_id found, going to messages');
+        navigate('/messages');
+      }
     } else if (notification.type === 'chat_room') {
       if (notification.data?.room_id) {
         console.log('Navigating to chat room:', notification.data.room_id);
@@ -149,6 +174,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
     handleProfileClick,
     handlePostClick,
     handleRoomClick,
+    handleMessageClick,
     handleNotificationClick
   };
 };

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Bell, MessageSquare, Users, Heart, UserPlus, Plus, Key, LogIn, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -243,6 +244,34 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2">
+            {/* Message notifications - show both profile and chat buttons */}
+            {notification.type === 'message' && (
+              <div className="flex flex-col gap-2 w-full">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => onProfileClick(notification, e)}
+                  className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto w-full"
+                >
+                  زيارة بروفايل المرسل
+                </Button>
+                
+                {notification.data?.sender_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = `/private-chat/${notification.data.sender_id}`;
+                    }}
+                    className="bg-purple-600/20 border-purple-500/30 text-purple-400 hover:bg-purple-600/30 hover:text-purple-300 text-xs px-3 py-1 h-auto w-full"
+                  >
+                    الذهاب إلى المحادثة
+                  </Button>
+                )}
+              </div>
+            )}
+
             {/* Comment notifications - show both profile and post buttons */}
             {(notification.type === 'comment' || notification.type === 'follower_comment') && (
               <div className="flex flex-col gap-2 w-full">

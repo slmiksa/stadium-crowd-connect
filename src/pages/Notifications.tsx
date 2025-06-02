@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 const Notifications = () => {
   const { user } = useAuth();
   const { notifications, isLoading, markAsRead, markAllAsRead } = useNotifications();
-  const { handleProfileClick, handlePostClick, handleRoomClick, handleNotificationClick } = useNotificationHandlers(markAsRead);
+  const { handleProfileClick, handlePostClick, handleRoomClick, handleMessageClick, handleNotificationClick } = useNotificationHandlers(markAsRead);
   const { toast } = useToast();
   
   // تفعيل نظام إشعارات التوثيق
