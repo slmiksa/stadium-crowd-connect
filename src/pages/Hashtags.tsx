@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -8,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Hash, TrendingUp, Sparkles, Plus, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface HashtagPostWithProfile {
   id: string;
@@ -425,10 +425,10 @@ const Hashtags = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 flex flex-col">
+        <div className="max-w-4xl mx-auto flex flex-col h-screen">
           {/* Header */}
-          <div className="p-6 border-b border-gray-800/50 bg-black/50 backdrop-blur-sm sticky top-0 z-10">
+          <div className="p-6 border-b border-gray-800/50 bg-black/50 backdrop-blur-sm flex-shrink-0">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl border border-blue-500/30">
@@ -487,59 +487,64 @@ const Hashtags = () => {
             </div>
           </div>
 
-          {/* Search Results */}
-          {searchTerm.trim() && (
-            <div className="p-6">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Search size={20} />
-                نتائج البحث
-              </h2>
-              
-              {/* Hashtag suggestions */}
-              {searchResults.hashtags.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-300 mb-3">هاشتاقات مقترحة:</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {searchResults.hashtags.map((hashtag) => (
-                      <button
-                        key={hashtag}
-                        onClick={() => navigate(`/hashtag/${hashtag}`)}
-                        className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-full border border-blue-500/30 transition-all duration-200 hover:scale-105"
-                      >
-                        #{hashtag}
-                      </button>
-                    ))}
+          {/* Content Area with Scroll */}
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+              {/* Search Results */}
+              {searchTerm.trim() && (
+                <div className="p-6">
+                  <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <Search size={20} />
+                    نتائج البحث
+                  </h2>
+                  
+                  {/* Hashtag suggestions */}
+                  {searchResults.hashtags.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-300 mb-3">هاشتاقات مقترحة:</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {searchResults.hashtags.map((hashtag) => (
+                          <button
+                            key={hashtag}
+                            onClick={() => navigate(`/hashtag/${hashtag}`)}
+                            className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-full border border-blue-500/30 transition-all duration-200 hover:scale-105"
+                          >
+                            #{hashtag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Search results posts */}
+                  <div className="space-y-4">
+                    {searchResults.posts.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50">
+                          <Search size={48} className="mx-auto text-gray-400 mb-4" />
+                          <p className="text-gray-400 text-lg">لا توجد نتائج للبحث</p>
+                          <p className="text-gray-500 text-sm mt-2">جرب البحث بكلمات مختلفة</p>
+                        </div>
+                      </div>
+                    ) : (
+                      searchResults.posts.map(renderPost)
+                    )}
                   </div>
                 </div>
               )}
-              
-              {/* Search results posts */}
-              <div className="space-y-4">
-                {searchResults.posts.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50">
-                      <Search size={48} className="mx-auto text-gray-400 mb-4" />
-                      <p className="text-gray-400 text-lg">لا توجد نتائج للبحث</p>
-                      <p className="text-gray-500 text-sm mt-2">جرب البحث بكلمات مختلفة</p>
-                    </div>
-                  </div>
-                ) : (
-                  searchResults.posts.map(renderPost)
-                )}
-              </div>
-            </div>
-          )}
 
-          {/* Main Content - only show when not searching */}
-          {!searchTerm.trim() && (
-            <HashtagTabs
-              popularPosts={popularPosts}
-              trendingHashtags={trendingHashtags}
-              onPostLikeChange={handlePostLikeChange}
-              renderPost={renderPost}
-              renderTrendingHashtag={renderTrendingHashtag}
-            />
-          )}
+              {/* Main Content - only show when not searching */}
+              {!searchTerm.trim() && (
+                <HashtagTabs
+                  popularPosts={popularPosts}
+                  trendingHashtags={trendingHashtags}
+                  onPostLikeChange={handlePostLikeChange}
+                  renderPost={renderPost}
+                  renderTrendingHashtag={renderTrendingHashtag}
+                />
+              )}
+            </ScrollArea>
+          </div>
         </div>
       </div>
     </Layout>

@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Message {
   id: string;
@@ -477,105 +478,107 @@ const ChatRoom = () => {
 
       {/* Announcement - with top margin for fixed header */}
       {roomInfo?.announcement && (
-        <div className="mt-20">
+        <div className="mt-20 flex-shrink-0">
           <ChatRoomAnnouncement announcement={roomInfo.announcement} />
         </div>
       )}
 
-      {/* Messages Container - with proper spacing */}
+      {/* Messages Container - with proper scrolling */}
       <div className={`flex-1 ${roomInfo?.announcement ? 'mt-0' : 'mt-20'} mb-24 overflow-hidden`}>
-        <div className="h-full overflow-y-auto p-4 space-y-4">
-          {messages.map((message) => (
-            <div key={message.id} className="flex items-start space-x-3 group">
-              <div 
-                className="cursor-pointer"
-                onClick={() => navigateToUserProfile(message.user_id)}
-              >
-                <Avatar className="w-8 h-8 flex-shrink-0">
-                  <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                    {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span 
-                    className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
-                    onClick={() => navigateToUserProfile(message.user_id)}
-                  >
-                    {message.profiles?.username || 'مستخدم مجهول'}
-                  </span>
-                  <OwnerBadge isOwner={isOwner(message.user_id)} />
-                  <ModeratorBadge isModerator={isModerator(message.user_id)} />
-                  <span className="text-xs text-zinc-500">
-                    {formatTimestamp(message.created_at)}
-                  </span>
-                  <button
-                    onClick={() => quoteMessage(message)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
-                  >
-                    <Quote size={14} className="text-zinc-400" />
-                  </button>
+        <ScrollArea className="h-full">
+          <div className="p-4 space-y-4">
+            {messages.map((message) => (
+              <div key={message.id} className="flex items-start space-x-3 group">
+                <div 
+                  className="cursor-pointer"
+                  onClick={() => navigateToUserProfile(message.user_id)}
+                >
+                  <Avatar className="w-8 h-8 flex-shrink-0">
+                    <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                      {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
-                
-                {/* Media Display */}
-                {message.media_url && (
-                  <div className="mb-2">
-                    {message.media_type === 'image' ? (
-                      <img 
-                        src={message.media_url} 
-                        alt="صورة مرسلة" 
-                        className="max-w-xs max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity border border-zinc-600"
-                        onClick={() => openImageModal(message.media_url!)}
-                        onError={(e) => {
-                          console.error('Image failed to load:', message.media_url);
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : message.media_type === 'video' ? (
-                      <video 
-                        src={message.media_url} 
-                        className="max-w-xs max-h-64 rounded-lg border border-zinc-600" 
-                        controls
-                        onError={(e) => {
-                          console.error('Video failed to load:', message.media_url);
-                        }}
-                      />
-                    ) : (
-                      <a 
-                        href={message.media_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:underline inline-flex items-center bg-zinc-700 px-3 py-2 rounded-lg"
-                      >
-                        📎 عرض المرفق
-                      </a>
-                    )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span 
+                      className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors"
+                      onClick={() => navigateToUserProfile(message.user_id)}
+                    >
+                      {message.profiles?.username || 'مستخدم مجهول'}
+                    </span>
+                    <OwnerBadge isOwner={isOwner(message.user_id)} />
+                    <ModeratorBadge isModerator={isModerator(message.user_id)} />
+                    <span className="text-xs text-zinc-500">
+                      {formatTimestamp(message.created_at)}
+                    </span>
+                    <button
+                      onClick={() => quoteMessage(message)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-700 rounded"
+                    >
+                      <Quote size={14} className="text-zinc-400" />
+                    </button>
                   </div>
-                )}
-                
-                {/* Message Content */}
-                {message.content && (
-                  <div className="text-zinc-300 break-words">
-                    {message.content.split('\n').map((line, index) => (
-                      <div key={index}>
-                        {line.startsWith('> ') ? (
-                          <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic bg-zinc-800 rounded-r-lg p-2">
-                            {line.substring(2)}
-                          </div>
-                        ) : (
-                          <span>{line}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  
+                  {/* Media Display */}
+                  {message.media_url && (
+                    <div className="mb-2">
+                      {message.media_type === 'image' ? (
+                        <img 
+                          src={message.media_url} 
+                          alt="صورة مرسلة" 
+                          className="max-w-xs max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity border border-zinc-600"
+                          onClick={() => openImageModal(message.media_url!)}
+                          onError={(e) => {
+                            console.error('Image failed to load:', message.media_url);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : message.media_type === 'video' ? (
+                        <video 
+                          src={message.media_url} 
+                          className="max-w-xs max-h-64 rounded-lg border border-zinc-600" 
+                          controls
+                          onError={(e) => {
+                            console.error('Video failed to load:', message.media_url);
+                          }}
+                        />
+                      ) : (
+                        <a 
+                          href={message.media_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline inline-flex items-center bg-zinc-700 px-3 py-2 rounded-lg"
+                        >
+                          📎 عرض المرفق
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Message Content */}
+                  {message.content && (
+                    <div className="text-zinc-300 break-words">
+                      {message.content.split('\n').map((line, index) => (
+                        <div key={index}>
+                          {line.startsWith('> ') ? (
+                            <div className="border-l-4 border-zinc-600 pl-3 mb-2 text-zinc-400 italic bg-zinc-800 rounded-r-lg p-2">
+                              {line.substring(2)}
+                            </div>
+                          ) : (
+                            <span>{line}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
       </div>
 
       {/* Fixed Input Area at Bottom */}
