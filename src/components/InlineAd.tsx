@@ -25,8 +25,8 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
     console.log('InlineAd mounted with location:', location);
     fetchRandomAd();
     
-    // فحص الإعلانات كل دقيقة للتحديث التلقائي  
-    const interval = setInterval(fetchRandomAd, 60000);
+    // فحص الإعلانات كل 30 ثانية للتحديث السريع
+    const interval = setInterval(fetchRandomAd, 30000);
     
     return () => clearInterval(interval);
   }, [location]);
@@ -35,32 +35,39 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
     try {
       setIsLoading(true);
       const currentTime = new Date();
-      console.log('Fetching ads from database...');
+      console.log('Fetching ads from database for location:', location);
       console.log('Current time:', currentTime.toISOString());
       
-      // Fetch all active ads
+      // جلب جميع الإعلانات النشطة
       const { data: allAds, error: allAdsError } = await supabase
         .from('advertisements')
         .select('*')
         .eq('is_active', true);
       
       console.log('Active ads found:', allAds?.length || 0);
-      console.log('Active ads error:', allAdsError);
+      console.log('Active ads data:', allAds);
 
       if (allAds && allAds.length > 0) {
-        // Filter ads based on scheduling
+        // تصفية الإعلانات حسب الجدولة مع معالجة محسنة
         const validAds = allAds.filter(ad => {
-          const isScheduled = !ad.scheduled_at || new Date(ad.scheduled_at) <= currentTime;
-          const notExpired = !ad.expires_at || new Date(ad.expires_at) > currentTime;
+          const scheduledTime = ad.scheduled_at ? new Date(ad.scheduled_at) : null;
+          const expiryTime = ad.expires_at ? new Date(ad.expires_at) : null;
           
-          console.log(`Inline Ad ${ad.id} at ${location}:`, {
-            title: ad.title,
+          // الإعلان يظهر إذا:
+          // 1. لا يوجد وقت بداية محدد أو وقت البداية قد حان
+          // 2. لا يوجد وقت انتهاء أو وقت الانتهاء لم يحن بعد
+          const isScheduled = !scheduledTime || scheduledTime <= currentTime;
+          const notExpired = !expiryTime || expiryTime > currentTime;
+          
+          console.log(`Ad ${ad.id} "${ad.title}" for ${location}:`, {
             scheduled_at: ad.scheduled_at,
             expires_at: ad.expires_at,
+            scheduledTime: scheduledTime?.toISOString(),
+            expiryTime: expiryTime?.toISOString(),
             current_time: currentTime.toISOString(),
             isScheduled,
             notExpired,
-            canShow: isScheduled && notExpired
+            shouldShow: isScheduled && notExpired
           });
           
           return isScheduled && notExpired;
@@ -69,15 +76,15 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
         console.log(`Valid ads for ${location} after filtering:`, validAds.length);
 
         if (validAds.length > 0) {
-          // Random selection for distribution like X platform
+          // اختيار عشوائي للتنويع
           const randomAd = validAds[Math.floor(Math.random() * validAds.length)];
           console.log(`Selected random ad for ${location}:`, randomAd.title);
           setAd(randomAd);
 
-          // Record the view
+          // تسجيل المشاهدة
           await recordAdView(randomAd.id, location);
         } else {
-          console.log(`No valid ads found for ${location} after date filtering`);
+          console.log(`No valid ads found for ${location} after filtering`);
           setAd(null);
         }
       } else {
@@ -116,7 +123,7 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
 
   console.log(`InlineAd render state for ${location}:`, { isLoading, ad: !!ad });
 
-  // Don't render anything if loading or no ad
+  // لا نعرض شيئاً إذا كان التحميل مستمراً أو لا يوجد إعلان
   if (isLoading || !ad) {
     return null;
   }

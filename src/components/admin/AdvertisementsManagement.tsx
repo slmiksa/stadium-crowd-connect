@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -136,16 +135,21 @@ const AdvertisementsManagement = () => {
 
       const admin = JSON.parse(adminData);
       
+      // إعداد البيانات مع معالجة التواريخ بشكل صحيح
       const adData = {
         title: formData.title.trim(),
         description: formData.description.trim() || null,
         image_url: formData.image_url.trim(),
         link_url: formData.link_url.trim() || null,
         is_active: formData.is_active,
-        scheduled_at: formData.scheduled_at || null,
-        expires_at: formData.expires_at || null,
+        // البدء مباشرة إذا لم يتم تحديد وقت
+        scheduled_at: formData.scheduled_at ? new Date(formData.scheduled_at).toISOString() : new Date().toISOString(),
+        // الانتهاء حسب التاريخ المحدد أو null للاستمرار إلى ما لا نهاية
+        expires_at: formData.expires_at ? new Date(formData.expires_at).toISOString() : null,
         admin_id: admin.id
       };
+
+      console.log('Saving ad data:', adData);
 
       if (editingAd) {
         const { error } = await supabase
@@ -168,7 +172,7 @@ const AdvertisementsManagement = () => {
 
         toast({
           title: 'تم الإنشاء',
-          description: 'تم إنشاء الإعلان بنجاح'
+          description: 'تم إنشاء الإعلان بنجاح وسيظهر فوراً'
         });
       }
 
@@ -188,14 +192,28 @@ const AdvertisementsManagement = () => {
 
   const handleEdit = (ad: Advertisement) => {
     setEditingAd(ad);
+    
+    // تحويل التواريخ بشكل صحيح للنموذج
+    const formatDateForInput = (dateString: string | null) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      // تنسيق التاريخ والوقت للحقل datetime-local
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
     setFormData({
       title: ad.title,
       description: ad.description || '',
       image_url: ad.image_url,
       link_url: ad.link_url || '',
       is_active: ad.is_active,
-      scheduled_at: ad.scheduled_at ? ad.scheduled_at.split('.')[0] : '',
-      expires_at: ad.expires_at ? ad.expires_at.split('.')[0] : ''
+      scheduled_at: formatDateForInput(ad.scheduled_at),
+      expires_at: formatDateForInput(ad.expires_at)
     });
     setShowForm(true);
   };
@@ -354,6 +372,9 @@ const AdvertisementsManagement = () => {
             <CardTitle className="text-white">
               {editingAd ? 'تعديل الإعلان' : 'إنشاء إعلان جديد'}
             </CardTitle>
+            <CardDescription className="text-zinc-400">
+              {editingAd ? 'تعديل بيانات الإعلان' : 'سيبدأ الإعلان فوراً ما لم تحدد وقت بداية'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -406,7 +427,7 @@ const AdvertisementsManagement = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="scheduled_at" className="text-white">وقت الإرسال</Label>
+                  <Label htmlFor="scheduled_at" className="text-white">وقت البداية (اتركه فارغ للبدء فوراً)</Label>
                   <Input
                     id="scheduled_at"
                     type="datetime-local"
@@ -417,7 +438,7 @@ const AdvertisementsManagement = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="expires_at" className="text-white">تاريخ الانتهاء</Label>
+                  <Label htmlFor="expires_at" className="text-white">تاريخ الانتهاء (اتركه فارغ للاستمرار دائماً)</Label>
                   <Input
                     id="expires_at"
                     type="datetime-local"
@@ -499,7 +520,10 @@ const AdvertisementsManagement = () => {
                       <div className="flex items-center space-x-4 space-x-reverse text-xs text-zinc-500 mt-1">
                         <span>تم الإنشاء: {new Date(ad.created_at).toLocaleDateString('ar')}</span>
                         {ad.scheduled_at && (
-                          <span>الإرسال: {new Date(ad.scheduled_at).toLocaleDateString('ar')}</span>
+                          <span>البداية: {new Date(ad.scheduled_at).toLocaleString('ar')}</span>
+                        )}
+                        {ad.expires_at && (
+                          <span>النهاية: {new Date(ad.expires_at).toLocaleString('ar')}</span>
                         )}
                       </div>
                     </div>
