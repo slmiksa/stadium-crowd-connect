@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import Layout from '@/components/Layout';
 import MediaInput from '@/components/MediaInput';
 import OwnerBadge from '@/components/OwnerBadge';
 import ModeratorBadge from '@/components/ModeratorBadge';
@@ -429,9 +428,9 @@ const ChatRoom = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-900 flex flex-col">
-      {/* Header */}
-      <div className="bg-zinc-800 border-b border-zinc-700 p-4 flex-shrink-0 pt-safe-top">
+    <div className="min-h-screen bg-zinc-900 flex flex-col relative">
+      {/* Fixed Header */}
+      <div className="fixed top-0 left-0 right-0 bg-zinc-800 border-b border-zinc-700 p-4 z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button 
@@ -463,7 +462,6 @@ const ChatRoom = () => {
                 <Settings size={20} className="text-white" />
               </button>
             )}
-            {/* Leave Room Button - only show if user is not the owner */}
             {user?.id !== roomInfo?.owner_id && (
               <button 
                 onClick={leaveRoom}
@@ -477,16 +475,16 @@ const ChatRoom = () => {
         </div>
       </div>
 
-      {/* Announcement */}
+      {/* Announcement - with top margin for fixed header */}
       {roomInfo?.announcement && (
-        <div className="flex-shrink-0">
+        <div className="mt-20">
           <ChatRoomAnnouncement announcement={roomInfo.announcement} />
         </div>
       )}
 
-      {/* Messages Container */}
-      <div className="flex-1 overflow-hidden pb-20">
-        <div className="h-full overflow-y-auto p-4 space-y-4" style={{ paddingBottom: '100px' }}>
+      {/* Messages Container - with proper spacing */}
+      <div className={`flex-1 ${roomInfo?.announcement ? 'mt-0' : 'mt-20'} mb-24 overflow-hidden`}>
+        <div className="h-full overflow-y-auto p-4 space-y-4">
           {messages.map((message) => (
             <div key={message.id} className="flex items-start space-x-3 group">
               <div 
@@ -580,8 +578,8 @@ const ChatRoom = () => {
         </div>
       </div>
 
-      {/* Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 mobile-input-container">
+      {/* Fixed Input Area at Bottom */}
+      <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 p-4 z-40">
         <MediaInput 
           onSendMessage={sendMessage} 
           isSending={isSending}

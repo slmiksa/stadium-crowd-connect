@@ -35,10 +35,13 @@ const ReportButton: React.FC<ReportButtonProps> = ({ type, targetId, size = 'sm'
 
     setIsSubmitting(true);
     try {
+      console.log('Submitting report:', { type, targetId, reason, description });
+      
       const reportData = {
         report_type: type,
         reason,
-        description,
+        description: description || null,
+        status: 'pending',
         reporter_id: user.id,
         reported_post_id: type === 'post' ? targetId : null,
         reported_comment_id: type === 'comment' ? targetId : null,
@@ -46,19 +49,24 @@ const ReportButton: React.FC<ReportButtonProps> = ({ type, targetId, size = 'sm'
         reported_room_id: type === 'room' ? targetId : null
       };
 
-      const { error } = await supabase
+      console.log('Final report data:', reportData);
+
+      const { data, error } = await supabase
         .from('reports')
-        .insert(reportData);
+        .insert(reportData)
+        .select();
 
       if (error) {
         console.error('Error submitting report:', error);
         toast({
           title: 'خطأ في الإبلاغ',
-          description: 'حدث خطأ أثناء إرسال البلاغ',
+          description: 'حدث خطأ أثناء إرسال البلاغ: ' + error.message,
           variant: 'destructive'
         });
         return;
       }
+
+      console.log('Report submitted successfully:', data);
 
       toast({
         title: 'تم الإبلاغ',

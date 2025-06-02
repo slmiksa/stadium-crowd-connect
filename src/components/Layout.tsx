@@ -1,30 +1,25 @@
 
 import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useLocation } from 'react-router-dom';
 import BottomNavigation from './BottomNavigation';
-import LoadingSpinner from './LoadingSpinner';
 
 interface LayoutProps {
   children: React.ReactNode;
-  showBottomNav?: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, showBottomNav = true }) => {
-  const { isLoading } = useAuth();
-
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
+const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const location = useLocation();
+  
+  // Hide footer in chat rooms and private chat
+  const hiddenFooterPaths = ['/chat-room/', '/private-chat/'];
+  const shouldHideFooter = hiddenFooterPaths.some(path => location.pathname.includes(path));
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col w-full fixed inset-0 overflow-hidden">
-      {/* Main content */}
-      <div className={`flex-1 overflow-y-auto ${showBottomNav ? 'pb-20' : ''}`}>
+    <div className="min-h-screen bg-zinc-900">
+      <main className={shouldHideFooter ? '' : 'pb-16'}>
         {children}
-      </div>
-      
-      {/* Bottom Navigation */}
-      {showBottomNav && <BottomNavigation />}
+      </main>
+      {!shouldHideFooter && <BottomNavigation />}
     </div>
   );
 };
