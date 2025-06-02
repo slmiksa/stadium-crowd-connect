@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -8,83 +9,153 @@ import HashtagPost from '@/components/HashtagPost';
 import InlineAd from '@/components/InlineAd';
 import AdPopup from '@/components/AdPopup';
 
+interface HashtagTrend {
+  hashtag: string;
+  posts_count: number;
+  trend_score: number;
+}
+
 interface Post {
   id: string;
   content: string;
-  created_at: string;
-  user_id: string;
-  hashtags: string[];
   image_url: string | null;
+  created_at: string;
+  hashtags: string[];
+  user_id: string;
   likes_count: number | null;
   comments_count: number | null;
+  profiles: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+    verification_status?: string;
+  };
 }
 
 const Hashtags = () => {
+  const [trendingHashtags, setTrendingHashtags] = useState<HashtagTrend[]>([]);
+  const [recentHashtags, setRecentHashtags] = useState<HashtagTrend[]>([]);
   const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
   const [recentPosts, setRecentPosts] = useState<Post[]>([]);
   const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  useEffect(() => {
+    fetchTrendingHashtags();
+    fetchRecentHashtags();
+    fetchAllPosts();
+  }, []);
+
   const fetchTrendingHashtags = async () => {
     try {
-      setIsLoading(true);
       const { data, error } = await supabase
-        .from('hashtag_posts')
-        .select('*')
-        .order('likes_count', { ascending: false })
-        .limit(5);
+        .from('hashtag_trends')
+        .select('hashtag, posts_count, trend_score')
+        .eq('is_trending', true)
+        .order('trend_score', { ascending: false })
+        .limit(10);
 
       if (error) {
         console.error('Error fetching trending hashtags:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to fetch trending hashtags.',
-          variant: 'destructive',
-        });
-      } else {
-        setTrendingPosts(data || []);
+        return;
       }
+
+      setTrendingHashtags(data || []);
+      await fetchTrendingPosts(data?.map(h => h.hashtag) || []);
     } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: 'Unexpected Error',
-        description: 'An unexpected error occurred.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
+      console.error('Error:', error);
     }
   };
 
   const fetchRecentHashtags = async () => {
     try {
-      setIsLoading(true);
       const { data, error } = await supabase
-        .from('hashtag_posts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .from('hashtag_trends')
+        .select('hashtag, posts_count, trend_score')
+        .order('updated_at', { ascending: false })
+        .limit(15);
 
       if (error) {
         console.error('Error fetching recent hashtags:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to fetch recent hashtags.',
-          variant: 'destructive',
-        });
-      } else {
-        setRecentPosts(data || []);
+        return;
       }
+
+      setRecentHashtags(data || []);
+      await fetchRecentPosts();
     } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: 'Unexpected Error',
-        description: 'An unexpected error occurred.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
+      console.error('Error:', error);
+    }
+  };
+
+  const fetchTrendingPosts = async (hashtags: string[]) => {
+    if (hashtags.length === 0) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('hashtag_posts')
+        .select(`
+          id,
+          content,
+          image_url,
+          created_at,
+          hashtags,
+          user_id,
+          likes_count,
+          comments_count,
+          profiles!hashtag_posts_user_id_fkey (
+            id,
+            username,
+            avatar_url,
+            verification_status
+          )
+        `)
+        .overlaps('hashtags', hashtags)
+        .order('likes_count', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error fetching trending posts:', error);
+        return;
+      }
+
+      setTrendingPosts(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const fetchRecentPosts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('hashtag_posts')
+        .select(`
+          id,
+          content,
+          image_url,
+          created_at,
+          hashtags,
+          user_id,
+          likes_count,
+          comments_count,
+          profiles!hashtag_posts_user_id_fkey (
+            id,
+            username,
+            avatar_url,
+            verification_status
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      if (error) {
+        console.error('Error fetching recent posts:', error);
+        return;
+      }
+
+      setRecentPosts(data || []);
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
@@ -93,48 +164,49 @@ const Hashtags = () => {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('hashtag_posts')
-        .select('*')
+        .select(`
+          id,
+          content,
+          image_url,
+          created_at,
+          hashtags,
+          user_id,
+          likes_count,
+          comments_count,
+          profiles!hashtag_posts_user_id_fkey (
+            id,
+            username,
+            avatar_url,
+            verification_status
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching all posts:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to fetch all posts.',
+          title: 'خطأ',
+          description: 'فشل في جلب المنشورات',
           variant: 'destructive',
         });
-      } else {
-        setAllPosts(data || []);
+        return;
       }
+
+      setAllPosts(data || []);
     } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: 'Unexpected Error',
-        description: 'An unexpected error occurred.',
-        variant: 'destructive',
-      });
+      console.error('Error:', error);
     } finally {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchTrendingHashtags();
-    fetchRecentHashtags();
-    fetchAllPosts();
-  }, []);
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <AdPopup />
       
       <div>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-2xl font-bold text-white">الهاشتاقات</CardTitle>
-          <CardDescription className="text-zinc-400">
-            استكشف أحدث وأشهر الهاشتاقات
-          </CardDescription>
-        </CardHeader>
+        <h1 className="text-2xl font-bold text-white mb-2">الهاشتاقات</h1>
+        <p className="text-zinc-400">اكتشف أحدث المواضيع والهاشتاقات الرائجة</p>
       </div>
       
       <Tabs defaultValue="trending" className="w-full">
@@ -154,6 +226,40 @@ const Hashtags = () => {
         </TabsList>
 
         <TabsContent value="trending" className="space-y-6">
+          {trendingHashtags.length > 0 && (
+            <Card className="bg-zinc-900 border-zinc-800">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <TrendingUp className="h-5 w-5 mr-2 text-orange-400" />
+                  الهاشتاقات الرائجة
+                </CardTitle>
+                <CardDescription className="text-zinc-400">
+                  أكثر الهاشتاقات نشاطاً ومتابعة
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {trendingHashtags.map((hashtag) => (
+                    <div
+                      key={hashtag.hashtag}
+                      className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <Hash className="h-4 w-4 text-orange-400" />
+                        <span className="text-white text-sm font-medium truncate">
+                          {hashtag.hashtag}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-2 text-xs text-zinc-400">
+                        <span>{hashtag.posts_count} منشور</span>
+                        <span className="text-orange-400">🔥</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
           <InlineAd location="trending" className="my-6" />
           
@@ -172,7 +278,6 @@ const Hashtags = () => {
                 {trendingPosts.map((post, index) => (
                   <React.Fragment key={post.id}>
                     <HashtagPost post={post} />
-                    
                     {(index + 1) % 3 === 0 && (
                       <InlineAd location="trending-posts" />
                     )}
@@ -184,7 +289,39 @@ const Hashtags = () => {
         </TabsContent>
 
         <TabsContent value="recent" className="space-y-6">
-          
+          {recentHashtags.length > 0 && (
+            <Card className="bg-zinc-900 border-zinc-800">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Clock className="h-5 w-5 mr-2 text-blue-400" />
+                  الهاشتاقات الحديثة
+                </CardTitle>
+                <CardDescription className="text-zinc-400">
+                  آخر الهاشتاقات المحدثة
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {recentHashtags.map((hashtag) => (
+                    <div
+                      key={hashtag.hashtag}
+                      className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <Hash className="h-4 w-4 text-blue-400" />
+                        <span className="text-white text-sm font-medium truncate">
+                          {hashtag.hashtag}
+                        </span>
+                      </div>
+                      <div className="text-xs text-zinc-400 mt-1">
+                        {hashtag.posts_count} منشور
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
           <InlineAd location="recent" className="my-6" />
           
@@ -203,7 +340,6 @@ const Hashtags = () => {
                 {recentPosts.map((post, index) => (
                   <React.Fragment key={post.id}>
                     <HashtagPost post={post} />
-                    
                     {(index + 1) % 4 === 0 && (
                       <InlineAd location="recent-posts" />
                     )}
@@ -215,7 +351,6 @@ const Hashtags = () => {
         </TabsContent>
 
         <TabsContent value="all" className="space-y-6">
-          
           <InlineAd location="all-posts" className="my-6" />
           
           {allPosts.length > 0 ? (
@@ -233,7 +368,6 @@ const Hashtags = () => {
                 {allPosts.map((post, index) => (
                   <React.Fragment key={post.id}>
                     <HashtagPost post={post} />
-                    
                     {(index + 1) % 5 === 0 && (
                       <InlineAd location="all-posts-list" />
                     )}

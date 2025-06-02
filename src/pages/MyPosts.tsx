@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +20,12 @@ interface Post {
   user_id: string;
   likes_count: number | null;
   comments_count: number | null;
+  profiles: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+    verification_status?: string;
+  };
 }
 
 const MyPosts = () => {
@@ -40,7 +47,15 @@ const MyPosts = () => {
     try {
       const { data, error } = await supabase
         .from('hashtag_posts')
-        .select('*')
+        .select(`
+          *,
+          profiles!hashtag_posts_user_id_fkey (
+            id,
+            username,
+            avatar_url,
+            verification_status
+          )
+        `)
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
@@ -148,7 +163,6 @@ const MyPosts = () => {
         <p className="text-zinc-400">إدارة ومراجعة المنشورات الخاصة بك</p>
       </div>
 
-      {/* إضافة الإعلان المدمج */}
       <InlineAd location="my-posts" className="my-6" />
 
       {posts.length > 0 ? (
@@ -159,7 +173,6 @@ const MyPosts = () => {
                 <div className="relative group">
                   <HashtagPost post={post} />
                   
-                  {/* أزرار التحكم */}
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="flex space-x-2 space-x-reverse">
                       <Button
@@ -182,7 +195,6 @@ const MyPosts = () => {
                   </div>
                 </div>
                 
-                {/* إضافة إعلان مدمج كل 3 منشورات */}
                 {(index + 1) % 3 === 0 && (
                   <InlineAd location="my-posts-list" />
                 )}
