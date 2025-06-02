@@ -23,6 +23,7 @@ interface HashtagPostWithProfile {
     id: string;
     username: string;
     avatar_url?: string;
+    verification_status?: string;
   };
   hashtag_likes: Array<{
     user_id: string;
@@ -91,7 +92,8 @@ const Hashtags = () => {
           profiles:user_id (
             id,
             username,
-            avatar_url
+            avatar_url,
+            verification_status
           ),
           hashtag_likes (
             user_id
@@ -139,7 +141,8 @@ const Hashtags = () => {
           isArray: Array.isArray(post.hashtags),
           likes_count: post.likes_count,
           created_at: post.created_at,
-          avatar_url: post.profiles?.avatar_url
+          avatar_url: post.profiles?.avatar_url,
+          verification_status: post.profiles?.verification_status
         });
       });
 
@@ -251,7 +254,8 @@ const Hashtags = () => {
           profiles:user_id (
             id,
             username,
-            avatar_url
+            avatar_url,
+            verification_status
           ),
           hashtag_likes (
             user_id

@@ -21,6 +21,7 @@ interface HashtagPostWithProfile {
     id: string;
     username: string;
     avatar_url?: string;
+    verification_status?: string;
   };
 }
 
@@ -47,7 +48,8 @@ const PostPage = () => {
           profiles:user_id (
             id,
             username,
-            avatar_url
+            avatar_url,
+            verification_status
           )
         `)
         .eq('id', postId)
