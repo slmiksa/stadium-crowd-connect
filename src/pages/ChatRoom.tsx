@@ -439,7 +439,6 @@ const ChatRoom = () => {
 
   const renderMessage = (message: any) => {
     const isOwnMessage = message.user_id === user?.id;
-    const senderRole = message.room_members?.role || 'member';
 
     return (
       <div
@@ -487,6 +486,39 @@ const ChatRoom = () => {
             }`}
           >
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
+            
+            {/* Display media if present */}
+            {message.media_url && (
+              <div className="mt-2">
+                {message.media_type?.startsWith('image/') ? (
+                  <img 
+                    src={message.media_url} 
+                    alt="مرفق صورة"
+                    className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openImageModal(message.media_url);
+                    }}
+                  />
+                ) : message.media_type?.startsWith('video/') ? (
+                  <video 
+                    src={message.media_url} 
+                    controls 
+                    className="max-w-full h-auto rounded-lg"
+                  />
+                ) : (
+                  <a 
+                    href={message.media_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-300 hover:text-blue-200 underline"
+                  >
+                    عرض المرفق
+                  </a>
+                )}
+              </div>
+            )}
+            
             <p className={`text-xs mt-1 ${
               isOwnMessage ? 'text-blue-100' : 'text-gray-400'
             }`}>
