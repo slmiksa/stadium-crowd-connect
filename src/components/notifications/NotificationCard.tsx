@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Bell, MessageSquare, Users, Heart, UserPlus, Plus, Key, LogIn, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -262,7 +261,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                     variant="outline"
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.location.href = `/private-chat/${notification.data.sender_id}`;
+                      window.location.href = `/chat/${notification.data.sender_id}`;
                     }}
                     className="bg-purple-600/20 border-purple-500/30 text-purple-400 hover:bg-purple-600/30 hover:text-purple-300 text-xs px-3 py-1 h-auto w-full"
                   >

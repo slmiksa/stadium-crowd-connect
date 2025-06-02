@@ -67,7 +67,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
       if (userId === user?.id) {
         navigate('/profile');
       } else {
-        navigate(`/profile/${userId}`);
+        navigate(`/user/${userId}`);
       }
     }
   };
@@ -80,7 +80,6 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
     }
 
     if (notification.data?.post_id) {
-      // تأكد من استخدام المسار الصحيح للمنشور
       navigate(`/post/${notification.data.post_id}`);
     }
   };
@@ -104,11 +103,9 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
       markAsRead(notification.id);
     }
 
-    // للرسائل الخاصة، الذهاب للمحادثة مع المرسل
     if (notification.data?.sender_id) {
-      navigate(`/private-chat/${notification.data.sender_id}`);
+      navigate(`/chat/${notification.data.sender_id}`);
     } else {
-      // fallback للرسائل العامة
       navigate('/messages');
     }
   };
@@ -122,7 +119,6 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
       await markAsRead(notification.id);
     }
 
-    // الذهاب إلى المنشور للتعليقات والإعجابات والمنشورات الجديدة
     if (notification.type === 'comment' || notification.type === 'like' || notification.type === 'post' || notification.type === 'follower_comment') {
       if (notification.data?.post_id) {
         console.log('Navigating to post:', notification.data.post_id);
@@ -138,16 +134,15 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
         if (userId === user?.id) {
           navigate('/profile');
         } else {
-          navigate(`/profile/${userId}`);
+          navigate(`/user/${userId}`);
         }
       } else {
         navigate('/hashtags');
       }
     } else if (notification.type === 'message') {
-      // للرسائل، الذهاب للمحادثة الخاصة مع المرسل
       if (notification.data?.sender_id) {
         console.log('Navigating to private chat with:', notification.data.sender_id);
-        navigate(`/private-chat/${notification.data.sender_id}`);
+        navigate(`/chat/${notification.data.sender_id}`);
       } else {
         console.log('No sender_id found, going to messages');
         navigate('/messages');
@@ -161,7 +156,6 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
         navigate('/chat-rooms');
       }
     } else if (notification.type === 'room_invitation' || (notification as any).type === 'profile_redirect') {
-      // للدعوات، الذهاب إلى البروفايل لرؤية الدعوات
       console.log('Navigating to profile for room invitation');
       navigate('/profile');
     } else {
