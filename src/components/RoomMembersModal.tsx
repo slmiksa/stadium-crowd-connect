@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import ModeratorBadge from './ModeratorBadge';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Member {
   id: string;
@@ -36,6 +37,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [roomOwner, setRoomOwner] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -274,7 +276,15 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
   const navigateToProfile = (userId: string) => {
     onClose();
-    navigate(`/profile/${userId}`);
+    console.log('Navigating to profile - userId:', userId, 'current user:', user?.id);
+    
+    if (userId === user?.id) {
+      console.log('Going to own profile');
+      navigate('/profile');
+    } else {
+      console.log('Going to user profile:', `/user-profile/${userId}`);
+      navigate(`/user-profile/${userId}`);
+    }
   };
 
   const formatJoinDate = (timestamp: string) => {
