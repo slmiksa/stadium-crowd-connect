@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Bell, MessageSquare, Users, Heart, UserPlus, Plus, Key, LogIn, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -232,7 +231,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 <div className="mt-4 p-3 bg-blue-800/70 rounded-lg border-2 border-blue-400/50">
                   <div className="flex items-center gap-2 mb-2">
                     <User size={16} className="text-blue-400" />
-                    <p className="text-sm text-blue-300 font-bold">للانضمام للغرفة:</p>
+                    <p className="text-sm text-blue-300 font-bold">لانضمام للغرفة:</p>
                   </div>
                   <p className="text-sm text-blue-100 text-center">
                     اذهب إلى بروفايلك الخاص لرؤية تفاصيل الدعوة وكلمة المرور
@@ -244,56 +243,126 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2">
-            {/* Profile button for most notification types */}
-            {(notification.type === 'follow' || notification.type === 'like' || 
-              notification.type === 'comment' || notification.type === 'follower_comment' || 
-              notification.type === 'post' || notification.type === 'chat_room' || 
-              notification.type === 'room_invitation') && (
+            {/* Comment notifications - show both profile and post buttons */}
+            {(notification.type === 'comment' || notification.type === 'follower_comment') && (
+              <div className="flex flex-col gap-2 w-full">
+                {/* Profile button for commenter */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => onProfileClick(notification, e)}
+                  className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto w-full"
+                >
+                  زيارة بروفايل المعلق
+                </Button>
+                
+                {/* Post button */}
+                {notification.data?.post_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => onPostClick(notification, e)}
+                    className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto w-full"
+                  >
+                    الذهاب لصفحة المنشور
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Other notification types - existing buttons */}
+            {notification.type === 'follow' && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => onProfileClick(notification, e)}
+                className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
+              >
+                البروفايل
+              </Button>
+            )}
+
+            {notification.type === 'like' && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => onProfileClick(notification, e)}
+                  className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
+                >
+                  البروفايل
+                </Button>
+                {notification.data?.post_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => onPostClick(notification, e)}
+                    className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
+                  >
+                    المنشور
+                  </Button>
+                )}
+              </>
+            )}
+
+            {notification.type === 'post' && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => onProfileClick(notification, e)}
+                  className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
+                >
+                  البروفايل
+                </Button>
+                {notification.data?.post_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => onPostClick(notification, e)}
+                    className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
+                  >
+                    المنشور
+                  </Button>
+                )}
+              </>
+            )}
+
+            {notification.type === 'chat_room' && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => onProfileClick(notification, e)}
+                  className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
+                >
+                  البروفايل
+                </Button>
+                {notification.data?.room_id && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => onRoomClick(notification, e)}
+                    className="bg-cyan-600/20 border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/30 hover:text-cyan-300 text-xs px-4 py-2 h-auto flex items-center gap-2 font-medium"
+                  >
+                    <LogIn size={16} />
+                    الغرفة
+                  </Button>
+                )}
+              </>
+            )}
+
+            {notification.type === 'room_invitation' && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (notification.type === 'room_invitation') {
-                    window.location.href = '/profile';
-                  } else {
-                    onProfileClick(notification, e);
-                  }
+                  window.location.href = '/profile';
                 }}
-                className={`text-xs px-3 py-1 h-auto ${
-                  notification.type === 'room_invitation' 
-                    ? 'bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300'
-                    : 'bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300'
-                }`}
-              >
-                {notification.type === 'room_invitation' ? 'اذهب للبروفايل' : 'البروفايل'}
-              </Button>
-            )}
-
-            {/* Post button for post-related notifications */}
-            {(notification.type === 'like' || notification.type === 'comment' || 
-              notification.type === 'follower_comment' || notification.type === 'post') && 
-              notification.data?.post_id && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => onPostClick(notification, e)}
                 className="bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 text-xs px-3 py-1 h-auto"
               >
-                المنشور
-              </Button>
-            )}
-
-            {/* Room button for regular chat room notifications */}
-            {notification.type === 'chat_room' && notification.data?.room_id && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => onRoomClick(notification, e)}
-                className="bg-cyan-600/20 border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/30 hover:text-cyan-300 text-xs px-4 py-2 h-auto flex items-center gap-2 font-medium"
-              >
-                <LogIn size={16} />
-                الغرفة
+                اذهب للبروفايل
               </Button>
             )}
           </div>
