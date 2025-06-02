@@ -267,7 +267,9 @@ const Messages = () => {
   const handleProfileNavigation = async (notification: Notification, event: React.MouseEvent) => {
     event.stopPropagation();
     await markNotificationAsRead(notification.id);
+    
     let userId = null;
+    
     if (notification.type === 'comment' && notification.data?.commenter_id) {
       userId = notification.data.commenter_id;
     } else if (notification.type === 'like' && notification.data?.liker_id) {
@@ -278,9 +280,19 @@ const Messages = () => {
       userId = notification.data.sender_id;
     } else if (notification.type === 'post' && notification.data?.author_id) {
       userId = notification.data.author_id;
+    } else if (notification.type === 'chat_room' && notification.data?.creator_id) {
+      userId = notification.data.creator_id;
+    } else if (notification.type === 'room_invitation' && notification.data?.inviter_id) {
+      userId = notification.data.inviter_id;
     }
+    
     if (userId) {
-      navigate(`/user-profile/${userId}`);
+      // التأكد من أنه ليس نفس المستخدم الحالي
+      if (userId === user?.id) {
+        navigate('/profile');
+      } else {
+        navigate(`/profile/${userId}`);
+      }
     } else {
       navigate('/hashtags');
     }
