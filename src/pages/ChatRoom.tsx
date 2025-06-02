@@ -78,7 +78,6 @@ const ChatRoom = () => {
 
   useEffect(() => {
     if (user && roomId) {
-      // الاستماع لتغييرات العضوية (الطرد والحظر)
       const membershipChannel = supabase
         .channel('membership-changes')
         .on(
@@ -92,7 +91,6 @@ const ChatRoom = () => {
           (payload) => {
             console.log('Membership change:', payload);
             if (payload.eventType === 'DELETE' && payload.old?.room_id === roomId) {
-              // تم طرد المستخدم
               toast({
                 title: "تم إخراجك",
                 description: `تم إخراجك من شات ${roomInfo?.name || 'الغرفة'}`,
@@ -100,7 +98,6 @@ const ChatRoom = () => {
               });
               navigate('/chat-rooms');
             } else if (payload.eventType === 'UPDATE' && payload.new?.is_banned === true && payload.new?.room_id === roomId) {
-              // تم حظر المستخدم
               toast({
                 title: "تم حظرك",
                 description: `تم حظرك من شات ${roomInfo?.name || 'الغرفة'}`,
@@ -155,7 +152,6 @@ const ChatRoom = () => {
 
   const fetchRoomInfo = async () => {
     try {
-      // Get room info with real-time member count
       const { data: roomData, error: roomError } = await supabase
         .from('chat_rooms')
         .select('*, announcement')
@@ -168,7 +164,6 @@ const ChatRoom = () => {
         return;
       }
 
-      // Get actual current member count
       const { count: actualMembersCount, error: countError } = await supabase
         .from('room_members')
         .select('*', { count: 'exact', head: true })
@@ -278,7 +273,6 @@ const ChatRoom = () => {
       }
 
       setIsMember(true);
-      // Refresh room info to get updated member count
       fetchRoomInfo();
     } catch (error) {
       console.error('Error:', error);
@@ -301,7 +295,6 @@ const ChatRoom = () => {
       return;
     }
 
-    // التحقق من أن المستخدم غير محظور
     if (isBanned) {
       toast({
         title: "محظور",
@@ -426,7 +419,6 @@ const ChatRoom = () => {
         return;
       }
 
-      // Navigate back to chat rooms list
       navigate('/chat-rooms');
     } catch (error) {
       console.error('Error:', error);
@@ -483,7 +475,6 @@ const ChatRoom = () => {
           >
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
             
-            {/* Display media if present */}
             {message.media_url && (
               <div className="mt-2">
                 {message.media_type?.startsWith('image/') ? (
@@ -537,7 +528,7 @@ const ChatRoom = () => {
 
   return (
     <div className="min-h-screen bg-zinc-900 flex flex-col relative">
-      {/* Fixed Header - جعل الهيدر ثابت تماماً */}
+      {/* Fixed Header */}
       <div className="bg-zinc-800 border-b border-zinc-700 p-4 fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -583,15 +574,17 @@ const ChatRoom = () => {
         </div>
       </div>
 
-      {/* Announcement - مع مراعاة الهيدر الثابت */}
+      {/* Fixed Announcement under header */}
       {roomInfo?.announcement && (
-        <div className="mt-20">
+        <div className="fixed top-20 left-0 right-0 z-40">
           <ChatRoomAnnouncement announcement={roomInfo.announcement} />
         </div>
       )}
 
-      {/* Messages Container - مع مراعاة الهيدر الثابت */}
-      <div className={`flex-1 overflow-y-auto p-4 space-y-4 pb-24 ${roomInfo?.announcement ? 'mt-0' : 'mt-20'}`}>
+      {/* Messages Container with proper margin for fixed elements */}
+      <div className={`flex-1 overflow-y-auto p-4 space-y-4 pb-24 ${
+        roomInfo?.announcement ? 'mt-28' : 'mt-20'
+      }`}>
         {messages.map(renderMessage)}
         <div ref={messagesEndRef} />
       </div>

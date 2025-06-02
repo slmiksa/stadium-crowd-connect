@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,7 +46,6 @@ const PrivateChat = () => {
       fetchOtherUser();
       fetchMessages();
       
-      // Subscribe to real-time updates
       const channel = supabase
         .channel('private_messages_changes')
         .on(
@@ -119,7 +117,6 @@ const PrivateChat = () => {
       console.log('Fetched messages:', data);
       setMessages(data || []);
       
-      // Mark messages as read
       if (data && data.length > 0) {
         await supabase
           .from('private_messages')
@@ -156,7 +153,6 @@ const PrivateChat = () => {
       }
 
       setNewMessage('');
-      // Refetch messages to ensure we get the latest data
       await fetchMessages();
     } catch (error) {
       console.error('Error:', error);
@@ -280,12 +276,18 @@ const PrivateChat = () => {
               </div>
 
               {message.sender_id === user?.id && (
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.email} />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                    {user?.email?.charAt(0).toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="flex flex-col items-center gap-1">
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.email} />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+                      {user?.email?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <VerificationBadge 
+                    verificationStatus={user?.user_metadata?.verification_status || null} 
+                    size={12} 
+                  />
+                </div>
               )}
             </div>
           ))

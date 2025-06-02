@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Share2, MoreVertical, Flag, Trash2 } from 'lucide-react';
@@ -208,7 +207,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
 
   const handleReportPost = async () => {
     try {
-      // يمكن إضافة منطق الإبلاغ هنا
       toast({
         title: "تم الإبلاغ",
         description: "تم الإبلاغ عن المنشور وسيتم مراجعته"
