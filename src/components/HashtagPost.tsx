@@ -277,4 +277,79 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, showComments = true, on
   );
 };
 
+const handleDeletePost = async () => {
+  if (!user || user.id !== post.user_id) return;
+
+  setIsDeleting(true);
+  try {
+    const { error } = await supabase
+      .from('hashtag_posts')
+      .delete()
+      .eq('id', post.id);
+
+    if (error) throw error;
+
+    toast({
+      title: 'تم حذف المنشور بنجاح',
+      description: 'تم حذف منشورك بنجاح',
+    });
+
+    if (onPostUpdate) {
+      onPostUpdate();
+    }
+  } catch (error: any) {
+    console.error('Error deleting post:', error);
+    toast({
+      title: 'خطأ',
+      description: 'حدث خطأ أثناء حذف المنشور',
+      variant: 'destructive',
+    });
+  } finally {
+    setIsDeleting(false);
+  }
+};
+
+const handleShare = async () => {
+  const shareUrl = `${window.location.origin}/post-details/${post.id}`;
+  
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'شاهد هذا المنشور',
+        text: post.content.substring(0, 100) + '...',
+        url: shareUrl,
+      });
+    } catch (error) {
+      console.log('Error sharing:', error);
+    }
+  } else {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: 'تم نسخ الرابط',
+        description: 'تم نسخ رابط المنشور إلى الحافظة',
+      });
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast({
+        title: 'خطأ',
+        description: 'لم نتمكن من نسخ الرابط',
+        variant: 'destructive',
+      });
+    }
+  }
+};
+
+const formatTimeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return 'الآن';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} د`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} س`;
+  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} ي`;
+  return `${Math.floor(diffInSeconds / 2592000)} ش`;
+};
+
 export default HashtagPost;
