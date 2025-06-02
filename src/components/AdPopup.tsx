@@ -25,14 +25,12 @@ const AdPopup = () => {
   const checkForActiveAds = async () => {
     try {
       console.log('Checking for active ads...');
+      const currentTime = new Date();
+      
       const { data, error } = await supabase
         .from('advertisements')
         .select('*')
-        .eq('is_active', true)
-        .or('scheduled_at.is.null,scheduled_at.lte.' + new Date().toISOString())
-        .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .eq('is_active', true);
 
       console.log('AdPopup query result:', { data, error });
 
@@ -42,36 +40,59 @@ const AdPopup = () => {
       }
 
       if (data && data.length > 0) {
-        const selectedAd = data[0];
-        console.log('Found ad for popup:', selectedAd);
-        
-        // تحقق من عدم عرض نفس الإعلان مؤخراً
-        const lastShownAd = localStorage.getItem('lastShownAd');
-        const lastShownTime = localStorage.getItem('lastShownAdTime');
-        const currentTime = Date.now();
-        
-        console.log('Last shown ad check:', { lastShownAd, lastShownTime, currentAd: selectedAd.id });
-        
-        // إذا كان نفس الإعلان وتم عرضه خلال آخر ساعة، لا تعرضه مرة أخرى
-        if (lastShownAd === selectedAd.id && lastShownTime) {
-          const timeDiff = currentTime - parseInt(lastShownTime);
-          console.log('Time difference:', timeDiff, 'milliseconds');
-          if (timeDiff < 60 * 60 * 1000) { // ساعة واحدة
-            console.log('Ad was shown recently, skipping popup');
-            return;
+        // Filter ads based on scheduling
+        const validAds = data.filter(ad => {
+          const isScheduled = !ad.scheduled_at || new Date(ad.scheduled_at) <= currentTime;
+          const notExpired = !ad.expires_at || new Date(ad.expires_at) > currentTime;
+          
+          console.log(`Popup Ad ${ad.id}:`, {
+            title: ad.title,
+            scheduled_at: ad.scheduled_at,
+            expires_at: ad.expires_at,
+            current_time: currentTime.toISOString(),
+            isScheduled,
+            notExpired,
+            canShow: isScheduled && notExpired
+          });
+          
+          return isScheduled && notExpired;
+        });
+
+        if (validAds.length > 0) {
+          // Random selection from valid ads
+          const selectedAd = validAds[Math.floor(Math.random() * validAds.length)];
+          console.log('Found ad for popup:', selectedAd);
+          
+          // Check if we shouldn't show same ad recently
+          const lastShownAd = localStorage.getItem('lastShownAd');
+          const lastShownTime = localStorage.getItem('lastShownAdTime');
+          const currentTimeMs = Date.now();
+          
+          console.log('Last shown ad check:', { lastShownAd, lastShownTime, currentAd: selectedAd.id });
+          
+          // If same ad was shown within last hour, skip
+          if (lastShownAd === selectedAd.id && lastShownTime) {
+            const timeDiff = currentTimeMs - parseInt(lastShownTime);
+            console.log('Time difference:', timeDiff, 'milliseconds');
+            if (timeDiff < 60 * 60 * 1000) { // 1 hour
+              console.log('Ad was shown recently, skipping popup');
+              return;
+            }
           }
+
+          console.log('Showing popup ad');
+          setAd(selectedAd);
+          setIsVisible(true);
+
+          // Record view
+          await recordAdView(selectedAd.id, 'popup');
+
+          // Save last shown ad info
+          localStorage.setItem('lastShownAd', selectedAd.id);
+          localStorage.setItem('lastShownAdTime', currentTimeMs.toString());
+        } else {
+          console.log('No valid ads found after filtering');
         }
-
-        console.log('Showing popup ad');
-        setAd(selectedAd);
-        setIsVisible(true);
-
-        // تسجيل المشاهدة
-        await recordAdView(selectedAd.id, 'popup');
-
-        // حفظ معلومات آخر إعلان تم عرضه
-        localStorage.setItem('lastShownAd', selectedAd.id);
-        localStorage.setItem('lastShownAdTime', currentTime.toString());
       } else {
         console.log('No ads found for popup');
       }
@@ -163,7 +184,7 @@ const AdPopup = () => {
                 className="text-white border-zinc-700 hover:bg-zinc-800"
               >
                 إغلاق
-              </Button>
+              </button>
             </div>
           </div>
         </CardContent>

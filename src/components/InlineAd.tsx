@@ -32,46 +32,40 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
       console.log('Fetching ads from database...');
       console.log('Current time:', new Date().toISOString());
       
-      // First, let's check all ads
+      // Fetch all active ads
       const { data: allAds, error: allAdsError } = await supabase
-        .from('advertisements')
-        .select('*');
-      
-      console.log('All ads in database:', allAds);
-      console.log('All ads error:', allAdsError);
-
-      // Now let's check active ads step by step
-      const { data: activeAds, error: activeError } = await supabase
         .from('advertisements')
         .select('*')
         .eq('is_active', true);
       
-      console.log('Active ads:', activeAds);
-      console.log('Active ads error:', activeError);
+      console.log('Active ads found:', allAds);
+      console.log('Active ads error:', allAdsError);
 
-      if (activeAds && activeAds.length > 0) {
-        // Check each ad's scheduling
-        activeAds.forEach(ad => {
+      if (allAds && allAds.length > 0) {
+        const currentTime = new Date();
+        
+        // Filter ads based on scheduling
+        const validAds = allAds.filter(ad => {
+          const isScheduled = !ad.scheduled_at || new Date(ad.scheduled_at) <= currentTime;
+          const notExpired = !ad.expires_at || new Date(ad.expires_at) > currentTime;
+          
           console.log(`Ad ${ad.id}:`, {
             title: ad.title,
-            is_active: ad.is_active,
             scheduled_at: ad.scheduled_at,
             expires_at: ad.expires_at,
-            current_time: new Date().toISOString(),
-            can_show: (!ad.scheduled_at || new Date(ad.scheduled_at) <= new Date()) &&
-                     (!ad.expires_at || new Date(ad.expires_at) > new Date())
+            current_time: currentTime.toISOString(),
+            isScheduled,
+            notExpired,
+            canShow: isScheduled && notExpired
           });
+          
+          return isScheduled && notExpired;
         });
-
-        // Filter ads that can be shown
-        const validAds = activeAds.filter(ad => 
-          (!ad.scheduled_at || new Date(ad.scheduled_at) <= new Date()) &&
-          (!ad.expires_at || new Date(ad.expires_at) > new Date())
-        );
 
         console.log('Valid ads after filtering:', validAds);
 
         if (validAds.length > 0) {
+          // Random selection for distribution like X platform
           const randomAd = validAds[Math.floor(Math.random() * validAds.length)];
           console.log('Selected random ad:', randomAd);
           setAd(randomAd);
@@ -80,12 +74,15 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
           await recordAdView(randomAd.id, location);
         } else {
           console.log('No valid ads found after date filtering');
+          setAd(null);
         }
       } else {
         console.log('No active ads found in database');
+        setAd(null);
       }
     } catch (error) {
       console.error('Error fetching ads:', error);
+      setAd(null);
     } finally {
       setIsLoading(false);
     }
@@ -115,30 +112,9 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
 
   console.log('InlineAd render state:', { isLoading, ad: !!ad, location });
 
-  if (isLoading) {
-    console.log('InlineAd is loading...');
-    return (
-      <Card className={`bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-500/30 ${className}`}>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-center">
-            <span className="text-blue-400 text-sm">جاري تحميل الإعلان...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  if (!ad) {
-    console.log('No ad to display, showing placeholder');
-    return (
-      <Card className={`bg-gradient-to-r from-gray-900/20 to-gray-800/20 border-gray-600/30 ${className}`}>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-center">
-            <span className="text-gray-400 text-sm">لا توجد إعلانات متاحة حالياً</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
+  // Don't render anything if loading or no ad
+  if (isLoading || !ad) {
+    return null;
   }
 
   return (
