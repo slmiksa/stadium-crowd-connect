@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -470,8 +471,11 @@ const ChatRoom = () => {
                 verificationStatus={message.profiles?.verification_status || null} 
                 size={14} 
               />
-              {senderRole === 'owner' && <OwnerBadge />}
-              {senderRole === 'moderator' && <ModeratorBadge />}
+              <OwnerBadge 
+                isOwner={isOwner(message.user_id)} 
+                verificationStatus={message.profiles?.verification_status}
+              />
+              <ModeratorBadge isModerator={isModerator(message.user_id)} />
             </div>
           )}
 
