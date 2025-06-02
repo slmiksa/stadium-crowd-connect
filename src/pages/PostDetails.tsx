@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -113,12 +112,9 @@ const PostDetails = () => {
           {/* Post */}
           <div className="border-b border-gray-800">
             <HashtagPost 
-              post={{
-                ...post,
-                hashtag: post.hashtags?.[0] || ''
-              }} 
-              onLikeChange={handlePostLikeChange}
-              hideCommentsButton={true}
+              post={post}
+              onPostUpdate={handlePostLikeChange}
+              showComments={false}
             />
           </div>
 

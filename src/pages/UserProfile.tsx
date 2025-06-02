@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -451,15 +450,14 @@ const UserProfile = () => {
                       post={{
                         ...post,
                         user_id: profile.id,
-                        hashtag: post.hashtags?.[0] || '',
                         profiles: {
                           id: profile.id,
                           username: profile.username,
                           avatar_url: profile.avatar_url
                         }
                       }}
-                      onLikeChange={handlePostInteraction}
-                      hideCommentsButton={false}
+                      onPostUpdate={handlePostInteraction}
+                      showComments={false}
                     />
                   </Card>
                 ))}

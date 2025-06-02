@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -360,13 +359,9 @@ const HashtagPage = () => {
               {posts.map((post) => (
                 <div key={`post-${post.id}`} className="relative">
                   <HashtagPost 
-                    post={{
-                      ...post,
-                      hashtag: hashtag || ''
-                    }} 
-                    onLikeChange={handlePostLikeChange}
-                    hideCommentsButton={false}
-                    preventClick={false}
+                    post={post}
+                    onPostUpdate={handlePostLikeChange}
+                    showComments={true}
                   />
                   {/* زر البلاغ */}
                   <div className="absolute top-2 left-2 md:top-3 md:left-3">

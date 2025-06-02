@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, MoreVertical, Share2 } from 'lucide-react';
@@ -163,7 +162,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, showComments = true, on
             <span className="font-medium text-white">
               {post.profiles?.username || 'مستخدم مجهول'}
             </span>
-            <VerificationBadge status={post.profiles?.verification_status} />
+            <VerificationBadge verificationStatus={post.profiles?.verification_status} />
             <span className="text-zinc-400 text-sm">
               {formatTimeAgo(post.created_at)}
             </span>
@@ -200,9 +199,8 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, showComments = true, on
             </DropdownMenuItem>
             {user && user.id !== post.user_id && (
               <ReportButton 
-                reportType="post"
-                reportedPostId={post.id}
-                reportedUserId={post.user_id}
+                type="post"
+                targetId={post.id}
               />
             )}
           </DropdownMenuContent>
@@ -246,7 +244,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, showComments = true, on
           <LikeButton 
             postId={post.id}
             initialLikesCount={post.likes_count}
-            onUpdate={onPostUpdate}
+            onLikeChange={onPostUpdate}
           />
           
           {showComments && (
