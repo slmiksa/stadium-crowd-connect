@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import UserProfile from "./pages/UserProfile";
+import ProfileRedirect from "./pages/ProfileRedirect";
 import Hashtags from "./pages/Hashtags";
 import HashtagPage from "./pages/HashtagPage";
 import CreateHashtagPost from "./pages/CreateHashtagPost";
@@ -55,6 +56,15 @@ function App() {
                   element={
                     <AuthGuard>
                       <Profile />
+                    </AuthGuard>
+                  }
+                />
+                {/* Redirect route for incorrect /profile/:userId paths */}
+                <Route
+                  path="/profile/:userId"
+                  element={
+                    <AuthGuard>
+                      <ProfileRedirect />
                     </AuthGuard>
                   }
                 />

@@ -37,9 +37,18 @@ const UserProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Redirect to /profile if user is viewing their own profile
+  // Redirect to /profile if user is viewing their own profile OR if no userId
   useEffect(() => {
+    console.log('UserProfile useEffect - userId:', userId, 'current user:', user?.id);
+    
+    if (!userId) {
+      console.log('No userId provided, redirecting to /profile');
+      navigate('/profile', { replace: true });
+      return;
+    }
+    
     if (user && userId === user.id) {
+      console.log('User viewing own profile, redirecting to /profile');
       navigate('/profile', { replace: true });
       return;
     }
@@ -54,11 +63,17 @@ const UserProfile = () => {
   const [realFollowingCount, setRealFollowingCount] = useState(0);
 
   useEffect(() => {
+    console.log('UserProfile data fetching useEffect - userId:', userId, 'user:', user?.id);
+    
     if (userId && user && userId !== user.id) {
+      console.log('Fetching data for different user profile');
       fetchUserProfile();
       fetchUserPosts();
       checkFollowStatus();
       fetchRealCounts();
+    } else if (!userId || (user && userId === user.id)) {
+      console.log('Should not fetch data - either no userId or same user');
+      setIsLoading(false);
     }
   }, [userId, user]);
 
@@ -247,7 +262,8 @@ const UserProfile = () => {
     return `${Math.floor(diffMins / 1440)}ي`;
   };
 
-  if (user && userId === user.id) {
+  // Return null if user is viewing their own profile or no userId
+  if (!userId || (user && userId === user.id)) {
     return null;
   }
 
