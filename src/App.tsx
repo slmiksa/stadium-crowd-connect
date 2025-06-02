@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -92,8 +91,8 @@ const App = () => (
                 </AuthGuard>
               } />
               
-              {/* Redirect old route to new route */}
-              <Route path="/user-profile/:userId" element={<Navigate to="/profile/:userId" replace />} />
+              {/* Redirect old route to new route with parameter mapping */}
+              <Route path="/user-profile/:userId" element={<Navigate to={window.location.pathname.replace('/user-profile/', '/profile/')} replace />} />
               
               <Route path="/edit-profile" element={
                 <AuthGuard>
