@@ -18,20 +18,23 @@ const AdPopup = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    console.log('AdPopup component mounted');
     checkForActiveAds();
   }, []);
 
   const checkForActiveAds = async () => {
     try {
+      console.log('Checking for active ads...');
       const { data, error } = await supabase
         .from('advertisements')
         .select('*')
         .eq('is_active', true)
-        .is('scheduled_at', null)
-        .or('scheduled_at.lte.' + new Date().toISOString())
+        .or('scheduled_at.is.null,scheduled_at.lte.' + new Date().toISOString())
         .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(1);
+
+      console.log('AdPopup query result:', { data, error });
 
       if (error) {
         console.error('Error fetching ads:', error);
@@ -40,20 +43,26 @@ const AdPopup = () => {
 
       if (data && data.length > 0) {
         const selectedAd = data[0];
+        console.log('Found ad for popup:', selectedAd);
         
         // تحقق من عدم عرض نفس الإعلان مؤخراً
         const lastShownAd = localStorage.getItem('lastShownAd');
         const lastShownTime = localStorage.getItem('lastShownAdTime');
         const currentTime = Date.now();
         
+        console.log('Last shown ad check:', { lastShownAd, lastShownTime, currentAd: selectedAd.id });
+        
         // إذا كان نفس الإعلان وتم عرضه خلال آخر ساعة، لا تعرضه مرة أخرى
         if (lastShownAd === selectedAd.id && lastShownTime) {
           const timeDiff = currentTime - parseInt(lastShownTime);
+          console.log('Time difference:', timeDiff, 'milliseconds');
           if (timeDiff < 60 * 60 * 1000) { // ساعة واحدة
+            console.log('Ad was shown recently, skipping popup');
             return;
           }
         }
 
+        console.log('Showing popup ad');
         setAd(selectedAd);
         setIsVisible(true);
 
@@ -63,6 +72,8 @@ const AdPopup = () => {
         // حفظ معلومات آخر إعلان تم عرضه
         localStorage.setItem('lastShownAd', selectedAd.id);
         localStorage.setItem('lastShownAdTime', currentTime.toString());
+      } else {
+        console.log('No ads found for popup');
       }
     } catch (error) {
       console.error('Error:', error);
@@ -71,28 +82,34 @@ const AdPopup = () => {
 
   const recordAdView = async (adId: string, location: string) => {
     try {
+      console.log('Recording popup ad view for:', adId);
       await supabase
         .from('advertisement_views')
         .insert([{
           advertisement_id: adId,
           page_location: location
         }]);
+      console.log('Popup ad view recorded successfully');
     } catch (error) {
       console.error('Error recording ad view:', error);
     }
   };
 
   const handleClose = () => {
+    console.log('Closing popup ad');
     setIsVisible(false);
     setAd(null);
   };
 
   const handleClick = () => {
     if (ad?.link_url) {
+      console.log('Opening ad link:', ad.link_url);
       window.open(ad.link_url, '_blank');
     }
     handleClose();
   };
+
+  console.log('AdPopup render state:', { isVisible, ad: !!ad });
 
   if (!isVisible || !ad) return null;
 

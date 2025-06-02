@@ -22,12 +22,14 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('InlineAd mounted with location:', location);
     fetchRandomAd();
   }, [location]);
 
   const fetchRandomAd = async () => {
     try {
       setIsLoading(true);
+      console.log('Fetching ads from database...');
       
       const { data, error } = await supabase
         .from('advertisements')
@@ -35,6 +37,8 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
         .eq('is_active', true)
         .or('scheduled_at.is.null,scheduled_at.lte.' + new Date().toISOString())
         .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
+
+      console.log('Ads query result:', { data, error });
 
       if (error) {
         console.error('Error fetching ads:', error);
@@ -45,10 +49,13 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
       if (data && data.length > 0) {
         // اختيار إعلان عشوائي
         const randomAd = data[Math.floor(Math.random() * data.length)];
+        console.log('Selected random ad:', randomAd);
         setAd(randomAd);
 
         // تسجيل المشاهدة
         await recordAdView(randomAd.id, location);
+      } else {
+        console.log('No active ads found');
       }
     } catch (error) {
       console.error('Error:', error);
@@ -59,12 +66,14 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
 
   const recordAdView = async (adId: string, pageLocation: string) => {
     try {
+      console.log('Recording ad view for:', adId, 'at location:', pageLocation);
       await supabase
         .from('advertisement_views')
         .insert([{
           advertisement_id: adId,
           page_location: pageLocation
         }]);
+      console.log('Ad view recorded successfully');
     } catch (error) {
       console.error('Error recording ad view:', error);
     }
@@ -76,7 +85,17 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
     }
   };
 
-  if (isLoading || !ad) return null;
+  console.log('InlineAd render state:', { isLoading, ad: !!ad });
+
+  if (isLoading) {
+    console.log('InlineAd is loading...');
+    return null;
+  }
+  
+  if (!ad) {
+    console.log('No ad to display');
+    return null;
+  }
 
   return (
     <Card className={`bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-500/30 ${className}`}>
