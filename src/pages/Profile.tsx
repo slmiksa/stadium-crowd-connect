@@ -266,9 +266,10 @@ const Profile = () => {
   };
   const handleRejectInvitation = async (invitationId: string) => {
     try {
-      const {
-        error
-      } = await supabase.from('room_invitations').delete().eq('id', invitationId);
+      const { error } = await supabase
+        .from('room_invitations')
+        .delete()
+        .eq('id', invitationId);
       
       if (error) {
         console.error('Error rejecting invitation:', error);
