@@ -64,6 +64,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
     }
 
     if (userId) {
+      console.log('Navigating to profile for userId:', userId, 'current user:', user?.id);
       if (userId === user?.id) {
         navigate('/profile');
       } else {
@@ -155,7 +156,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
         console.log('No room_id found, going to chat rooms');
         navigate('/chat-rooms');
       }
-    } else if (notification.type === 'room_invitation' || (notification as any).type === 'profile_redirect') {
+    } else if (notification.type === 'room_invitation') {
       console.log('Navigating to profile for room invitation');
       navigate('/profile');
     } else {

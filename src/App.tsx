@@ -139,7 +139,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/followers-following/:userId"
+                  path="/followers-following/:userId/:tab"
                   element={
                     <AuthGuard>
                       <FollowersFollowing />
@@ -203,7 +203,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/advertise"
+                  path="/advertise-with-us"
                   element={
                     <AuthGuard>
                       <AdvertiseWithUs />
