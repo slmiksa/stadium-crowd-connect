@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -136,7 +137,8 @@ const Hashtags = () => {
           hashtagsLength: post.hashtags?.length,
           isArray: Array.isArray(post.hashtags),
           likes_count: post.likes_count,
-          created_at: post.created_at
+          created_at: post.created_at,
+          avatar_url: post.profiles?.avatar_url
         });
       });
 
@@ -159,7 +161,7 @@ const Hashtags = () => {
       console.log('Posts with hashtags:', postsWithHashtags.length);
       console.log('Filtered posts IDs:', postsWithHashtags.map(p => p.id));
       
-      // Don't sort by likes for popular - just show all posts with hashtags in chronological order
+      // Show all posts with hashtags in chronological order
       const popular = [...postsWithHashtags];
       
       console.log('=== Final Results ===');
@@ -371,8 +373,8 @@ const Hashtags = () => {
         hashtag: post.hashtags?.[0] || ''
       }} 
       onLikeChange={handlePostLikeChange}
-      hideCommentsButton={true}
-      preventClick={true}
+      hideCommentsButton={false}
+      preventClick={false}
     />
   );
 

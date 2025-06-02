@@ -232,11 +232,21 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
         <div className="flex items-center">
           <button
             onClick={handleProfileClick}
-            className={`w-10 h-10 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center mr-3 shadow-md hover:scale-105 transition-transform duration-200`}
+            className="mr-3 hover:scale-105 transition-transform duration-200"
           >
-            <span className="text-sm font-bold text-white">
-              {post.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-            </span>
+            {post.profiles?.avatar_url ? (
+              <img
+                src={post.profiles.avatar_url}
+                alt={post.profiles.username}
+                className="w-10 h-10 rounded-full object-cover shadow-md"
+              />
+            ) : (
+              <div className={`w-10 h-10 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center shadow-md`}>
+                <span className="text-sm font-bold text-white">
+                  {post.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              </div>
+            )}
           </button>
           <div>
             <button
@@ -261,7 +271,7 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
           </button>
           
           {showMenu && (
-            <div className="absolute left-0 top-8 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px] overflow-hidden">
+            <div className="absolute right-0 top-8 bg-gray-700 rounded-lg shadow-lg z-10 min-w-[120px] overflow-hidden">
               {post.user_id === user?.id ? (
                 <button
                   onClick={(e) => {
@@ -318,13 +328,15 @@ const HashtagPost: React.FC<HashtagPostProps> = ({
             />
           </div>
           
-          <button
-            onClick={handleCommentsClick}
-            className="flex items-center space-x-2 space-x-reverse text-gray-400 hover:text-blue-400 transition-colors group"
-          >
-            <MessageCircle size={18} className="group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-medium">{post.comments_count}</span>
-          </button>
+          {!hideCommentsButton && (
+            <button
+              onClick={handleCommentsClick}
+              className="flex items-center space-x-2 space-x-reverse text-gray-400 hover:text-blue-400 transition-colors group"
+            >
+              <MessageCircle size={18} className="group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-medium">{post.comments_count}</span>
+            </button>
+          )}
           
           <button 
             onClick={handleShareClick}
