@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { Bell, MessageSquare, Users, Heart, UserPlus, Plus, Key, LogIn, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NotificationData {
   post_id?: string;
@@ -58,6 +60,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   onNotificationClick
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const getNotificationIcon = () => {
     switch (notification.type) {
@@ -126,6 +129,23 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
       });
     } else {
       onNotificationClick(notification);
+    }
+  };
+
+  const handleProfileNavigation = (userId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!notification.is_read) {
+      onMarkAsRead(notification.id);
+    }
+
+    console.log('Profile navigation - userId:', userId, 'current user:', user?.id);
+    
+    if (userId === user?.id) {
+      console.log('Going to own profile');
+      navigate('/profile');
+    } else {
+      console.log('Going to user profile:', `/user-profile/${userId}`);
+      navigate(`/user-profile/${userId}`);
     }
   };
 
@@ -252,7 +272,12 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={(e) => onProfileClick(notification, e)}
+                  onClick={(e) => {
+                    const senderId = notification.data?.sender_id;
+                    if (senderId) {
+                      handleProfileNavigation(senderId, e);
+                    }
+                  }}
                   className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto w-full"
                 >
                   زيارة بروفايل المرسل
@@ -280,17 +305,20 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             {/* Comment notifications - show both profile and post buttons */}
             {(notification.type === 'comment' || notification.type === 'follower_comment') && (
               <div className="flex flex-col gap-2 w-full">
-                {/* Profile button for commenter */}
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={(e) => onProfileClick(notification, e)}
+                  onClick={(e) => {
+                    const commenterId = notification.data?.commenter_id;
+                    if (commenterId) {
+                      handleProfileNavigation(commenterId, e);
+                    }
+                  }}
                   className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto w-full"
                 >
                   زيارة بروفايل المعلق
                 </Button>
                 
-                {/* Post button */}
                 {notification.data?.post_id && (
                   <Button
                     size="sm"
@@ -310,7 +338,12 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={(e) => onProfileClick(notification, e)}
+                  onClick={(e) => {
+                    const authorId = notification.data?.author_id;
+                    if (authorId) {
+                      handleProfileNavigation(authorId, e);
+                    }
+                  }}
                   className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto w-full"
                 >
                   الذهاب إلى البروفايل
@@ -333,7 +366,12 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={(e) => onProfileClick(notification, e)}
+                onClick={(e) => {
+                  const followerId = notification.data?.follower_id;
+                  if (followerId) {
+                    handleProfileNavigation(followerId, e);
+                  }
+                }}
                 className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
               >
                 البروفايل
@@ -345,7 +383,12 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={(e) => onProfileClick(notification, e)}
+                  onClick={(e) => {
+                    const likerId = notification.data?.liker_id;
+                    if (likerId) {
+                      handleProfileNavigation(likerId, e);
+                    }
+                  }}
                   className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
                 >
                   البروفايل
@@ -368,7 +411,12 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={(e) => onProfileClick(notification, e)}
+                  onClick={(e) => {
+                    const creatorId = notification.data?.creator_id;
+                    if (creatorId) {
+                      handleProfileNavigation(creatorId, e);
+                    }
+                  }}
                   className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto"
                 >
                   البروفايل
