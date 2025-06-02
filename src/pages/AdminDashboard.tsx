@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -59,7 +58,7 @@ const AdminDashboard = () => {
       case 'ad-requests':
         return <AdRequestsManagement />;
       case 'password':
-        return <PasswordChange />;
+        return <PasswordChange adminId={admin.id} />;
       default:
         return <StatsOverview />;
     }
