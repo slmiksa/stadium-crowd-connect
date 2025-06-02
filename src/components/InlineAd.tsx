@@ -30,35 +30,62 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
     try {
       setIsLoading(true);
       console.log('Fetching ads from database...');
+      console.log('Current time:', new Date().toISOString());
       
-      const { data, error } = await supabase
+      // First, let's check all ads
+      const { data: allAds, error: allAdsError } = await supabase
+        .from('advertisements')
+        .select('*');
+      
+      console.log('All ads in database:', allAds);
+      console.log('All ads error:', allAdsError);
+
+      // Now let's check active ads step by step
+      const { data: activeAds, error: activeError } = await supabase
         .from('advertisements')
         .select('*')
-        .eq('is_active', true)
-        .or('scheduled_at.is.null,scheduled_at.lte.' + new Date().toISOString())
-        .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
+        .eq('is_active', true);
+      
+      console.log('Active ads:', activeAds);
+      console.log('Active ads error:', activeError);
 
-      console.log('Ads query result:', { data, error });
+      if (activeAds && activeAds.length > 0) {
+        // Check each ad's scheduling
+        activeAds.forEach(ad => {
+          console.log(`Ad ${ad.id}:`, {
+            title: ad.title,
+            is_active: ad.is_active,
+            scheduled_at: ad.scheduled_at,
+            expires_at: ad.expires_at,
+            current_time: new Date().toISOString(),
+            can_show: (!ad.scheduled_at || new Date(ad.scheduled_at) <= new Date()) &&
+                     (!ad.expires_at || new Date(ad.expires_at) > new Date())
+          });
+        });
 
-      if (error) {
-        console.error('Error fetching ads:', error);
-        setIsLoading(false);
-        return;
-      }
+        // Filter ads that can be shown
+        const validAds = activeAds.filter(ad => 
+          (!ad.scheduled_at || new Date(ad.scheduled_at) <= new Date()) &&
+          (!ad.expires_at || new Date(ad.expires_at) > new Date())
+        );
 
-      if (data && data.length > 0) {
-        // اختيار إعلان عشوائي
-        const randomAd = data[Math.floor(Math.random() * data.length)];
-        console.log('Selected random ad:', randomAd);
-        setAd(randomAd);
+        console.log('Valid ads after filtering:', validAds);
 
-        // تسجيل المشاهدة
-        await recordAdView(randomAd.id, location);
+        if (validAds.length > 0) {
+          const randomAd = validAds[Math.floor(Math.random() * validAds.length)];
+          console.log('Selected random ad:', randomAd);
+          setAd(randomAd);
+
+          // Record the view
+          await recordAdView(randomAd.id, location);
+        } else {
+          console.log('No valid ads found after date filtering');
+        }
       } else {
-        console.log('No active ads found');
+        console.log('No active ads found in database');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching ads:', error);
     } finally {
       setIsLoading(false);
     }
@@ -67,13 +94,14 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
   const recordAdView = async (adId: string, pageLocation: string) => {
     try {
       console.log('Recording ad view for:', adId, 'at location:', pageLocation);
-      await supabase
+      const { data, error } = await supabase
         .from('advertisement_views')
         .insert([{
           advertisement_id: adId,
           page_location: pageLocation
         }]);
-      console.log('Ad view recorded successfully');
+      console.log('Ad view recorded successfully:', data);
+      if (error) console.error('Error recording ad view:', error);
     } catch (error) {
       console.error('Error recording ad view:', error);
     }
@@ -85,16 +113,32 @@ const InlineAd: React.FC<InlineAdProps> = ({ location, className = '' }) => {
     }
   };
 
-  console.log('InlineAd render state:', { isLoading, ad: !!ad });
+  console.log('InlineAd render state:', { isLoading, ad: !!ad, location });
 
   if (isLoading) {
     console.log('InlineAd is loading...');
-    return null;
+    return (
+      <Card className={`bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-500/30 ${className}`}>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-center">
+            <span className="text-blue-400 text-sm">جاري تحميل الإعلان...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
   
   if (!ad) {
-    console.log('No ad to display');
-    return null;
+    console.log('No ad to display, showing placeholder');
+    return (
+      <Card className={`bg-gradient-to-r from-gray-900/20 to-gray-800/20 border-gray-600/30 ${className}`}>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-center">
+            <span className="text-gray-400 text-sm">لا توجد إعلانات متاحة حالياً</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
