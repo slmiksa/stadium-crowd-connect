@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -271,11 +270,10 @@ const Hashtags = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
-        <Tabs defaultValue="trending" className="w-full">
-          <div className="sticky top-[140px] z-40 bg-zinc-900/95 backdrop-blur-sm pb-4">
+        
+        {/* Tabs directly attached to header */}
+        <div className="max-w-4xl mx-auto px-4">
+          <Tabs defaultValue="trending" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-zinc-900">
               <TabsTrigger value="trending" className="data-[state=active]:bg-blue-600">
                 <TrendingUp className="h-4 w-4 mr-2" />
@@ -290,182 +288,184 @@ const Hashtags = () => {
                 جميع المنشورات
               </TabsTrigger>
             </TabsList>
-          </div>
 
-          <TabsContent value="trending" className="space-y-6">
-            {trendingHashtags.length > 0 && (
-              <Card className="bg-zinc-900 border-zinc-800">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <TrendingUp className="h-5 w-5 mr-2 text-orange-400" />
-                    الهاشتاقات الرائجة
-                  </CardTitle>
-                  <CardDescription className="text-zinc-400">
-                    أكثر الهاشتاقات نشاطاً ومتابعة
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {trendingHashtags.map((hashtag) => (
-                      <div
-                        key={hashtag.hashtag}
-                        onClick={() => handleHashtagClick(hashtag.hashtag)}
-                        className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center space-x-2 space-x-reverse">
-                          <Hash className="h-4 w-4 text-orange-400" />
-                          <span className="text-white text-sm font-medium truncate">
-                            {hashtag.hashtag}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between mt-2 text-xs text-zinc-400">
-                          <span>{hashtag.posts_count} منشور</span>
-                          <span className="text-orange-400">🔥</span>
-                        </div>
+            <div className="p-4 space-y-6">
+              <TabsContent value="trending" className="space-y-6 mt-0">
+                {trendingHashtags.length > 0 && (
+                  <Card className="bg-zinc-900 border-zinc-800">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center">
+                        <TrendingUp className="h-5 w-5 mr-2 text-orange-400" />
+                        الهاشتاقات الرائجة
+                      </CardTitle>
+                      <CardDescription className="text-zinc-400">
+                        أكثر الهاشتاقات نشاطاً ومتابعة
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {trendingHashtags.map((hashtag) => (
+                          <div
+                            key={hashtag.hashtag}
+                            onClick={() => handleHashtagClick(hashtag.hashtag)}
+                            className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer"
+                          >
+                            <div className="flex items-center space-x-2 space-x-reverse">
+                              <Hash className="h-4 w-4 text-orange-400" />
+                              <span className="text-white text-sm font-medium truncate">
+                                {hashtag.hashtag}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between mt-2 text-xs text-zinc-400">
+                              <span>{hashtag.posts_count} منشور</span>
+                              <span className="text-orange-400">🔥</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            
-            <InlineAd location="trending" className="my-6" />
-            
-            {trendingPosts.length > 0 && (
-              <Card className="bg-zinc-900 border-zinc-800">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <TrendingUp className="h-5 w-5 mr-2 text-orange-400" />
-                    منشورات ترند
-                  </CardTitle>
-                  <CardDescription className="text-zinc-400">
-                    أحدث المنشورات من الهاشتاقات الأكثر رواجاً
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {trendingPosts.map((post, index) => (
-                    <React.Fragment key={post.id}>
-                      <HashtagPost post={post} />
-                      {(index + 1) % 3 === 0 && (
-                        <InlineAd location="trending-posts" />
-                      )}
-                    </React.Fragment>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                <InlineAd location="trending" className="my-6" />
+                
+                {trendingPosts.length > 0 && (
+                  <Card className="bg-zinc-900 border-zinc-800">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center">
+                        <TrendingUp className="h-5 w-5 mr-2 text-orange-400" />
+                        منشورات ترند
+                      </CardTitle>
+                      <CardDescription className="text-zinc-400">
+                        أحدث المنشورات من الهاشتاقات الأكثر رواجاً
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {trendingPosts.map((post, index) => (
+                        <React.Fragment key={post.id}>
+                          <HashtagPost post={post} />
+                          {(index + 1) % 3 === 0 && (
+                            <InlineAd location="trending-posts" />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
 
-          <TabsContent value="recent" className="space-y-6">
-            {recentHashtags.length > 0 && (
-              <Card className="bg-zinc-900 border-zinc-800">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Clock className="h-5 w-5 mr-2 text-blue-400" />
-                      الهاشتاقات الحديثة
-                    </div>
-                    {recentHashtags.length > 5 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowAllRecentHashtags(!showAllRecentHashtags)}
-                        className="text-blue-400 hover:text-blue-300"
-                      >
-                        {showAllRecentHashtags ? 'إظهار أقل' : 'مشاهدة الكل'}
-                      </Button>
-                    )}
-                  </CardTitle>
-                  <CardDescription className="text-zinc-400">
-                    آخر الهاشتاقات المحدثة
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                    {getDisplayedRecentHashtags().map((hashtag) => (
-                      <div
-                        key={hashtag.hashtag}
-                        onClick={() => handleHashtagClick(hashtag.hashtag)}
-                        className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center space-x-2 space-x-reverse">
-                          <Hash className="h-4 w-4 text-blue-400" />
-                          <span className="text-white text-sm font-medium truncate">
-                            {hashtag.hashtag}
-                          </span>
+              <TabsContent value="recent" className="space-y-6 mt-0">
+                {recentHashtags.length > 0 && (
+                  <Card className="bg-zinc-900 border-zinc-800">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Clock className="h-5 w-5 mr-2 text-blue-400" />
+                          الهاشتاقات الحديثة
                         </div>
-                        <div className="text-xs text-zinc-400 mt-1">
-                          {hashtag.posts_count} منشور
-                        </div>
+                        {recentHashtags.length > 5 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowAllRecentHashtags(!showAllRecentHashtags)}
+                            className="text-blue-400 hover:text-blue-300"
+                          >
+                            {showAllRecentHashtags ? 'إظهار أقل' : 'مشاهدة الكل'}
+                          </Button>
+                        )}
+                      </CardTitle>
+                      <CardDescription className="text-zinc-400">
+                        آخر الهاشتاقات المحدثة
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                        {getDisplayedRecentHashtags().map((hashtag) => (
+                          <div
+                            key={hashtag.hashtag}
+                            onClick={() => handleHashtagClick(hashtag.hashtag)}
+                            className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer"
+                          >
+                            <div className="flex items-center space-x-2 space-x-reverse">
+                              <Hash className="h-4 w-4 text-blue-400" />
+                              <span className="text-white text-sm font-medium truncate">
+                                {hashtag.hashtag}
+                              </span>
+                            </div>
+                            <div className="text-xs text-zinc-400 mt-1">
+                              {hashtag.posts_count} منشور
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            
-            <InlineAd location="recent" className="my-6" />
-            
-            {recentPosts.length > 0 && (
-              <Card className="bg-zinc-900 border-zinc-800">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <Clock className="h-5 w-5 mr-2 text-blue-400" />
-                    آخر المنشورات
-                  </CardTitle>
-                  <CardDescription className="text-zinc-400">
-                    أحدث المنشورات من جميع الهاشتاقات
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {recentPosts.map((post, index) => (
-                    <React.Fragment key={post.id}>
-                      <HashtagPost post={post} />
-                      {(index + 1) % 4 === 0 && (
-                        <InlineAd location="recent-posts" />
-                      )}
-                    </React.Fragment>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                <InlineAd location="recent" className="my-6" />
+                
+                {recentPosts.length > 0 && (
+                  <Card className="bg-zinc-900 border-zinc-800">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center">
+                        <Clock className="h-5 w-5 mr-2 text-blue-400" />
+                        آخر المنشورات
+                      </CardTitle>
+                      <CardDescription className="text-zinc-400">
+                        أحدث المنشورات من جميع الهاشتاقات
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {recentPosts.map((post, index) => (
+                        <React.Fragment key={post.id}>
+                          <HashtagPost post={post} />
+                          {(index + 1) % 4 === 0 && (
+                            <InlineAd location="recent-posts" />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
 
-          <TabsContent value="all" className="space-y-6">
-            <InlineAd location="all-posts" className="my-6" />
-            
-            {allPosts.length > 0 ? (
-              <Card className="bg-zinc-900 border-zinc-800">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <Hash className="h-5 w-5 mr-2 text-green-400" />
-                    جميع المنشورات
-                  </CardTitle>
-                  <CardDescription className="text-zinc-400">
-                    جميع المنشورات مرتبة حسب التاريخ
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {allPosts.map((post, index) => (
-                    <React.Fragment key={post.id}>
-                      <HashtagPost post={post} />
-                      {(index + 1) % 5 === 0 && (
-                        <InlineAd location="all-posts-list" />
-                      )}
-                    </React.Fragment>
-                  ))}
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="bg-zinc-900 border-zinc-800">
-                <CardContent className="text-center py-8">
-                  <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
-                  <p className="text-zinc-400">لا توجد منشورات بعد</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+              <TabsContent value="all" className="space-y-6 mt-0">
+                <InlineAd location="all-posts" className="my-6" />
+                
+                {allPosts.length > 0 ? (
+                  <Card className="bg-zinc-900 border-zinc-800">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center">
+                        <Hash className="h-5 w-5 mr-2 text-green-400" />
+                        جميع المنشورات
+                      </CardTitle>
+                      <CardDescription className="text-zinc-400">
+                        جميع المنشورات مرتبة حسب التاريخ
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {allPosts.map((post, index) => (
+                        <React.Fragment key={post.id}>
+                          <HashtagPost post={post} />
+                          {(index + 1) % 5 === 0 && (
+                            <InlineAd location="all-posts-list" />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="bg-zinc-900 border-zinc-800">
+                    <CardContent className="text-center py-8">
+                      <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
+                      <p className="text-zinc-400">لا توجد منشورات بعد</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
       </div>
     </div>
   );

@@ -53,7 +53,7 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
         .from('hashtag_comments')
         .select('*')
         .eq('post_id', postId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false }); // الأحدث أولاً
 
       if (commentsError) {
         console.error('Error fetching comments:', commentsError);
@@ -168,13 +168,11 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
         console.log('Media uploaded successfully:', mediaUrl);
       }
 
-      // Extract hashtags from comment content
       const hashtags = extractHashtags(content);
       console.log('Extracted hashtags:', hashtags);
 
       console.log('Inserting comment into database...');
       
-      // Prepare the comment data with proper typing
       const commentData: any = {
         post_id: postId,
         user_id: user.id,
@@ -183,7 +181,6 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
         hashtags: hashtags
       };
 
-      // Only add media fields if we have media
       if (mediaUrl && mediaType) {
         commentData.media_url = mediaUrl;
         commentData.media_type = mediaType;
@@ -209,19 +206,15 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
 
       console.log('Comment inserted successfully:', insertData);
 
-      // Clear reply state immediately after successful submission
       setReplyTo(null);
       
-      // Refresh comments
       await fetchComments();
       
-      // Call parent callback
       onCommentAdded();
       
     } catch (error) {
       console.error('Error in handleSubmitComment:', error);
       
-      // More specific error messages
       let errorMessage = 'حدث خطأ أثناء إضافة التعليق';
       
       if (error?.message?.includes('media_url')) {

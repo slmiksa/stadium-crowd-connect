@@ -87,7 +87,7 @@ const Comments = () => {
         .from('hashtag_comments')
         .select('*')
         .eq('post_id', postId)
-        .order('created_at', { ascending: false }); // تغيير لعرض الأحدث أولاً
+        .order('created_at', { ascending: false }); // الأحدث أولاً
 
       if (commentsError) {
         console.error('Error fetching comments:', commentsError);
@@ -217,7 +217,7 @@ const Comments = () => {
           }
         };
 
-        // إضافة التعليق الجديد في المقدمة
+        // إضافة التعليق الجديد في أول المصفوفة (الأعلى)
         setComments(prevComments => [newComment, ...prevComments]);
       }
 
