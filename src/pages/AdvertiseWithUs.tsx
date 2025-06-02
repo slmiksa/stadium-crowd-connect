@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Clock, Star, Zap, Crown } from 'lucide-react';
 
@@ -88,13 +87,54 @@ const AdvertiseWithUs = () => {
     }
   };
 
+  const createBucketIfNotExists = async () => {
+    try {
+      // فحص وجود الـ bucket
+      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+      
+      if (listError) {
+        console.error('Error listing buckets:', listError);
+        return false;
+      }
+
+      const bucketExists = buckets?.some(bucket => bucket.name === 'advertisements');
+      
+      if (!bucketExists) {
+        console.log('Creating advertisements bucket...');
+        const { error: createError } = await supabase.storage.createBucket('advertisements', {
+          public: true,
+          allowedMimeTypes: ['image/*'],
+          fileSizeLimit: 5242880 // 5MB
+        });
+        
+        if (createError) {
+          console.error('Error creating bucket:', createError);
+          return false;
+        }
+        
+        console.log('Bucket created successfully');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error in createBucketIfNotExists:', error);
+      return false;
+    }
+  };
+
   const uploadImage = async (file: File): Promise<string> => {
     try {
-      console.log('Starting image upload...', { fileName: file.name, fileSize: file.size });
+      console.log('Starting image upload process...');
       
+      // إنشاء الـ bucket إذا لم يكن موجوداً
+      const bucketReady = await createBucketIfNotExists();
+      if (!bucketReady) {
+        throw new Error('فشل في إعداد مساحة التخزين');
+      }
+
       const fileName = `ad-${user?.id}-${Date.now()}-${file.name}`;
+      console.log('Uploading file:', fileName);
       
-      // محاولة رفع الصورة
       const { data, error } = await supabase.storage
         .from('advertisements')
         .upload(fileName, file, {
@@ -103,42 +143,11 @@ const AdvertiseWithUs = () => {
         });
 
       if (error) {
-        console.error('Storage upload error:', error);
-        
-        // إذا كان الـ bucket غير موجود، سنحاول إنشاؤه
-        if (error.message.includes('Bucket not found')) {
-          console.log('Bucket not found, creating it...');
-          
-          // إنشاء الـ bucket
-          const { error: bucketError } = await supabase.storage
-            .createBucket('advertisements', {
-              public: true,
-              allowedMimeTypes: ['image/*'],
-              fileSizeLimit: 5242880 // 5MB
-            });
-          
-          if (bucketError) {
-            console.error('Error creating bucket:', bucketError);
-            throw new Error('فشل في إنشاء مساحة التخزين');
-          }
-          
-          // إعادة المحاولة بعد إنشاء الـ bucket
-          const { data: retryData, error: retryError } = await supabase.storage
-            .from('advertisements')
-            .upload(fileName, file);
-          
-          if (retryError) {
-            console.error('Retry upload error:', retryError);
-            throw retryError;
-          }
-          
-          console.log('Image uploaded successfully after bucket creation:', retryData);
-        } else {
-          throw error;
-        }
-      } else {
-        console.log('Image uploaded successfully:', data);
+        console.error('Upload error:', error);
+        throw new Error(`فشل في رفع الصورة: ${error.message}`);
       }
+
+      console.log('File uploaded successfully:', data);
 
       const { data: { publicUrl } } = supabase.storage
         .from('advertisements')
@@ -148,7 +157,7 @@ const AdvertiseWithUs = () => {
       return publicUrl;
     } catch (error) {
       console.error('Upload image error:', error);
-      throw new Error('فشل في رفع الصورة');
+      throw error;
     }
   };
 
@@ -216,7 +225,7 @@ const AdvertiseWithUs = () => {
 
       if (error) {
         console.error('Database insertion error:', error);
-        throw error;
+        throw new Error(`فشل في حفظ البيانات: ${error.message}`);
       }
 
       console.log('Ad request inserted successfully:', data);
@@ -365,6 +374,9 @@ const AdvertiseWithUs = () => {
                         required
                       />
                       <p className="text-zinc-400 text-xs mt-1">يُفضل أن تكون الصورة بأبعاد 1:1 (مربعة)</p>
+                      {formData.imageFile && (
+                        <p className="text-green-400 text-sm mt-1">تم اختيار الصورة: {formData.imageFile.name}</p>
+                      )}
                     </div>
 
                     <div className="bg-zinc-800 p-4 rounded-lg">
