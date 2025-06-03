@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Layout from '@/components/Layout';
 import VerificationBadge from '@/components/VerificationBadge';
-import { Camera, Edit3, Users, MessageSquare, Hash, Settings, LogOut, Trash2, Crown, Mail, Key, Check, X, Megaphone } from 'lucide-react';
+import { Camera, Edit3, Users, MessageSquare, Hash, Settings, LogOut, Trash2, Crown, Mail, Key, Check, X, Megaphone, Sparkles, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -443,33 +443,112 @@ const Profile = () => {
 
         {/* Profile content */}
         <div className="relative px-4 -mt-16 my-[27px]">
-          {/* زر أعلن معنا - محسن */}
-          <div className="relative overflow-hidden bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-blue-600/10 border border-purple-400/20 rounded-xl p-6 mb-6 backdrop-blur-sm">
-            {/* خلفية متحركة */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-blue-500/5 animate-pulse"></div>
-            
-            <div className="relative flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center mb-2">
-                  <Megaphone className="h-5 w-5 text-purple-400 ml-2" />
-                  <h3 className="text-white font-bold text-lg">روّج لعملك معنا</h3>
-                </div>
-                <p className="text-zinc-300 text-sm leading-relaxed">
-                  ابدأ حملتك الإعلانية الآن وصل لآلاف المستخدمين عبر منصتنا
-                </p>
-                <div className="flex items-center mt-2">
-                  <div className="flex items-center text-xs text-purple-300">
-                    <span className="w-2 h-2 bg-green-400 rounded-full ml-1 animate-pulse"></span>
-                    باقات متنوعة تناسب جميع الميزانيات
+          {/* قسم أعلن معنا - محسن ومعاد تصميمه */}
+          <div className="relative mb-6">
+            {/* الخلفية الأساسية */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-purple-900/40 via-pink-900/40 to-blue-900/40 border border-purple-400/30 rounded-2xl backdrop-blur-md">
+              {/* خلفية متحركة */}
+              <div className="absolute inset-0">
+                <div className="absolute top-0 left-0 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-0 right-0 w-40 h-40 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl animate-pulse delay-500"></div>
+              </div>
+
+              {/* المحتوى */}
+              <div className="relative p-6">
+                {/* الرأس */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3 space-x-reverse">
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                        <Megaphone className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-zinc-900 animate-pulse"></div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                        روّج لعملك معنا
+                        <Sparkles className="h-4 w-4 text-yellow-400 animate-pulse" />
+                      </h3>
+                      <p className="text-purple-200 text-sm">منصة التسويق الرائدة في المنطقة</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <div className="px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full">
+                      <span className="text-xs text-green-300 font-semibold flex items-center gap-1">
+                        <TrendingUp className="h-3 w-3" />
+                        نشط الآن
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {/* الوصف */}
+                <div className="mb-6">
+                  <p className="text-zinc-200 text-base leading-relaxed mb-3">
+                    ابدأ حملتك الإعلانية الآن وصل لآلاف المستخدمين النشطين عبر منصتنا المتطورة
+                  </p>
+                  
+                  {/* المميزات */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-purple-200">وصول مستهدف وفعال</span>
+                    </div>
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <div className="w-2 h-2 bg-pink-400 rounded-full animate-pulse delay-200"></div>
+                      <span className="text-sm text-pink-200">باقات تناسب جميع الميزانيات</span>
+                    </div>
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-400"></div>
+                      <span className="text-sm text-blue-200">نتائج مضمونة وقابلة للقياس</span>
+                    </div>
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse delay-600"></div>
+                      <span className="text-sm text-green-200">دعم فني متواصل 24/7</span>
+                    </div>
+                  </div>
+
+                  {/* الإحصائيات */}
+                  <div className="flex items-center justify-center space-x-6 space-x-reverse py-3 px-4 bg-zinc-800/50 rounded-xl border border-zinc-700/50">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-white">10K+</div>
+                      <div className="text-xs text-zinc-400">مستخدم نشط</div>
+                    </div>
+                    <div className="w-px h-8 bg-zinc-600"></div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-white">95%</div>
+                      <div className="text-xs text-zinc-400">معدل النجاح</div>
+                    </div>
+                    <div className="w-px h-8 bg-zinc-600"></div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-white">24/7</div>
+                      <div className="text-xs text-zinc-400">دعم فني</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* زر الإجراء */}
+                <button 
+                  onClick={() => navigate('/advertise-with-us')} 
+                  className="w-full relative group overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white py-4 px-6 rounded-xl hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-[1.02] shadow-xl hover:shadow-2xl hover:shadow-purple-500/25"
+                >
+                  {/* تأثير اللمعان */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                  
+                  <div className="relative flex items-center justify-center space-x-3 space-x-reverse">
+                    <Megaphone className="h-5 w-5" />
+                    <span className="font-bold text-lg">ابدأ حملتك الإعلانية الآن</span>
+                    <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                  </div>
+                  
+                  <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-xs text-white/80">
+                    عرض خاص - خصم 20% على الحملة الأولى
+                  </div>
+                </button>
               </div>
-              
-              <button onClick={() => navigate('/advertise-with-us')} className="relative group bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 flex items-center space-x-2 space-x-reverse">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 rounded-xl blur opacity-20 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <Megaphone className="h-4 w-4 relative z-10" />
-                <span className="relative z-10 font-semibold">أعلن معنا</span>
-              </button>
             </div>
           </div>
 
