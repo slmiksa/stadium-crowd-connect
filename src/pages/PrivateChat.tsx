@@ -348,7 +348,7 @@ const PrivateChat = () => {
                 {message.content && <p className="whitespace-pre-wrap break-words">{message.content}</p>}
                 
                 {/* Image - Fixed to display directly in chat */}
-                {message.media_url && message.media_type?.startsWith('image/') && (
+                {message.media_url && message.media_type === 'image' && (
                   <div className="mt-2">
                     <img 
                       src={message.media_url} 
@@ -368,7 +368,7 @@ const PrivateChat = () => {
                 )}
 
                 {/* Video */}
-                {message.media_url && message.media_type?.startsWith('video/') && (
+                {message.media_url && message.media_type === 'video' && (
                   <div className="mt-2">
                     <video 
                       src={message.media_url} 

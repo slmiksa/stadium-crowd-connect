@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Camera, Send, X, Mic, MicOff, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -189,9 +188,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
     console.log('=== MEDIA INPUT SUBMIT ===');
     console.log('Message:', message);
     console.log('Has media:', !!selectedMedia);
@@ -202,13 +199,25 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
       return;
     }
     
+    // Set correct media type for different file types
+    let finalMediaType = mediaType;
+    if (selectedMedia) {
+      if (mediaType === 'voice') {
+        finalMediaType = 'voice';
+      } else if (selectedMedia.type.startsWith('image/')) {
+        finalMediaType = 'image';
+      } else if (selectedMedia.type.startsWith('video/')) {
+        finalMediaType = 'video';
+      }
+    }
+    
     console.log('Calling onSendMessage with:', {
       content: message.trim(),
       hasFile: !!selectedMedia,
-      fileType: mediaType
+      fileType: finalMediaType
     });
     
-    onSendMessage(message.trim(), selectedMedia || undefined, mediaType || undefined);
+    onSendMessage(message.trim(), selectedMedia || undefined, finalMediaType || undefined);
     
     // Clear form
     setMessage('');
