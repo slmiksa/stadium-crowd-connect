@@ -60,22 +60,47 @@ const Hashtags = () => {
       const oneDayAgo = new Date();
       oneDayAgo.setHours(oneDayAgo.getHours() - 24);
 
-      const { data, error } = await supabase
-        .from('hashtag_trends')
-        .select('hashtag, posts_count, trend_score')
-        .eq('is_trending', true)
-        .gte('posts_count', 35)
-        .gte('updated_at', oneDayAgo.toISOString())
-        .order('trend_score', { ascending: false })
-        .limit(10);
+      console.log('Fetching trending hashtags with 35+ posts in last 24 hours');
 
-      if (error) {
-        console.error('Error fetching trending hashtags:', error);
+      // جلب المنشورات من آخر 24 ساعة وحساب الهاشتاقات
+      const { data: recentPosts, error: postsError } = await supabase
+        .from('hashtag_posts')
+        .select('hashtags, created_at')
+        .gte('created_at', oneDayAgo.toISOString());
+
+      if (postsError) {
+        console.error('Error fetching recent posts:', postsError);
         return;
       }
 
-      setTrendingHashtags(data || []);
-      await fetchTrendingPosts(data?.map(h => h.hashtag) || []);
+      // حساب عدد المنشورات لكل هاشتاق في آخر 24 ساعة
+      const hashtagCounts: { [key: string]: number } = {};
+      
+      recentPosts?.forEach(post => {
+        post.hashtags?.forEach((hashtag: string) => {
+          hashtagCounts[hashtag] = (hashtagCounts[hashtag] || 0) + 1;
+        });
+      });
+
+      // فلترة الهاشتاقات التي تحتوي على 35+ منشور
+      const trendingData = Object.entries(hashtagCounts)
+        .filter(([hashtag, count]) => count >= 35)
+        .map(([hashtag, count]) => ({
+          hashtag,
+          posts_count: count,
+          trend_score: count // يمكن تطوير هذا لاحقاً
+        }))
+        .sort((a, b) => b.posts_count - a.posts_count)
+        .slice(0, 10);
+
+      console.log('Trending hashtags found:', trendingData);
+      setTrendingHashtags(trendingData);
+      
+      if (trendingData.length > 0) {
+        await fetchTrendingPosts(trendingData.map(h => h.hashtag));
+      } else {
+        setTrendingPosts([]);
+      }
     } catch (error) {
       console.error('Error:', error);
     }
