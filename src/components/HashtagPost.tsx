@@ -109,7 +109,6 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, showComments = true, on
       try {
         await navigator.share({
           title: 'شاهد هذا المنشور',
-          text: post.content.substring(0, 100) + '...',
           url: shareUrl,
         });
       } catch (error) {
