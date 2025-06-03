@@ -138,7 +138,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         setRecordingDuration(prev => prev + 1);
       }, 1000);
 
-    } catch (error) => {
+    } catch (error) {
       console.error('Error starting recording:', error);
       let errorMessage = 'فشل في الوصول للميكروفون';
       
@@ -200,7 +200,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     console.log('Has media:', !!selectedMedia);
     console.log('Media type:', mediaType);
     
-    if (!message.trim() && !selectedMedia) {
+    if (!content.trim() && !selectedMedia) {
       console.log('No content to send');
       return;
     }
@@ -218,12 +218,12 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     }
     
     console.log('Calling onSendMessage with:', {
-      content: message.trim(),
+      content: content.trim(),
       hasFile: !!selectedMedia,
       fileType: finalMediaType
     });
     
-    onSendMessage(message.trim(), selectedMedia || undefined, finalMediaType || undefined);
+    onSendMessage(content.trim(), selectedMedia || undefined, finalMediaType || undefined);
     
     // Clear form
     setMessage('');
