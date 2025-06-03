@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -122,7 +121,7 @@ const BottomNavigation = () => {
   }, [user]);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 z-50 w-full pb-safe-bottom">
+    <div className="fixed bottom-0 left-0 right-0 w-full bg-zinc-900 border-t border-zinc-800 z-50">
       <div className="flex items-center justify-around py-2 px-1 w-full">
         {tabs.map((tab) => {
           const Icon = tab.icon;

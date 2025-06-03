@@ -55,20 +55,30 @@
   html, body {
     @apply bg-background text-foreground;
     font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    width: 100%;
+    width: 100vw;
     min-height: 100vh;
     min-height: 100dvh;
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
   }
 
   #root {
-    width: 100%;
+    width: 100vw;
     min-height: 100vh;
     min-height: 100dvh;
     overflow-x: hidden;
     overflow-y: auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
   }
 
   html {
@@ -111,12 +121,12 @@
   }
 }
 
-/* Enable touch scrolling on mobile */
+/* Full viewport layout */
 body {
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  width: 100%;
+  width: 100vw;
   overflow-x: hidden;
 }
 
@@ -128,18 +138,18 @@ html, body {
 
 /* Ensure full width on all containers */
 .w-full {
-  width: 100% !important;
+  width: 100vw !important;
 }
 
 /* Mobile viewport fixes */
 @media screen and (max-width: 768px) {
   body {
-    width: 100%;
+    width: 100vw;
     overflow-x: hidden;
   }
   
   * {
-    max-width: 100%;
+    max-width: 100vw;
   }
   
   /* Ensure input area is always visible */
@@ -149,50 +159,12 @@ html, body {
     left: 0;
     right: 0;
     z-index: 1000;
-    width: 100%;
+    width: 100vw;
   }
   
   /* Prevent keyboard from hiding input on iOS */
   .ios-keyboard-fix {
     padding-bottom: env(keyboard-inset-height, 0);
-  }
-}
-
-/* Safe area support for mobile devices */
-@supports (padding: max(0px)) {
-  .pb-safe-bottom {
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
-  }
-  
-  .pt-safe-top {
-    padding-top: max(0px, env(safe-area-inset-top));
-  }
-
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  .safe-area-top {
-    padding-top: env(safe-area-inset-top);
-  }
-}
-
-/* Fallback for devices without safe area support */
-@supports not (padding: max(0px)) {
-  .pb-safe-bottom {
-    padding-bottom: 16px;
-  }
-  
-  .pt-safe-top {
-    padding-top: 0px;
-  }
-
-  .safe-area-bottom {
-    padding-bottom: 0;
-  }
-
-  .safe-area-top {
-    padding-top: 0;
   }
 }
 
@@ -211,10 +183,10 @@ html, body {
 .full-width-container {
   width: 100vw;
   position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
+  left: 0;
+  right: 0;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 /* Zero margin containers */

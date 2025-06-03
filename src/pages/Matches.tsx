@@ -454,9 +454,9 @@ const Matches = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen w-full bg-gray-900 overflow-x-hidden">
-        <div className="w-full space-y-4 pb-20">
-          <div className="w-full text-center px-4 py-4">
+      <div className="w-full h-full min-h-screen bg-gray-900 overflow-x-hidden">
+        <div className="w-full h-full space-y-0">
+          <div className="w-full text-center px-4 py-6 bg-gray-900">
             <div className="flex items-center justify-between mb-2 w-full">
               <div></div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white">المباريات والأخبار</h1>
@@ -471,11 +471,11 @@ const Matches = () => {
             <p className="text-gray-400 text-sm sm:text-base">تابع أحدث المباريات والنتائج والأخبار الرياضية</p>
           </div>
 
-          <div className="w-full bg-gray-800/60 backdrop-blur-sm rounded-2xl p-1 border border-gray-700/50 mx-4">
+          <div className="w-full bg-gray-800/60 backdrop-blur-sm p-1 border-b border-gray-700/50">
             <div className="grid grid-cols-4 gap-0.5 sm:gap-1 w-full">
               <button
                 onClick={() => setActiveTab('live')}
-                className={`py-2 sm:py-3 px-1 sm:px-2 rounded-xl text-xs font-bold transition-all duration-300 w-full ${
+                className={`py-3 px-2 text-xs font-bold transition-all duration-300 w-full ${
                   activeTab === 'live'
                     ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
@@ -486,7 +486,7 @@ const Matches = () => {
               </button>
               <button
                 onClick={() => setActiveTab('upcoming')}
-                className={`py-2 sm:py-3 px-1 sm:px-2 rounded-xl text-xs font-bold transition-all duration-300 w-full ${
+                className={`py-3 px-2 text-xs font-bold transition-all duration-300 w-full ${
                   activeTab === 'upcoming'
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
@@ -497,7 +497,7 @@ const Matches = () => {
               </button>
               <button
                 onClick={() => setActiveTab('finished')}
-                className={`py-2 sm:py-3 px-1 sm:px-2 rounded-xl text-xs font-bold transition-all duration-300 w-full ${
+                className={`py-3 px-2 text-xs font-bold transition-all duration-300 w-full ${
                   activeTab === 'finished'
                     ? 'bg-green-600 text-white shadow-lg shadow-green-600/30'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
@@ -508,7 +508,7 @@ const Matches = () => {
               </button>
               <button
                 onClick={() => setActiveTab('news')}
-                className={`py-2 sm:py-3 px-1 sm:px-2 rounded-xl text-xs font-bold transition-all duration-300 w-full ${
+                className={`py-3 px-2 text-xs font-bold transition-all duration-300 w-full ${
                   activeTab === 'news'
                     ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
@@ -520,7 +520,7 @@ const Matches = () => {
             </div>
           </div>
 
-          <div className="w-full space-y-3 sm:space-y-4 px-4">
+          <div className="w-full space-y-3 sm:space-y-4 p-4 pb-20">
             {isTabLoading ? (
               <div className="text-center py-8 sm:py-12 w-full">
                 <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
