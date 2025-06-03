@@ -16,7 +16,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="full-screen-container bg-zinc-900">
-      <main className={`w-full h-full ${shouldHideFooter ? '' : 'pb-16'} overflow-x-hidden`}>
+      <main className={`w-full h-full ${shouldHideFooter ? 'pt-safe pb-safe' : 'pt-safe pb-16'} overflow-x-hidden`}>
         {children}
       </main>
       {!shouldHideFooter && <BottomNavigation />}

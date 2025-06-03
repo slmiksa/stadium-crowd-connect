@@ -666,7 +666,7 @@ const Profile = () => {
           </div>
 
           {/* Sign out button with safe area padding */}
-          <div className="pb-24 safe-area-bottom">
+          <div className="pb-safe">
             <Button onClick={handleSignOut} className="w-full bg-red-600 hover:bg-red-700 text-white mb-4">
               <LogOut size={18} className="ml-2" />
               تسجيل الخروج

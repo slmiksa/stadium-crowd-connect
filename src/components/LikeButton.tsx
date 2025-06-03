@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -123,7 +122,10 @@ const LikeButton: React.FC<LikeButtonProps> = ({
     };
   }, [postId, commentId]);
 
-  const handleLike = async () => {
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (!user) {
       toast.error('يجب تسجيل الدخول للإعجاب');
       return;
