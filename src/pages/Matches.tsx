@@ -241,7 +241,7 @@ const Matches = () => {
   const MatchCard = ({ match }: { match: Match }) => (
     <div 
       onClick={() => handleMatchClick(match.id)}
-      className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl mx-2 sm:mx-0"
+      className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
     >
       <div className="flex items-center justify-center mb-3 sm:mb-4">
         <div className="flex items-center space-x-2 space-x-reverse bg-blue-600/15 border border-blue-500/25 rounded-xl px-2 sm:px-3 py-1 sm:py-1.5">
@@ -455,8 +455,8 @@ const Matches = () => {
   return (
     <Layout>
       <div className="min-h-screen w-full bg-gray-900 overflow-x-hidden">
-        <div className="w-full px-3 py-4 space-y-4 pb-20">
-          <div className="w-full text-center px-2">
+        <div className="w-full space-y-4 pb-20">
+          <div className="w-full text-center px-4 py-4">
             <div className="flex items-center justify-between mb-2 w-full">
               <div></div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white">المباريات والأخبار</h1>
@@ -471,7 +471,7 @@ const Matches = () => {
             <p className="text-gray-400 text-sm sm:text-base">تابع أحدث المباريات والنتائج والأخبار الرياضية</p>
           </div>
 
-          <div className="w-full bg-gray-800/60 backdrop-blur-sm rounded-2xl p-1 border border-gray-700/50">
+          <div className="w-full bg-gray-800/60 backdrop-blur-sm rounded-2xl p-1 border border-gray-700/50 mx-4">
             <div className="grid grid-cols-4 gap-0.5 sm:gap-1 w-full">
               <button
                 onClick={() => setActiveTab('live')}
@@ -520,7 +520,7 @@ const Matches = () => {
             </div>
           </div>
 
-          <div className="w-full space-y-3 sm:space-y-4">
+          <div className="w-full space-y-3 sm:space-y-4 px-4">
             {isTabLoading ? (
               <div className="text-center py-8 sm:py-12 w-full">
                 <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>

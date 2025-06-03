@@ -207,6 +207,23 @@ html, body {
   height: 100dvh;
 }
 
+/* Full width containers without margin/padding issues */
+.full-width-container {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+}
+
+/* Zero margin containers */
+.no-margin {
+  margin: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 /* Viewport units for mobile */
 @media screen and (max-width: 768px) {
   .min-h-screen {
