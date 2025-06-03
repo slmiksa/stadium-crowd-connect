@@ -581,16 +581,21 @@ const ChatRoom = () => {
               </div>
             )}
 
-            {/* Image */}
+            {/* Image - Fixed to display directly in chat */}
             {message.media_url && message.media_type?.startsWith('image/') && (
               <div className="mt-2">
                 <img 
                   src={message.media_url} 
-                  alt="مرفق صورة"
-                  className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                  alt="صورة"
+                  className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-80 transition-opacity max-h-60 object-cover"
                   onClick={(e) => {
                     e.stopPropagation();
                     openImageModal(message.media_url);
+                  }}
+                  onLoad={() => console.log('Image loaded successfully:', message.media_url)}
+                  onError={(e) => {
+                    console.error('Image failed to load:', message.media_url);
+                    e.currentTarget.style.display = 'none';
                   }}
                 />
               </div>
@@ -602,21 +607,22 @@ const ChatRoom = () => {
                 <video 
                   src={message.media_url} 
                   controls 
-                  className="max-w-full h-auto rounded-lg"
+                  className="max-w-full h-auto rounded-lg max-h-60"
+                  preload="metadata"
                 />
               </div>
             )}
 
-            {/* Other attachments */}
-            {message.media_url && !message.media_type?.startsWith('image/') && !message.media_type?.startsWith('video/') && (
+            {/* Other attachments fallback */}
+            {message.media_url && !message.media_type?.startsWith('image/') && !message.media_type?.startsWith('video/') && !message.voice_url && (
               <div className="mt-2">
                 <a 
                   href={message.media_url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-blue-300 hover:text-blue-200 underline"
+                  className="text-blue-300 hover:text-blue-200 underline inline-flex items-center gap-2"
                 >
-                  عرض المرفق
+                  📎 عرض المرفق
                 </a>
               </div>
             )}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import MediaInput from '@/components/MediaInput';
-import { ArrowLeft, Send, RefreshCw, Play, Pause } from 'lucide-react';
+import { ArrowLeft, Send, RefreshCw, Play, Pause, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -14,6 +14,8 @@ interface Message {
   content: string;
   voice_url?: string;
   voice_duration?: number;
+  media_url?: string;
+  media_type?: string;
   created_at: string;
   sender_id: string;
   receiver_id: string;
@@ -44,6 +46,7 @@ const PrivateChat = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [imageModal, setImageModal] = useState<string | null>(null);
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
 
   useEffect(() => {
@@ -144,10 +147,12 @@ const PrivateChat = () => {
     setIsSending(true);
     try {
       let voiceUrl = null;
+      let mediaUrl = null;
+      let finalMediaType = mediaType;
       
-      if (mediaFile && mediaType === 'voice') {
-        const fileExt = 'webm';
-        const fileName = `private-voice/${user.id}/${Date.now()}.${fileExt}`;
+      if (mediaFile) {
+        const fileExt = mediaFile.name.split('.').pop() || 'unknown';
+        const fileName = `private-chat/${user.id}/${Date.now()}.${fileExt}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('hashtag-images')
@@ -155,14 +160,18 @@ const PrivateChat = () => {
 
         if (uploadError) {
           console.error('Upload error:', uploadError);
-          throw new Error('فشل في رفع الملف الصوتي');
+          throw new Error('فشل في رفع الملف');
         }
 
         const { data: urlData } = supabase.storage
           .from('hashtag-images')
           .getPublicUrl(fileName);
 
-        voiceUrl = urlData.publicUrl;
+        if (mediaType === 'voice') {
+          voiceUrl = urlData.publicUrl;
+        } else {
+          mediaUrl = urlData.publicUrl;
+        }
       }
 
       const messageData: any = {
@@ -175,6 +184,11 @@ const PrivateChat = () => {
       if (voiceUrl) {
         messageData.voice_url = voiceUrl;
         messageData.voice_duration = 0;
+      }
+
+      if (mediaUrl) {
+        messageData.media_url = mediaUrl;
+        messageData.media_type = finalMediaType;
       }
 
       const { error } = await supabase
@@ -227,6 +241,14 @@ const PrivateChat = () => {
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  };
+
+  const openImageModal = (imageUrl: string) => {
+    setImageModal(imageUrl);
+  };
+
+  const closeImageModal = () => {
+    setImageModal(null);
   };
 
   if (isLoading) {
@@ -323,7 +345,39 @@ const PrivateChat = () => {
                     : 'bg-zinc-700 text-white'
                 }`}
               >
-                {message.content && <p>{message.content}</p>}
+                {message.content && <p className="whitespace-pre-wrap break-words">{message.content}</p>}
+                
+                {/* Image - Fixed to display directly in chat */}
+                {message.media_url && message.media_type?.startsWith('image/') && (
+                  <div className="mt-2">
+                    <img 
+                      src={message.media_url} 
+                      alt="صورة"
+                      className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-80 transition-opacity max-h-60 object-cover"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openImageModal(message.media_url);
+                      }}
+                      onLoad={() => console.log('Image loaded successfully:', message.media_url)}
+                      onError={(e) => {
+                        console.error('Image failed to load:', message.media_url);
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Video */}
+                {message.media_url && message.media_type?.startsWith('video/') && (
+                  <div className="mt-2">
+                    <video 
+                      src={message.media_url} 
+                      controls 
+                      className="max-w-full h-auto rounded-lg max-h-60"
+                      preload="metadata"
+                    />
+                  </div>
+                )}
                 
                 {/* Voice Message */}
                 {message.voice_url && (
@@ -344,6 +398,20 @@ const PrivateChat = () => {
                       </div>
                     </div>
                     <span className="text-xs opacity-75">صوتية</span>
+                  </div>
+                )}
+
+                {/* Other attachments fallback */}
+                {message.media_url && !message.media_type?.startsWith('image/') && !message.media_type?.startsWith('video/') && !message.voice_url && (
+                  <div className="mt-2">
+                    <a 
+                      href={message.media_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-300 hover:text-blue-200 underline inline-flex items-center gap-2"
+                    >
+                      📎 عرض المرفق
+                    </a>
                   </div>
                 )}
 
@@ -373,6 +441,29 @@ const PrivateChat = () => {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Image Modal */}
+      {imageModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          onClick={closeImageModal}
+        >
+          <div className="relative max-w-full max-h-full">
+            <button
+              onClick={closeImageModal}
+              className="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors z-10"
+            >
+              <X size={24} />
+            </button>
+            <img 
+              src={imageModal} 
+              alt="صورة مكبرة" 
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Fixed Message Input */}
       <div className="bg-zinc-800 border-t border-zinc-700 p-4 flex-shrink-0 fixed bottom-0 left-0 right-0 z-50">

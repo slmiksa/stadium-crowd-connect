@@ -34,6 +34,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,6 +72,8 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
 
   const startRecording = async () => {
     try {
+      console.log('Requesting microphone access...');
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 44100,
@@ -80,8 +83,20 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         }
       });
 
+      console.log('Microphone access granted');
+      streamRef.current = stream;
+
+      // Check if MediaRecorder supports webm
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4';
+        }
+      }
+
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: mimeType
       });
 
       mediaRecorderRef.current = mediaRecorder;
@@ -94,8 +109,8 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, { type: mimeType });
         
         setSelectedMedia(audioFile);
         setMediaType('voice');
@@ -103,7 +118,16 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         const audioUrl = URL.createObjectURL(audioBlob);
         setAudioPreview(audioUrl);
         
-        stream.getTracks().forEach(track => track.stop());
+        // Clean up stream
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+      };
+
+      mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        alert('حدث خطأ أثناء التسجيل');
       };
 
       mediaRecorder.start();
@@ -116,7 +140,17 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
 
     } catch (error) {
       console.error('Error starting recording:', error);
-      alert('فشل في الوصول للميكروفون');
+      let errorMessage = 'فشل في الوصول للميكروفون';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'يرجى السماح بالوصول للميكروفون من إعدادات المتصفح';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'لم يتم العثور على ميكروفون متاح';
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = 'التسجيل الصوتي غير مدعوم في هذا المتصفح';
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -183,6 +217,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     setMediaType(null);
     setAudioPreview(null);
     setRecordingDuration(0);
+    setIsPlayingPreview(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
