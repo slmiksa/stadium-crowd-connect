@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -244,10 +245,12 @@ const UserProfile = () => {
   };
 
   const handleFollowersClick = () => {
+    console.log('Navigating to followers for userId:', userId);
     navigate(`/followers-following/${userId}/followers`);
   };
 
   const handleFollowingClick = () => {
+    console.log('Navigating to following for userId:', userId);
     navigate(`/followers-following/${userId}/following`);
   };
 

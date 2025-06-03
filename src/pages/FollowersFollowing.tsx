@@ -23,7 +23,7 @@ interface FollowData {
 }
 
 const FollowersFollowing = () => {
-  const { userId, type } = useParams();
+  const { userId, type } = useParams<{ userId: string; type: 'followers' | 'following' }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -31,12 +31,17 @@ const FollowersFollowing = () => {
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    console.log('Current params:', { userId, type });
-    console.log('URL params check:', { userId: !!userId, type: !!type });
+    console.log('FollowersFollowing useEffect - Current params:', { userId, type });
+    console.log('URL pathname:', window.location.pathname);
     
-    fetchUsers();
-    if (user) {
-      fetchCurrentUserFollowing();
+    if (userId && (type === 'followers' || type === 'following')) {
+      fetchUsers();
+      if (user) {
+        fetchCurrentUserFollowing();
+      }
+    } else {
+      console.log('Invalid params - userId:', userId, 'type:', type);
+      setIsLoading(false);
     }
   }, [userId, type, user]);
 
@@ -46,6 +51,12 @@ const FollowersFollowing = () => {
       
       if (!userId || !type) {
         console.log('Missing params, stopping fetch');
+        setIsLoading(false);
+        return;
+      }
+
+      if (type !== 'followers' && type !== 'following') {
+        console.log('Invalid type:', type);
         setIsLoading(false);
         return;
       }
@@ -60,7 +71,7 @@ const FollowersFollowing = () => {
             profiles:follower_id (id, username, bio, avatar_url, verification_status)
           `)
           .eq('following_id', userId);
-      } else if (type === 'following') {
+      } else {
         query = supabase
           .from('follows')
           .select(`
@@ -68,10 +79,6 @@ const FollowersFollowing = () => {
             profiles:following_id (id, username, bio, avatar_url, verification_status)
           `)
           .eq('follower_id', userId);
-      } else {
-        console.log('Invalid type:', type);
-        setIsLoading(false);
-        return;
       }
 
       const { data, error } = await query;
