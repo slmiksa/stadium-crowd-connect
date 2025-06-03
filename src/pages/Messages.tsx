@@ -291,7 +291,7 @@ const Messages = () => {
       if (userId === user?.id) {
         navigate('/profile');
       } else {
-        navigate(`/profile/${userId}`);
+        navigate(`/user-profile/${userId}`);
       }
     } else {
       navigate('/hashtags');
