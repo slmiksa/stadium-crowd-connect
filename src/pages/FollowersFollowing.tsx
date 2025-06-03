@@ -32,19 +32,24 @@ const FollowersFollowing = () => {
 
   useEffect(() => {
     console.log('Current params:', { userId, type });
+    console.log('URL params check:', { userId: !!userId, type: !!type });
     
-    if (userId && (type === 'followers' || type === 'following')) {
-      fetchUsers();
-      if (user) {
-        fetchCurrentUserFollowing();
-      }
-    } else {
-      setIsLoading(false);
+    fetchUsers();
+    if (user) {
+      fetchCurrentUserFollowing();
     }
   }, [userId, type, user]);
 
   const fetchUsers = async () => {
     try {
+      console.log('Fetching users with params:', { userId, type });
+      
+      if (!userId || !type) {
+        console.log('Missing params, stopping fetch');
+        setIsLoading(false);
+        return;
+      }
+
       let query;
       
       if (type === 'followers') {
@@ -55,7 +60,7 @@ const FollowersFollowing = () => {
             profiles:follower_id (id, username, bio, avatar_url, verification_status)
           `)
           .eq('following_id', userId);
-      } else {
+      } else if (type === 'following') {
         query = supabase
           .from('follows')
           .select(`
@@ -63,12 +68,17 @@ const FollowersFollowing = () => {
             profiles:following_id (id, username, bio, avatar_url, verification_status)
           `)
           .eq('follower_id', userId);
+      } else {
+        console.log('Invalid type:', type);
+        setIsLoading(false);
+        return;
       }
 
       const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching users:', error);
+        setIsLoading(false);
         return;
       }
 
@@ -142,7 +152,17 @@ const FollowersFollowing = () => {
     navigate(`/user-profile/${userProfileId}`);
   };
 
-  // التحقق من صحة المعاملات - تحديث منطق التحقق
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="p-4 flex items-center justify-center min-h-64">
+          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // التحقق من صحة المعاملات بعد التحميل
   if (!userId) {
     return (
       <Layout>
@@ -166,16 +186,6 @@ const FollowersFollowing = () => {
           <Button onClick={() => navigate(-1)} className="bg-blue-500 hover:bg-blue-600">
             العودة للخلف
           </Button>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="p-4 flex items-center justify-center min-h-64">
-          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
         </div>
       </Layout>
     );
