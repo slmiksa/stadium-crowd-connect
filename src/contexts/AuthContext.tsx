@@ -54,8 +54,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data?.user) {
         setUser(data.user);
-        // التحقق من عدد المتابعين بعد تسجيل الدخول
-        await checkFollowersCount(data.user.id);
+        // التحقق من عدد المتابعين بعد تسجيل الدخول بنجاح
+        setTimeout(() => {
+          checkFollowersCount(data.user.id);
+        }, 100);
         return true;
       }
 
@@ -129,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setUser(session.user);
-          await checkFollowersCount(session.user.id);
+          // لا نتحقق من المتابعين هنا لتجنب تأخير التحميل
         }
       } catch (error) {
         console.error('Error getting session:', error);
@@ -147,9 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Auth state changed:', event, session?.user?.id);
         setUser(session?.user ?? null);
         
-        if (event === 'SIGNED_IN' && session?.user) {
-          await checkFollowersCount(session.user.id);
-        } else if (event === 'SIGNED_OUT') {
+        if (event === 'SIGNED_OUT') {
           setShouldShowSuggestions(false);
         }
         

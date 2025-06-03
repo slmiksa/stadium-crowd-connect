@@ -29,7 +29,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   }
 
   // Redirect to suggestions if user should see them
-  if (shouldShowSuggestions) {
+  if (shouldShowSuggestions && window.location.pathname !== '/suggested-follows') {
     return <Navigate to="/suggested-follows" replace />;
   }
 
