@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Camera, Send, X, Mic, MicOff, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -137,7 +138,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         setRecordingDuration(prev => prev + 1);
       }, 1000);
 
-    } catch (error) {
+    } catch (error) => {
       console.error('Error starting recording:', error);
       let errorMessage = 'فشل في الوصول للميكروفون';
       
@@ -186,6 +187,11 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage(message, selectedMedia || undefined, mediaType || undefined);
   };
 
   const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
