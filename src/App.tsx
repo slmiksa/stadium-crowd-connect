@@ -52,6 +52,10 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               
+              {/* Post routes without AuthGuard for preview functionality */}
+              <Route path="/post/:postId" element={<PostPage />} />
+              <Route path="/post-details/:postId" element={<PostDetails />} />
+              
               {/* Protected Routes */}
               <Route path="/profile" element={
                 <AuthGuard>
@@ -86,18 +90,6 @@ const App = () => (
               <Route path="/create-hashtag-post" element={
                 <AuthGuard>
                   <CreateHashtagPost />
-                </AuthGuard>
-              } />
-              
-              <Route path="/post/:postId" element={
-                <AuthGuard>
-                  <PostPage />
-                </AuthGuard>
-              } />
-              
-              <Route path="/post-details/:postId" element={
-                <AuthGuard>
-                  <PostDetails />
                 </AuthGuard>
               } />
               
