@@ -443,89 +443,69 @@ const Profile = () => {
 
         {/* Profile content */}
         <div className="relative px-4 -mt-16 my-[27px]">
-          {/* قسم أعلن معنا - محسن ومعاد تصميمه */}
+          {/* قسم أعلن معنا - محسن ومنظف من التداخل */}
           <div className="relative mb-6">
             {/* الخلفية الأساسية */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-purple-900/40 via-pink-900/40 to-blue-900/40 border border-purple-400/30 rounded-2xl backdrop-blur-md">
-              {/* خلفية متحركة */}
-              <div className="absolute inset-0">
-                <div className="absolute top-0 left-0 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-0 right-0 w-40 h-40 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl animate-pulse delay-500"></div>
+            <div className="relative overflow-hidden bg-gradient-to-br from-purple-900/50 via-pink-900/50 to-blue-900/50 border border-purple-400/40 rounded-3xl backdrop-blur-lg">
+              {/* خلفية متحركة مبسطة */}
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-4 left-4 w-24 h-24 bg-purple-500/30 rounded-full blur-2xl animate-pulse"></div>
+                <div className="absolute bottom-4 right-4 w-32 h-32 bg-pink-500/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
               </div>
 
-              {/* المحتوى */}
-              <div className="relative p-6">
-                {/* الرأس */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3 space-x-reverse">
-                    <div className="relative">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                        <Megaphone className="h-6 w-6 text-white" />
-                      </div>
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-zinc-900 animate-pulse"></div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
-                        روّج لعملك معنا
-                        <Sparkles className="h-4 w-4 text-yellow-400 animate-pulse" />
-                      </h3>
-                      <p className="text-purple-200 text-sm">منصة التسويق الرائدة في المنطقة</p>
+              {/* المحتوى الرئيسي */}
+              <div className="relative p-8 space-y-6">
+                {/* العنوان الرئيسي */}
+                <div className="text-center space-y-3">
+                  <div className="flex items-center justify-center space-x-3 space-x-reverse">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl">
+                      <Megaphone className="h-8 w-8 text-white" />
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    <div className="px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full">
-                      <span className="text-xs text-green-300 font-semibold flex items-center gap-1">
-                        <TrendingUp className="h-3 w-3" />
-                        نشط الآن
-                      </span>
-                    </div>
+                  <h2 className="text-3xl font-bold text-white mb-2">
+                    ابدأ حملتك الإعلانية الآن
+                  </h2>
+                  
+                  <p className="text-purple-100 text-lg max-w-md mx-auto leading-relaxed">
+                    وصل لآلاف المستخدمين النشطين عبر منصتنا المتطورة
+                  </p>
+                </div>
+
+                {/* المميزات */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-3 space-x-reverse p-3 bg-zinc-800/40 rounded-xl">
+                    <div className="w-3 h-3 bg-purple-400 rounded-full flex-shrink-0"></div>
+                    <span className="text-purple-100 font-medium">وصول مستهدف وفعال</span>
+                  </div>
+                  <div className="flex items-center space-x-3 space-x-reverse p-3 bg-zinc-800/40 rounded-xl">
+                    <div className="w-3 h-3 bg-pink-400 rounded-full flex-shrink-0"></div>
+                    <span className="text-pink-100 font-medium">باقات تناسب جميع الميزانيات</span>
+                  </div>
+                  <div className="flex items-center space-x-3 space-x-reverse p-3 bg-zinc-800/40 rounded-xl">
+                    <div className="w-3 h-3 bg-blue-400 rounded-full flex-shrink-0"></div>
+                    <span className="text-blue-100 font-medium">نتائج مضمونة وقابلة للقياس</span>
+                  </div>
+                  <div className="flex items-center space-x-3 space-x-reverse p-3 bg-zinc-800/40 rounded-xl">
+                    <div className="w-3 h-3 bg-green-400 rounded-full flex-shrink-0"></div>
+                    <span className="text-green-100 font-medium">دعم فني متواصل 24/7</span>
                   </div>
                 </div>
 
-                {/* الوصف */}
-                <div className="mb-6">
-                  <p className="text-zinc-200 text-base leading-relaxed mb-3">
-                    ابدأ حملتك الإعلانية الآن وصل لآلاف المستخدمين النشطين عبر منصتنا المتطورة
-                  </p>
-                  
-                  {/* المميزات */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                      <span className="text-sm text-purple-200">وصول مستهدف وفعال</span>
+                {/* الإحصائيات */}
+                <div className="bg-zinc-800/60 rounded-2xl p-6 border border-zinc-700/50">
+                  <div className="grid grid-cols-3 gap-6 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-white mb-1">10K+</div>
+                      <div className="text-sm text-zinc-400">مستخدم نشط</div>
                     </div>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <div className="w-2 h-2 bg-pink-400 rounded-full animate-pulse delay-200"></div>
-                      <span className="text-sm text-pink-200">باقات تناسب جميع الميزانيات</span>
+                    <div>
+                      <div className="text-2xl font-bold text-white mb-1">95%</div>
+                      <div className="text-sm text-zinc-400">معدل النجاح</div>
                     </div>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-400"></div>
-                      <span className="text-sm text-blue-200">نتائج مضمونة وقابلة للقياس</span>
-                    </div>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse delay-600"></div>
-                      <span className="text-sm text-green-200">دعم فني متواصل 24/7</span>
-                    </div>
-                  </div>
-
-                  {/* الإحصائيات */}
-                  <div className="flex items-center justify-center space-x-6 space-x-reverse py-3 px-4 bg-zinc-800/50 rounded-xl border border-zinc-700/50">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-white">10K+</div>
-                      <div className="text-xs text-zinc-400">مستخدم نشط</div>
-                    </div>
-                    <div className="w-px h-8 bg-zinc-600"></div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-white">95%</div>
-                      <div className="text-xs text-zinc-400">معدل النجاح</div>
-                    </div>
-                    <div className="w-px h-8 bg-zinc-600"></div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-white">24/7</div>
-                      <div className="text-xs text-zinc-400">دعم فني</div>
+                    <div>
+                      <div className="text-2xl font-bold text-white mb-1">24/7</div>
+                      <div className="text-sm text-zinc-400">دعم فني</div>
                     </div>
                   </div>
                 </div>
@@ -533,21 +513,21 @@ const Profile = () => {
                 {/* زر الإجراء */}
                 <button 
                   onClick={() => navigate('/advertise-with-us')} 
-                  className="w-full relative group overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white py-4 px-6 rounded-xl hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-[1.02] shadow-xl hover:shadow-2xl hover:shadow-purple-500/25"
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-8 rounded-2xl font-bold text-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-[1.02] shadow-xl"
                 >
-                  {/* تأثير اللمعان */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                  
-                  <div className="relative flex items-center justify-center space-x-3 space-x-reverse">
-                    <Megaphone className="h-5 w-5" />
-                    <span className="font-bold text-lg">ابدأ حملتك الإعلانية الآن</span>
-                    <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
-                  </div>
-                  
-                  <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-xs text-white/80">
-                    عرض خاص - خصم 20% على الحملة الأولى
+                  <div className="flex items-center justify-center space-x-3 space-x-reverse">
+                    <Megaphone className="h-6 w-6" />
+                    <span>ابدأ حملتك الإعلانية الآن</span>
                   </div>
                 </button>
+
+                {/* العرض الخاص */}
+                <div className="text-center">
+                  <span className="inline-flex items-center space-x-2 space-x-reverse bg-green-500/20 text-green-300 px-4 py-2 rounded-full text-sm border border-green-500/30">
+                    <Sparkles className="h-4 w-4" />
+                    <span>عرض خاص - خصم 20% على الحملة الأولى</span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
