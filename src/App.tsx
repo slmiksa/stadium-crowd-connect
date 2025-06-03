@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -36,6 +35,7 @@ import AdvertiseWithUs from "./pages/AdvertiseWithUs";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import ApiSettings from "./pages/ApiSettings";
+import SuggestedFollows from "./pages/SuggestedFollows";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +55,13 @@ const App = () => (
               {/* Post routes without AuthGuard for preview functionality */}
               <Route path="/post/:postId" element={<PostPage />} />
               <Route path="/post-details/:postId" element={<PostDetails />} />
+              
+              {/* Suggested follows route */}
+              <Route path="/suggested-follows" element={
+                <AuthGuard>
+                  <SuggestedFollows />
+                </AuthGuard>
+              } />
               
               {/* Protected Routes */}
               <Route path="/profile" element={

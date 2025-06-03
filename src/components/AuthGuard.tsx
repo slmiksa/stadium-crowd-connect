@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Navigate } from 'react-router-dom';
 import Login from '@/pages/Login';
 
 interface AuthGuardProps {
@@ -8,7 +9,7 @@ interface AuthGuardProps {
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-  const { user, isLoading, isInitialized } = useAuth();
+  const { user, isLoading, isInitialized, shouldShowSuggestions } = useAuth();
 
   // Show loading spinner while initializing
   if (!isInitialized || isLoading) {
@@ -25,6 +26,11 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // Show login if no user after initialization is complete
   if (!user) {
     return <Login />;
+  }
+
+  // Redirect to suggestions if user should see them
+  if (shouldShowSuggestions) {
+    return <Navigate to="/suggested-follows" replace />;
   }
 
   return <>{children}</>;

@@ -7,18 +7,22 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isInitialized: boolean;
+  shouldShowSuggestions: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, username: string) => Promise<boolean>;
   signOut: () => Promise<void>;
+  setShouldShowSuggestions: (show: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
   isInitialized: false,
+  shouldShowSuggestions: false,
   login: async () => false,
   register: async () => false,
   signOut: async () => {},
+  setShouldShowSuggestions: () => {},
 });
 
 export const useAuth = () => {
@@ -33,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [shouldShowSuggestions, setShouldShowSuggestions] = useState(false);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -49,6 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data?.user) {
         setUser(data.user);
+        // التحقق من عدد المتابعين بعد تسجيل الدخول
+        await checkFollowersCount(data.user.id);
         return true;
       }
 
@@ -88,10 +95,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const checkFollowersCount = async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('following_count')
+        .eq('id', userId)
+        .single();
+
+      // إذا كان المستخدم يتابع أقل من 10 أشخاص، اعرض الاقتراحات
+      if (profile && profile.following_count < 10) {
+        setShouldShowSuggestions(true);
+      }
+    } catch (error) {
+      console.error('Error checking followers count:', error);
+    }
+  };
+
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
       setUser(null);
+      setShouldShowSuggestions(false);
     } catch (error) {
       console.error('Sign out error:', error);
     }
@@ -102,7 +127,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const getSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
+        if (session?.user) {
+          setUser(session.user);
+          await checkFollowersCount(session.user.id);
+        }
       } catch (error) {
         console.error('Error getting session:', error);
       } finally {
@@ -118,6 +146,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
         setUser(session?.user ?? null);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          await checkFollowersCount(session.user.id);
+        } else if (event === 'SIGNED_OUT') {
+          setShouldShowSuggestions(false);
+        }
+        
         setIsLoading(false);
         setIsInitialized(true);
       }
@@ -132,9 +167,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     isLoading,
     isInitialized,
+    shouldShowSuggestions,
     login,
     register,
     signOut,
+    setShouldShowSuggestions,
   };
 
   return (
