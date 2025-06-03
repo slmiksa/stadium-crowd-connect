@@ -83,7 +83,7 @@ const App = () => (
                 </AuthGuard>
               } />
               
-              <Route path="/create-post" element={
+              <Route path="/create-hashtag-post" element={
                 <AuthGuard>
                   <CreateHashtagPost />
                 </AuthGuard>
