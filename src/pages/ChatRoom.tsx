@@ -500,7 +500,7 @@ const ChatRoom = () => {
     return (
       <div
         key={message.id}
-        className={`flex items-start space-x-3 ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4`}
+        className={`flex items-start space-x-3 ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4 group`}
       >
         {!isOwnMessage && (
           <div className="flex flex-col items-center gap-1">
@@ -513,7 +513,7 @@ const ChatRoom = () => {
           </div>
         )}
 
-        <div className={`max-w-xs lg:max-w-md ${isOwnMessage ? 'order-first' : ''}`}>
+        <div className={`max-w-xs lg:max-w-md ${isOwnMessage ? 'order-first' : ''} relative`}>
           {!isOwnMessage && (
             <div className="flex items-center gap-2 mb-1">
               <p className="text-sm font-medium text-gray-300">
@@ -549,12 +549,21 @@ const ChatRoom = () => {
           )}
 
           <div
-            className={`px-4 py-2 rounded-lg ${
+            className={`px-4 py-2 rounded-lg relative ${
               isOwnMessage
                 ? 'bg-blue-500 text-white'
                 : 'bg-gray-700 text-white'
             }`}
           >
+            {/* Quote Button */}
+            <button
+              onClick={() => quoteMessage(message)}
+              className="absolute -top-2 -right-2 bg-zinc-600 hover:bg-zinc-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+              title="اقتباس"
+            >
+              <Quote size={12} className="text-white" />
+            </button>
+
             {message.content && (
               <p className="whitespace-pre-wrap break-words">{message.content}</p>
             )}

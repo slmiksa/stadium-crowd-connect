@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import MediaInput from '@/components/MediaInput';
-import { ArrowLeft, Send, RefreshCw, Play, Pause, X } from 'lucide-react';
+import { ArrowLeft, Send, RefreshCw, Play, Pause, X, Quote } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -321,7 +321,7 @@ const PrivateChat = () => {
           messages.map((message) => (
             <div 
               key={message.id} 
-              className={`flex items-start space-x-3 ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+              className={`flex items-start space-x-3 ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'} group`}
             >
               {message.sender_id !== user?.id && (
                 <div className="flex flex-col items-center gap-1">
@@ -339,12 +339,26 @@ const PrivateChat = () => {
               )}
               
               <div 
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative ${
                   message.sender_id === user?.id 
                     ? 'bg-blue-500 text-white' 
                     : 'bg-zinc-700 text-white'
                 }`}
               >
+                {/* Quote Button */}
+                <button
+                  onClick={() => {
+                    // For private chat, we'll set up a simple quote functionality
+                    const quotedText = `> ${message.sender_profile?.username || 'مستخدم'}: ${message.content}\n\n`;
+                    // This would need to be handled by MediaInput component
+                    console.log('Quote message:', quotedText);
+                  }}
+                  className="absolute -top-2 -right-2 bg-zinc-600 hover:bg-zinc-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+                  title="اقتباس"
+                >
+                  <Quote size={12} className="text-white" />
+                </button>
+
                 {message.content && <p className="whitespace-pre-wrap break-words">{message.content}</p>}
                 
                 {/* Image - Fixed to display directly in chat */}
