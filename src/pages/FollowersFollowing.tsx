@@ -23,7 +23,7 @@ interface FollowData {
 }
 
 const FollowersFollowing = () => {
-  const { userId, type } = useParams(); // type can be 'followers' or 'following'
+  const { userId, type } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -38,6 +38,8 @@ const FollowersFollowing = () => {
       if (user) {
         fetchCurrentUserFollowing();
       }
+    } else {
+      setIsLoading(false);
     }
   }, [userId, type, user]);
 
@@ -140,13 +142,13 @@ const FollowersFollowing = () => {
     navigate(`/user-profile/${userProfileId}`);
   };
 
-  // التحقق من صحة المعاملات
-  if (!userId || !type) {
+  // التحقق من صحة المعاملات - تحديث منطق التحقق
+  if (!userId) {
     return (
       <Layout>
         <div className="p-4 text-center">
           <h1 className="text-xl font-bold text-white mb-4">رابط غير صحيح</h1>
-          <p className="text-zinc-400 mb-4">لم يتم تحديد المستخدم أو نوع الصفحة</p>
+          <p className="text-zinc-400 mb-4">لم يتم تحديد المستخدم</p>
           <Button onClick={() => navigate(-1)} className="bg-blue-500 hover:bg-blue-600">
             العودة للخلف
           </Button>
@@ -155,12 +157,12 @@ const FollowersFollowing = () => {
     );
   }
 
-  if (type !== 'followers' && type !== 'following') {
+  if (!type || (type !== 'followers' && type !== 'following')) {
     return (
       <Layout>
         <div className="p-4 text-center">
           <h1 className="text-xl font-bold text-white mb-4">رابط غير صحيح</h1>
-          <p className="text-zinc-400 mb-4">يجب تحديد نوع الصفحة (followers أو following)</p>
+          <p className="text-zinc-400 mb-4">نوع الصفحة غير محدد أو غير صحيح</p>
           <Button onClick={() => navigate(-1)} className="bg-blue-500 hover:bg-blue-600">
             العودة للخلف
           </Button>
