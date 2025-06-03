@@ -15,8 +15,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const shouldHideFooter = hiddenFooterPaths.some(path => location.pathname.includes(path));
 
   return (
-    <div className="w-full h-full min-h-screen min-h-[100dvh] bg-zinc-900 overflow-x-hidden">
-      <main className={`w-full h-full min-h-screen min-h-[100dvh] ${shouldHideFooter ? '' : 'pb-16'}`}>
+    <div className="full-screen-container bg-zinc-900">
+      <main className={`w-full h-full ${shouldHideFooter ? '' : 'pb-16'} overflow-x-hidden`}>
         {children}
       </main>
       {!shouldHideFooter && <BottomNavigation />}

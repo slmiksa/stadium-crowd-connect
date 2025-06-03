@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -175,7 +176,7 @@ const PrivateChat = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+      <div className="full-screen-container bg-zinc-900 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
@@ -183,7 +184,7 @@ const PrivateChat = () => {
 
   if (!otherUser) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+      <div className="full-screen-container bg-zinc-900 flex items-center justify-center">
         <div className="text-center">
           <p className="text-zinc-400">المستخدم غير موجود</p>
           <Button onClick={() => navigate('/messages')} className="mt-4">
@@ -195,9 +196,9 @@ const PrivateChat = () => {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="bg-zinc-800 border-b border-zinc-700 p-4 flex-shrink-0">
+    <div className="full-screen-container bg-zinc-900 flex flex-col">
+      {/* Fixed Header */}
+      <div className="bg-zinc-800 border-b border-zinc-700 p-4 flex-shrink-0 fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button 
@@ -232,8 +233,8 @@ const PrivateChat = () => {
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages - with padding for fixed header and input */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 pt-20 pb-20">
         {messages.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-zinc-400">لا توجد رسائل بعد</p>
@@ -295,8 +296,8 @@ const PrivateChat = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
-      <div className="bg-zinc-800 border-t border-zinc-700 p-4 flex-shrink-0">
+      {/* Fixed Message Input */}
+      <div className="bg-zinc-800 border-t border-zinc-700 p-4 flex-shrink-0 fixed bottom-0 left-0 right-0 z-50">
         <form onSubmit={sendMessage} className="flex space-x-2">
           <Input
             value={newMessage}
