@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import ImageCropModal from '@/components/ImageCropModal';
 import { useToast } from '@/hooks/use-toast';
+
 interface UserProfile {
   id: string;
   username: string;
@@ -408,10 +409,14 @@ const Profile = () => {
     });
   };
   const handleFollowersClick = () => {
-    navigate(`/followers-following/${user?.id}/followers`);
+    if (user?.id) {
+      navigate(`/followers-following/${user.id}/followers`);
+    }
   };
   const handleFollowingClick = () => {
-    navigate(`/followers-following/${user?.id}/following`);
+    if (user?.id) {
+      navigate(`/followers-following/${user.id}/following`);
+    }
   };
   if (isLoading) {
     return <Layout>
