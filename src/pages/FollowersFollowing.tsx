@@ -33,7 +33,7 @@ const FollowersFollowing = () => {
   useEffect(() => {
     console.log('Current params:', { userId, type });
     
-    if (userId) {
+    if (userId && (type === 'followers' || type === 'following')) {
       fetchUsers();
       if (user) {
         fetchCurrentUserFollowing();
@@ -137,16 +137,30 @@ const FollowersFollowing = () => {
   };
 
   const handleUserProfileClick = (userProfileId: string) => {
-    navigate(`/profile/${userProfileId}`);
+    navigate(`/user-profile/${userProfileId}`);
   };
 
-  // إذا لم يكن هناك نوع محدد في الرابط، نعيد توجيه المستخدم
-  if (!type || (type !== 'followers' && type !== 'following')) {
+  // التحقق من صحة المعاملات
+  if (!userId || !type) {
     return (
       <Layout>
         <div className="p-4 text-center">
           <h1 className="text-xl font-bold text-white mb-4">رابط غير صحيح</h1>
-          <p className="text-zinc-400 mb-4">يجب تحديد نوع الصفحة (متابعين أو متابعة)</p>
+          <p className="text-zinc-400 mb-4">لم يتم تحديد المستخدم أو نوع الصفحة</p>
+          <Button onClick={() => navigate(-1)} className="bg-blue-500 hover:bg-blue-600">
+            العودة للخلف
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (type !== 'followers' && type !== 'following') {
+    return (
+      <Layout>
+        <div className="p-4 text-center">
+          <h1 className="text-xl font-bold text-white mb-4">رابط غير صحيح</h1>
+          <p className="text-zinc-400 mb-4">يجب تحديد نوع الصفحة (followers أو following)</p>
           <Button onClick={() => navigate(-1)} className="bg-blue-500 hover:bg-blue-600">
             العودة للخلف
           </Button>
