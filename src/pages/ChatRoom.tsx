@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +8,7 @@ import VerificationBadge from '@/components/VerificationBadge';
 import RoomMembersModal from '@/components/RoomMembersModal';
 import ChatRoomSettingsModal from '@/components/ChatRoomSettingsModal';
 import ChatRoomAnnouncement from '@/components/ChatRoomAnnouncement';
-import { ArrowLeft, Users, Settings, Quote, X } from 'lucide-react';
+import { ArrowLeft, Users, Settings, Quote, X, Play, Pause } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -21,6 +20,8 @@ interface Message {
   content: string;
   media_url?: string;
   media_type?: string;
+  voice_url?: string;
+  voice_duration?: number;
   created_at: string;
   user_id: string;
   profiles: {
@@ -62,6 +63,8 @@ const ChatRoom = () => {
   const [isSending, setIsSending] = useState(false);
   const [imageModal, setImageModal] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -311,6 +314,7 @@ const ChatRoom = () => {
     
     try {
       let mediaUrl = null;
+      let finalMediaType = mediaType;
       
       if (mediaFile) {
         console.log('=== STARTING MEDIA UPLOAD ===');
@@ -336,6 +340,11 @@ const ChatRoom = () => {
 
         mediaUrl = urlData.publicUrl;
         console.log('Media URL generated:', mediaUrl);
+
+        // Set correct media type for voice messages
+        if (mediaType === 'voice') {
+          finalMediaType = 'audio/webm';
+        }
       }
 
       let finalContent = content || '';
@@ -343,13 +352,22 @@ const ChatRoom = () => {
         finalContent = `> ${quotedMessage.profiles?.username || 'مستخدم مجهول'}: ${quotedMessage.content}\n\n${finalContent}`;
       }
 
-      const messageData = {
+      const messageData: any = {
         room_id: roomId,
         user_id: user.id,
         content: finalContent,
-        media_url: mediaUrl,
-        media_type: mediaType
       };
+
+      // Handle different media types
+      if (mediaUrl) {
+        if (mediaType === 'voice') {
+          messageData.voice_url = mediaUrl;
+          messageData.voice_duration = 0; // You can calculate this if needed
+        } else {
+          messageData.media_url = mediaUrl;
+          messageData.media_type = finalMediaType;
+        }
+      }
 
       console.log('=== INSERTING MESSAGE ===');
       console.log('Message data:', messageData);
@@ -374,6 +392,33 @@ const ChatRoom = () => {
       alert(error.message || 'فشل في إرسال الرسالة');
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const toggleAudio = (messageId: string, audioUrl: string) => {
+    if (playingAudio === messageId) {
+      // Stop current audio
+      if (audioRefs.current[messageId]) {
+        audioRefs.current[messageId].pause();
+        audioRefs.current[messageId].currentTime = 0;
+      }
+      setPlayingAudio(null);
+    } else {
+      // Stop any other playing audio
+      if (playingAudio && audioRefs.current[playingAudio]) {
+        audioRefs.current[playingAudio].pause();
+        audioRefs.current[playingAudio].currentTime = 0;
+      }
+
+      // Create new audio element if doesn't exist
+      if (!audioRefs.current[messageId]) {
+        audioRefs.current[messageId] = new Audio(audioUrl);
+        audioRefs.current[messageId].onended = () => setPlayingAudio(null);
+      }
+
+      // Play audio
+      audioRefs.current[messageId].play();
+      setPlayingAudio(messageId);
     }
   };
 
@@ -510,36 +555,69 @@ const ChatRoom = () => {
                 : 'bg-gray-700 text-white'
             }`}
           >
-            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+            {message.content && (
+              <p className="whitespace-pre-wrap break-words">{message.content}</p>
+            )}
             
-            {message.media_url && (
+            {/* Voice Message */}
+            {message.voice_url && (
+              <div className="mt-2 flex items-center gap-3 p-2 bg-black bg-opacity-20 rounded-lg">
+                <button
+                  onClick={() => toggleAudio(message.id, message.voice_url)}
+                  className="p-2 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30 transition-all"
+                >
+                  {playingAudio === message.id ? (
+                    <Pause size={16} className="text-white" />
+                  ) : (
+                    <Play size={16} className="text-white" />
+                  )}
+                </button>
+                <div className="flex-1">
+                  <div className="w-full h-1 bg-white bg-opacity-20 rounded-full">
+                    <div className="h-full bg-white bg-opacity-40 rounded-full" style={{ width: '0%' }}></div>
+                  </div>
+                </div>
+                <span className="text-xs opacity-75">صوتية</span>
+              </div>
+            )}
+
+            {/* Image */}
+            {message.media_url && message.media_type?.startsWith('image/') && (
               <div className="mt-2">
-                {message.media_type?.startsWith('image/') ? (
-                  <img 
-                    src={message.media_url} 
-                    alt="مرفق صورة"
-                    className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openImageModal(message.media_url);
-                    }}
-                  />
-                ) : message.media_type?.startsWith('video/') ? (
-                  <video 
-                    src={message.media_url} 
-                    controls 
-                    className="max-w-full h-auto rounded-lg"
-                  />
-                ) : (
-                  <a 
-                    href={message.media_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-300 hover:text-blue-200 underline"
-                  >
-                    عرض المرفق
-                  </a>
-                )}
+                <img 
+                  src={message.media_url} 
+                  alt="مرفق صورة"
+                  className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openImageModal(message.media_url);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Video */}
+            {message.media_url && message.media_type?.startsWith('video/') && (
+              <div className="mt-2">
+                <video 
+                  src={message.media_url} 
+                  controls 
+                  className="max-w-full h-auto rounded-lg"
+                />
+              </div>
+            )}
+
+            {/* Other attachments */}
+            {message.media_url && !message.media_type?.startsWith('image/') && !message.media_type?.startsWith('video/') && (
+              <div className="mt-2">
+                <a 
+                  href={message.media_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-300 hover:text-blue-200 underline"
+                >
+                  عرض المرفق
+                </a>
               </div>
             )}
             

@@ -1,17 +1,19 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Send, RefreshCw } from 'lucide-react';
+import MediaInput from '@/components/MediaInput';
+import { ArrowLeft, Send, RefreshCw, Play, Pause } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import VerificationBadge from '@/components/VerificationBadge';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
   content: string;
+  voice_url?: string;
+  voice_duration?: number;
   created_at: string;
   sender_id: string;
   receiver_id: string;
@@ -41,6 +43,8 @@ const PrivateChat = () => {
   const [otherUser, setOtherUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
 
   useEffect(() => {
     if (userId && user) {
@@ -133,32 +137,83 @@ const PrivateChat = () => {
     }
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !user || !userId || isSending) return;
+  const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
+    if (!content.trim() && !mediaFile) return;
+    if (!user || !userId || isSending) return;
 
     setIsSending(true);
     try {
+      let voiceUrl = null;
+      
+      if (mediaFile && mediaType === 'voice') {
+        const fileExt = 'webm';
+        const fileName = `private-voice/${user.id}/${Date.now()}.${fileExt}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('hashtag-images')
+          .upload(fileName, mediaFile);
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error('فشل في رفع الملف الصوتي');
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('hashtag-images')
+          .getPublicUrl(fileName);
+
+        voiceUrl = urlData.publicUrl;
+      }
+
+      const messageData: any = {
+        sender_id: user.id,
+        receiver_id: userId,
+        content: content.trim() || '',
+        is_read: false
+      };
+
+      if (voiceUrl) {
+        messageData.voice_url = voiceUrl;
+        messageData.voice_duration = 0;
+      }
+
       const { error } = await supabase
         .from('private_messages')
-        .insert({
-          sender_id: user.id,
-          receiver_id: userId,
-          content: newMessage.trim(),
-          is_read: false
-        });
+        .insert(messageData);
 
       if (error) {
         console.error('Error sending message:', error);
         return;
       }
 
-      setNewMessage('');
       await fetchMessages();
     } catch (error) {
       console.error('Error:', error);
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const toggleAudio = (messageId: string, audioUrl: string) => {
+    if (playingAudio === messageId) {
+      if (audioRefs.current[messageId]) {
+        audioRefs.current[messageId].pause();
+        audioRefs.current[messageId].currentTime = 0;
+      }
+      setPlayingAudio(null);
+    } else {
+      if (playingAudio && audioRefs.current[playingAudio]) {
+        audioRefs.current[playingAudio].pause();
+        audioRefs.current[playingAudio].currentTime = 0;
+      }
+
+      if (!audioRefs.current[messageId]) {
+        audioRefs.current[messageId] = new Audio(audioUrl);
+        audioRefs.current[messageId].onended = () => setPlayingAudio(null);
+      }
+
+      audioRefs.current[messageId].play();
+      setPlayingAudio(messageId);
     }
   };
 
@@ -268,7 +323,30 @@ const PrivateChat = () => {
                     : 'bg-zinc-700 text-white'
                 }`}
               >
-                <p>{message.content}</p>
+                {message.content && <p>{message.content}</p>}
+                
+                {/* Voice Message */}
+                {message.voice_url && (
+                  <div className="mt-2 flex items-center gap-3 p-2 bg-black bg-opacity-20 rounded-lg">
+                    <button
+                      onClick={() => toggleAudio(message.id, message.voice_url!)}
+                      className="p-2 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30 transition-all"
+                    >
+                      {playingAudio === message.id ? (
+                        <Pause size={16} className="text-white" />
+                      ) : (
+                        <Play size={16} className="text-white" />
+                      )}
+                    </button>
+                    <div className="flex-1">
+                      <div className="w-full h-1 bg-white bg-opacity-20 rounded-full">
+                        <div className="h-full bg-white bg-opacity-40 rounded-full" style={{ width: '0%' }}></div>
+                      </div>
+                    </div>
+                    <span className="text-xs opacity-75">صوتية</span>
+                  </div>
+                )}
+
                 <p className={`text-xs mt-1 ${
                   message.sender_id === user?.id ? 'text-blue-100' : 'text-zinc-400'
                 }`}>
@@ -298,22 +376,10 @@ const PrivateChat = () => {
 
       {/* Fixed Message Input */}
       <div className="bg-zinc-800 border-t border-zinc-700 p-4 flex-shrink-0 fixed bottom-0 left-0 right-0 z-50">
-        <form onSubmit={sendMessage} className="flex space-x-2">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="اكتب رسالة..."
-            className="flex-1 bg-zinc-700 border-zinc-600 text-white"
-            disabled={isSending}
-          />
-          <Button 
-            type="submit" 
-            disabled={!newMessage.trim() || isSending}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            <Send size={18} />
-          </Button>
-        </form>
+        <MediaInput
+          onSendMessage={sendMessage}
+          isSending={isSending}
+        />
       </div>
     </div>
   );
