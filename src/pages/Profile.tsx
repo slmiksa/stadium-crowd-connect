@@ -443,93 +443,17 @@ const Profile = () => {
 
         {/* Profile content */}
         <div className="relative px-4 -mt-16 my-[27px]">
-          {/* قسم أعلن معنا - محسن ومنظف من التداخل */}
-          <div className="relative mb-6">
-            {/* الخلفية الأساسية */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-purple-900/50 via-pink-900/50 to-blue-900/50 border border-purple-400/40 rounded-3xl backdrop-blur-lg">
-              {/* خلفية متحركة مبسطة */}
-              <div className="absolute inset-0 opacity-30">
-                <div className="absolute top-4 left-4 w-24 h-24 bg-purple-500/30 rounded-full blur-2xl animate-pulse"></div>
-                <div className="absolute bottom-4 right-4 w-32 h-32 bg-pink-500/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          {/* قسم أعلن معنا - مبسط */}
+          <div className="mb-6">
+            <button
+              onClick={() => navigate('/advertise-with-us')}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-8 rounded-2xl font-bold text-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-[1.02] shadow-xl"
+            >
+              <div className="flex items-center justify-center space-x-3 space-x-reverse">
+                <Megaphone className="h-6 w-6" />
+                <span>ابدأ حملتك الإعلانية الآن</span>
               </div>
-
-              {/* المحتوى الرئيسي */}
-              <div className="relative p-8 space-y-6">
-                {/* العنوان الرئيسي */}
-                <div className="text-center space-y-3">
-                  <div className="flex items-center justify-center space-x-3 space-x-reverse">
-                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl">
-                      <Megaphone className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                  
-                  <h2 className="text-3xl font-bold text-white mb-2">
-                    ابدأ حملتك الإعلانية الآن
-                  </h2>
-                  
-                  <p className="text-purple-100 text-lg max-w-md mx-auto leading-relaxed">
-                    وصل لآلاف المستخدمين النشطين عبر منصتنا المتطورة
-                  </p>
-                </div>
-
-                {/* المميزات */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-3 space-x-reverse p-3 bg-zinc-800/40 rounded-xl">
-                    <div className="w-3 h-3 bg-purple-400 rounded-full flex-shrink-0"></div>
-                    <span className="text-purple-100 font-medium">وصول مستهدف وفعال</span>
-                  </div>
-                  <div className="flex items-center space-x-3 space-x-reverse p-3 bg-zinc-800/40 rounded-xl">
-                    <div className="w-3 h-3 bg-pink-400 rounded-full flex-shrink-0"></div>
-                    <span className="text-pink-100 font-medium">باقات تناسب جميع الميزانيات</span>
-                  </div>
-                  <div className="flex items-center space-x-3 space-x-reverse p-3 bg-zinc-800/40 rounded-xl">
-                    <div className="w-3 h-3 bg-blue-400 rounded-full flex-shrink-0"></div>
-                    <span className="text-blue-100 font-medium">نتائج مضمونة وقابلة للقياس</span>
-                  </div>
-                  <div className="flex items-center space-x-3 space-x-reverse p-3 bg-zinc-800/40 rounded-xl">
-                    <div className="w-3 h-3 bg-green-400 rounded-full flex-shrink-0"></div>
-                    <span className="text-green-100 font-medium">دعم فني متواصل 24/7</span>
-                  </div>
-                </div>
-
-                {/* الإحصائيات */}
-                <div className="bg-zinc-800/60 rounded-2xl p-6 border border-zinc-700/50">
-                  <div className="grid grid-cols-3 gap-6 text-center">
-                    <div>
-                      <div className="text-2xl font-bold text-white mb-1">10K+</div>
-                      <div className="text-sm text-zinc-400">مستخدم نشط</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-white mb-1">95%</div>
-                      <div className="text-sm text-zinc-400">معدل النجاح</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-white mb-1">24/7</div>
-                      <div className="text-sm text-zinc-400">دعم فني</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* زر الإجراء */}
-                <button 
-                  onClick={() => navigate('/advertise-with-us')} 
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-8 rounded-2xl font-bold text-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-[1.02] shadow-xl"
-                >
-                  <div className="flex items-center justify-center space-x-3 space-x-reverse">
-                    <Megaphone className="h-6 w-6" />
-                    <span>ابدأ حملتك الإعلانية الآن</span>
-                  </div>
-                </button>
-
-                {/* العرض الخاص */}
-                <div className="text-center">
-                  <span className="inline-flex items-center space-x-2 space-x-reverse bg-green-500/20 text-green-300 px-4 py-2 rounded-full text-sm border border-green-500/30">
-                    <Sparkles className="h-4 w-4" />
-                    <span>عرض خاص - خصم 20% على الحملة الأولى</span>
-                  </span>
-                </div>
-              </div>
-            </div>
+            </button>
           </div>
 
           {/* Avatar */}
