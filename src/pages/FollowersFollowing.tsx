@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,7 +22,8 @@ interface FollowData {
 }
 
 const FollowersFollowing = () => {
-  const { userId, type } = useParams<{ userId: string; type: 'followers' | 'following' }>();
+  const params = useParams();
+  const { userId, type } = params as { userId: string; type: 'followers' | 'following' };
   const { user } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -31,10 +31,13 @@ const FollowersFollowing = () => {
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    console.log('FollowersFollowing useEffect - Current params:', { userId, type });
+    console.log('FollowersFollowing useEffect - Raw params:', params);
+    console.log('FollowersFollowing useEffect - Destructured params:', { userId, type });
     console.log('URL pathname:', window.location.pathname);
+    console.log('URL search:', window.location.search);
     
     if (userId && (type === 'followers' || type === 'following')) {
+      console.log('Valid params, fetching data...');
       fetchUsers();
       if (user) {
         fetchCurrentUserFollowing();
