@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 interface LikeButtonProps {
   postId?: string;
@@ -127,7 +127,6 @@ const LikeButton: React.FC<LikeButtonProps> = ({
     e.stopPropagation();
     
     if (!user) {
-      toast.error('يجب تسجيل الدخول للإعجاب');
       return;
     }
 
@@ -150,11 +149,8 @@ const LikeButton: React.FC<LikeButtonProps> = ({
 
           if (error) {
             console.error('Error removing like:', error);
-            toast.error('حدث خطأ في إلغاء الإعجاب');
             return;
           }
-
-          toast.success('تم إلغاء الإعجاب');
         } else {
           // Add like to post
           const { error } = await supabase
@@ -166,11 +162,8 @@ const LikeButton: React.FC<LikeButtonProps> = ({
 
           if (error) {
             console.error('Error adding like:', error);
-            toast.error('حدث خطأ في الإعجاب');
             return;
           }
-
-          toast.success('تم الإعجاب بنجاح');
         }
       } else if (commentId) {
         if (isLiked) {
@@ -183,11 +176,8 @@ const LikeButton: React.FC<LikeButtonProps> = ({
 
           if (error) {
             console.error('Error removing comment like:', error);
-            toast.error('حدث خطأ في إلغاء الإعجاب');
             return;
           }
-
-          toast.success('تم إلغاء الإعجاب');
         } else {
           // Add like to comment
           const { error } = await supabase
@@ -199,11 +189,8 @@ const LikeButton: React.FC<LikeButtonProps> = ({
 
           if (error) {
             console.error('Error adding comment like:', error);
-            toast.error('حدث خطأ في الإعجاب');
             return;
           }
-
-          toast.success('تم الإعجاب بنجاح');
         }
       }
 
@@ -214,7 +201,6 @@ const LikeButton: React.FC<LikeButtonProps> = ({
       }
     } catch (error) {
       console.error('Error in handleLike:', error);
-      toast.error('حدث خطأ غير متوقع');
     } finally {
       setIsLoading(false);
     }
