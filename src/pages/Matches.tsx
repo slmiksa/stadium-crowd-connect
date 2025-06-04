@@ -4,7 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { Clock, Users, MapPin, RefreshCw, Newspaper, ExternalLink, AlertCircle } from 'lucide-react';
+import { Clock, Users, MapPin, RefreshCw, Newspaper, ExternalLink, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -34,6 +34,10 @@ interface NewsItem {
   content?: string;
 }
 
+interface GroupedMatches {
+  [competition: string]: Match[];
+}
+
 const Matches = () => {
   const navigate = useNavigate();
   const { t, isRTL } = useLanguage();
@@ -51,6 +55,7 @@ const Matches = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'finished' | 'news'>('live');
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  const [expandedCompetitions, setExpandedCompetitions] = useState<{ [key: string]: boolean }>({});
   const [dataLoaded, setDataLoaded] = useState({
     live: false,
     upcoming: false,
@@ -63,6 +68,57 @@ const Matches = () => {
     finished: '',
     news: ''
   });
+
+  // تصفية البطولات النسائية
+  const isWomensCompetition = (competition: string): boolean => {
+    const womensKeywords = ['Women', 'النساء', 'السيدات', 'Female', 'كأس الأمم النسائية'];
+    return womensKeywords.some(keyword => 
+      competition.toLowerCase().includes(keyword.toLowerCase())
+    );
+  };
+
+  // ترتيب البطولات حسب الأولوية
+  const getCompetitionPriority = (competition: string): number => {
+    const priorities: { [key: string]: number } = {
+      'دوري روشن السعودي': 1,
+      'دوري أبطال آسيا': 2,
+      'دوري الأبطال الأوروبي': 3,
+      'الدوري الإنجليزي الممتاز': 4,
+      'الليغا الإسبانية': 5,
+      'الدوري الألماني': 6,
+      'الدوري الإيطالي': 7,
+      'الدوري الفرنسي': 8,
+      'كأس الملك': 9,
+      'كأس العالم': 10
+    };
+    
+    return priorities[competition] || 999;
+  };
+
+  // تجميع المباريات حسب البطولة
+  const groupMatchesByCompetition = (matches: Match[]): GroupedMatches => {
+    const grouped: GroupedMatches = {};
+    
+    matches.forEach(match => {
+      if (!grouped[match.competition]) {
+        grouped[match.competition] = [];
+      }
+      grouped[match.competition].push(match);
+    });
+
+    // ترتيب المباريات داخل كل بطولة حسب التاريخ
+    Object.keys(grouped).forEach(competition => {
+      grouped[competition].sort((a, b) => {
+        if (activeTab === 'upcoming') {
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        } else {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
+      });
+    });
+
+    return grouped;
+  };
 
   useEffect(() => {
     fetchInitialData();
@@ -238,20 +294,18 @@ const Matches = () => {
     }
   };
 
+  const toggleCompetitionExpanded = (competition: string) => {
+    setExpandedCompetitions(prev => ({
+      ...prev,
+      [competition]: !prev[competition]
+    }));
+  };
+
   const MatchCard = ({ match }: { match: Match }) => (
     <div 
       onClick={() => handleMatchClick(match.id)}
       className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
     >
-      <div className="flex items-center justify-center mb-3 sm:mb-4">
-        <div className="flex items-center space-x-2 space-x-reverse bg-blue-600/15 border border-blue-500/25 rounded-xl px-2 sm:px-3 py-1 sm:py-1.5">
-          {match.leagueFlag && (
-            <img src={match.leagueFlag} alt="" className="w-3 h-2 sm:w-4 sm:h-3 object-cover rounded shadow-sm" />
-          )}
-          <span className="text-blue-300 font-bold text-xs">{match.competition}</span>
-        </div>
-      </div>
-
       <div className="flex items-center justify-between mb-3 sm:mb-4 px-1">
         <div className="flex-1 text-center">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-700/40 rounded-xl p-1.5 sm:p-2 mx-auto mb-2 flex items-center justify-center border border-gray-600/30">
@@ -326,6 +380,59 @@ const Matches = () => {
       </div>
     </div>
   );
+
+  const CompetitionGroup = ({ competition, matches }: { competition: string, matches: Match[] }) => {
+    const isExpanded = expandedCompetitions[competition];
+    const isWomens = isWomensCompetition(competition);
+    
+    return (
+      <div className="mb-6">
+        <div 
+          onClick={() => toggleCompetitionExpanded(competition)}
+          className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-300 ${
+            isWomens 
+              ? 'bg-pink-600/20 border border-pink-500/30 hover:bg-pink-600/30' 
+              : 'bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30'
+          }`}
+        >
+          <div className="flex items-center space-x-3 space-x-reverse">
+            {matches[0]?.leagueFlag && (
+              <img 
+                src={matches[0].leagueFlag} 
+                alt="" 
+                className="w-6 h-4 object-cover rounded shadow-sm" 
+              />
+            )}
+            <div>
+              <h3 className={`font-bold text-lg ${isWomens ? 'text-pink-300' : 'text-blue-300'}`}>
+                {competition}
+                {isWomens && <span className="text-xs mr-2 bg-pink-500/30 px-2 py-0.5 rounded">نساء</span>}
+              </h3>
+              <p className="text-gray-400 text-sm">{matches.length} مباراة</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 space-x-reverse">
+            <span className={`text-sm font-medium ${isWomens ? 'text-pink-300' : 'text-blue-300'}`}>
+              {isExpanded ? 'إخفاء' : 'عرض'}
+            </span>
+            {isExpanded ? (
+              <ChevronUp size={20} className={isWomens ? 'text-pink-300' : 'text-blue-300'} />
+            ) : (
+              <ChevronDown size={20} className={isWomens ? 'text-pink-300' : 'text-blue-300'} />
+            )}
+          </div>
+        </div>
+        
+        {isExpanded && (
+          <div className="mt-4 space-y-3">
+            {matches.map((match) => (
+              <MatchCard key={match.id} match={match} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => (
     <div 
@@ -444,6 +551,18 @@ const Matches = () => {
   const isTabLoading = !dataLoaded[activeTab as keyof typeof dataLoaded];
   const currentErrorMessage = errorMessages[activeTab as keyof typeof errorMessages];
 
+  // تجميع المباريات حسب البطولة
+  const groupedMatches = groupMatchesByCompetition(currentMatches);
+  
+  // فصل البطولات النسائية عن الرجالية وترتيبها
+  const mensCompetitions = Object.keys(groupedMatches)
+    .filter(comp => !isWomensCompetition(comp))
+    .sort((a, b) => getCompetitionPriority(a) - getCompetitionPriority(b));
+  
+  const womensCompetitions = Object.keys(groupedMatches)
+    .filter(comp => isWomensCompetition(comp))
+    .sort((a, b) => getCompetitionPriority(a) - getCompetitionPriority(b));
+
   if (isLoading) {
     return (
       <Layout>
@@ -468,7 +587,7 @@ const Matches = () => {
                 <RefreshCw size={18} className={`sm:size-5 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
-            <p className="text-gray-400 text-sm sm:text-base">تابع أحدث المباريات والنتائج والأخبار الرياضية</p>
+            <p className="text-gray-400 text-sm sm:text-base">تابع أحدث المباريات والنتائج والأخبار الرياضية مُرتبة حسب البطولة</p>
           </div>
 
           <div className="w-full bg-gray-800/60 backdrop-blur-sm p-1 border-b border-gray-700/50">
@@ -545,9 +664,39 @@ const Matches = () => {
                   }`} 
                 />
               ) : (
-                currentMatches.map((match) => (
-                  <MatchCard key={match.id} match={match} />
-                ))
+                <div className="space-y-6">
+                  {/* بطولات الرجال */}
+                  {mensCompetitions.length > 0 && (
+                    <div className="space-y-4">
+                      <h2 className="text-xl font-bold text-blue-300 border-b border-blue-500/30 pb-2">
+                        بطولات الرجال
+                      </h2>
+                      {mensCompetitions.map((competition) => (
+                        <CompetitionGroup
+                          key={competition}
+                          competition={competition}
+                          matches={groupedMatches[competition]}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* بطولات النساء */}
+                  {womensCompetitions.length > 0 && (
+                    <div className="space-y-4">
+                      <h2 className="text-xl font-bold text-pink-300 border-b border-pink-500/30 pb-2">
+                        بطولات النساء
+                      </h2>
+                      {womensCompetitions.map((competition) => (
+                        <CompetitionGroup
+                          key={competition}
+                          competition={competition}
+                          matches={groupedMatches[competition]}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               )
             )}
           </div>
