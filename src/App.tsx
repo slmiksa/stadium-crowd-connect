@@ -141,7 +141,7 @@ const App = () => (
                 </AuthGuard>
               } />
               
-              <Route path="/match/:matchId" element={
+              <Route path="/match-details/:matchId" element={
                 <AuthGuard>
                   <MatchDetails />
                 </AuthGuard>

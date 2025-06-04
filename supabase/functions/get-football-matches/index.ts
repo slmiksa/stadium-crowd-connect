@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -6,45 +5,93 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// ترجمات محسنة للدوريات
+// ترجمات محسنة ومصححة للدوريات
 const leagueTranslations: { [key: string]: string } = {
+  // الدوريات السعودية
   'Saudi Pro League': 'دوري روشن السعودي',
   'Saudi Professional League': 'دوري روشن السعودي',
   'King Cup': 'كأس الملك',
   'Saudi Super Cup': 'كأس السوبر السعودي',
   'Arab Club Champions Cup': 'كأس العرب للأندية الأبطال',
+  
+  // الدوريات الآسيوية
   'AFC Champions League': 'دوري أبطال آسيا',
   'AFC Champions League Elite': 'دوري أبطال آسيا النخبة',
+  
+  // البطولات العالمية
   'World Cup': 'كأس العالم',
   'FIFA World Cup': 'كأس العالم فيفا',
   'FIFA Club World Cup': 'كأس العالم للأندية',
+  
+  // الدوريات الأوروبية
   'Champions League': 'دوري الأبطال الأوروبي',
   'UEFA Champions League': 'دوري أبطال أوروبا',
+  'Europa League': 'الدوري الأوروبي',
+  'UEFA Europa League': 'الدوري الأوروبي',
+  'Conference League': 'دوري المؤتمر الأوروبي',
+  'UEFA Conference League': 'دوري المؤتمر الأوروبي',
+  
+  // الدوري الإنجليزي
   'Premier League': 'الدوري الإنجليزي الممتاز',
   'English Premier League': 'الدوري الإنجليزي الممتاز',
+  'Championship': 'الدرجة الأولى الإنجليزية',
+  'FA Cup': 'كأس الاتحاد الإنجليزي',
+  'EFL Cup': 'كأس الرابطة الإنجليزية',
+  'League Cup': 'كأس الرابطة',
+  
+  // الدوري الإسباني
   'La Liga': 'الليغا الإسبانية',
   'LaLiga': 'الليغا الإسبانية',
+  'Copa del Rey': 'كأس الملك الإسباني',
+  'Supercopa de España': 'كأس السوبر الإسباني',
+  
+  // الدوري الألماني
   'Bundesliga': 'الدوري الألماني',
   'German Bundesliga': 'الدوري الألماني',
+  '2. Bundesliga': 'الدرجة الثانية الألمانية',
+  'DFB Pokal': 'كأس ألمانيا',
+  
+  // الدوري الإيطالي
   'Serie A': 'الدوري الإيطالي',
   'Italian Serie A': 'الدوري الإيطالي',
+  'Serie B': 'الدرجة الثانية الإيطالية',
+  'Coppa Italia': 'كأس إيطاليا',
+  'Supercoppa Italiana': 'كأس السوبر الإيطالي',
+  
+  // الدوري الفرنسي
   'Ligue 1': 'الدوري الفرنسي',
-  'French Ligue 1': 'الدوري الفرنسي'
+  'French Ligue 1': 'الدوري الفرنسي',
+  'Ligue 2': 'الدرجة الثانية الفرنسية',
+  'Coupe de France': 'كأس فرنسا',
+  'Trophée des Champions': 'كأس السوبر الفرنسي',
+  
+  // دوريات أخرى مهمة
+  'Eredivisie': 'الدوري الهولندي',
+  'Belgian Pro League': 'الدوري البلجيكي',
+  'Primeira Liga': 'الدوري البرتغالي',
+  'Russian Premier League': 'الدوري الروسي',
+  'Turkish Super League': 'الدوري التركي',
+  'Major League Soccer': 'الدوري الأمريكي'
 }
 
-// ترجمات محسنة للفرق
+// ترجمات محسنة ومصححة للفرق
 const teamTranslations: { [key: string]: string } = {
   // الفرق السعودية
   'Al Hilal': 'الهلال',
-  'Al-Hilal': 'الهلال', 
+  'Al-Hilal': 'الهلال',
+  'Al Hilal SFC': 'الهلال',
   'Al Nassr': 'النصر',
   'Al-Nassr': 'النصر',
+  'Al Nassr FC': 'النصر',
   'Al Ahli': 'الأهلي',
   'Al-Ahli': 'الأهلي',
+  'Al Ahli Jeddah': 'الأهلي',
   'Al Ittihad': 'الاتحاد',
   'Al-Ittihad': 'الاتحاد',
+  'Al Ittihad Jeddah': 'الاتحاد',
   'Al Shabab': 'الشباب',
   'Al-Shabab': 'الشباب',
+  'Al Shabab FC': 'الشباب',
   'Al Ettifaq': 'الاتفاق',
   'Al-Ettifaq': 'الاتفاق',
   'Al Taawoun': 'التعاون',
@@ -52,31 +99,151 @@ const teamTranslations: { [key: string]: string } = {
   'Al Fayha': 'الفيحاء',
   'Al-Fayha': 'الفيحاء',
   'Damac': 'ضمك',
+  'Damac FC': 'ضمك',
   'Al Fateh': 'الفتح',
   'Al-Fateh': 'الفتح',
   'Al Raed': 'الرائد',
   'Al-Raed': 'الرائد',
+  'Al Khaleej': 'الخليج',
+  'Al-Khaleej': 'الخليج',
+  'Al Riyadh': 'الرياض',
+  'Al-Riyadh': 'الرياض',
+  'Al Tai': 'التعي',
+  'Al-Tai': 'التعي',
+  'Al Hazem': 'الحزم',
+  'Al-Hazem': 'الحزم',
+  'Al Wehda': 'الوحدة',
+  'Al-Wehda': 'الوحدة',
   
-  // الفرق العالمية
-  'Real Madrid': 'ريال مدريد',
-  'Barcelona': 'برشلونة',
+  // الفرق الإنجليزية
   'Manchester United': 'مانشستر يونايتد',
   'Manchester City': 'مانشستر سيتي',
   'Liverpool': 'ليفربول',
   'Chelsea': 'تشيلسي',
   'Arsenal': 'آرسنال',
   'Tottenham': 'توتنهام',
+  'Tottenham Hotspur': 'توتنهام',
+  'Newcastle': 'نيوكاسل',
+  'Newcastle United': 'نيوكاسل يونايتد',
+  'Aston Villa': 'أستون فيلا',
+  'West Ham': 'ويست هام',
+  'West Ham United': 'ويست هام يونايتد',
+  'Brighton': 'برايتون',
+  'Brighton & Hove Albion': 'برايتون',
+  'Crystal Palace': 'كريستال بالاس',
+  'Fulham': 'فولهام',
+  'Brentford': 'برينتفورد',
+  'Wolverhampton': 'وولفرهامبتون',
+  'Everton': 'إيفرتون',
+  'Leicester': 'ليستر سيتي',
+  'Leicester City': 'ليستر سيتي',
+  'Leeds United': 'ليدز يونايتد',
+  'Southampton': 'ساوثهامبتون',
+  'Burnley': 'بيرنلي',
+  'Norwich': 'نورويتش',
+  'Watford': 'واتفورد',
+  'Sheffield United': 'شيفيلد يونايتد',
+  'Nottingham Forest': 'نوتينغهام فورست',
+  'Bournemouth': 'بورنموث',
+  'Luton Town': 'لوتن تاون',
+  
+  // الفرق الإسبانية
+  'Real Madrid': 'ريال مدريد',
+  'Barcelona': 'برشلونة',
+  'FC Barcelona': 'برشلونة',
+  'Atletico Madrid': 'أتلتيكو مدريد',
+  'Atlético Madrid': 'أتلتيكو مدريد',
+  'Sevilla': 'إشبيلية',
+  'Valencia': 'فالنسيا',
+  'Real Betis': 'ريال بيتيس',
+  'Villarreal': 'فياريال',
+  'Real Sociedad': 'ريال سوسيداد',
+  'Athletic Bilbao': 'أتلتيك بيلباو',
+  'Getafe': 'خيتافي',
+  'Osasuna': 'أوساسونا',
+  'Celta Vigo': 'سيلتا فيغو',
+  'Mallorca': 'مايوركا',
+  'Cadiz': 'قادش',
+  'Espanyol': 'إسبانيول',
+  'Girona': 'جيرونا',
+  'Rayo Vallecano': 'رايو فاليكانو',
+  'Almeria': 'الميريا',
+  'Las Palmas': 'لاس بالماس',
+  'Granada': 'غرناطة',
+  'Alaves': 'ألافيس',
+  'Elche': 'إلتشي',
+  
+  // الفرق الألمانية
   'Bayern Munich': 'بايرن ميونيخ',
+  'FC Bayern München': 'بايرن ميونيخ',
   'Borussia Dortmund': 'بوروسيا دورتمند',
-  'Paris Saint-Germain': 'باريس سان جيرمان',
-  'PSG': 'باريس سان جيرمان',
+  'RB Leipzig': 'آر بي لايبزيغ',
+  'Bayer Leverkusen': 'باير ليفركوزن',
+  'Eintracht Frankfurt': 'آينتراخت فرانكفورت',
+  'VfL Wolfsburg': 'فولفسبورغ',
+  'Borussia Mönchengladbach': 'بوروسيا مونشنغلادباخ',
+  'TSG Hoffenheim': 'هوفنهايم',
+  'FC Cologne': 'كولونيا',
+  'Union Berlin': 'يونيون برلين',
+  'SC Freiburg': 'فرايبورغ',
+  'VfB Stuttgart': 'شتوتغارت',
+  'Mainz': 'ماينز',
+  'Augsburg': 'أوغسبورغ',
+  'Hertha Berlin': 'هيرتا برلين',
+  'Arminia Bielefeld': 'أرمينيا بيليفيلد',
+  'Greuther Fürth': 'غرويتر فورث',
+  
+  // الفرق الإيطالية
   'Juventus': 'يوفنتوس',
   'AC Milan': 'إيه سي ميلان',
   'Inter Milan': 'إنتر ميلان',
   'Inter': 'إنتر ميلان',
-  'Atletico Madrid': 'أتلتيكو مدريد',
-  'Sevilla': 'إشبيلية',
-  'Valencia': 'فالنسيا'
+  'FC Internazionale Milano': 'إنتر ميلان',
+  'AS Roma': 'روما',
+  'Roma': 'روما',
+  'Napoli': 'نابولي',
+  'Lazio': 'لاتسيو',
+  'Atalanta': 'أتالانتا',
+  'Fiorentina': 'فيورنتينا',
+  'Torino': 'تورينو',
+  'Sassuolo': 'ساسولو',
+  'Bologna': 'بولونيا',
+  'Udinese': 'أودينيزي',
+  'Sampdoria': 'سامبدوريا',
+  'Cagliari': 'كالياري',
+  'Genoa': 'جنوة',
+  'Spezia': 'سبيتسيا',
+  'Venezia': 'فينيسيا',
+  'Salernitana': 'ساليرنيتانا',
+  'Empoli': 'إمبولي',
+  'Hellas Verona': 'هيلاس فيرونا',
+  'Lecce': 'ليتشي',
+  'Monza': 'مونزا',
+  'Cremonese': 'كريمونيزي',
+  
+  // الفرق الفرنسية
+  'Paris Saint-Germain': 'باريس سان جيرمان',
+  'PSG': 'باريس سان جيرمان',
+  'Marseille': 'مارسيليا',
+  'Olympique Marseille': 'مارسيليا',
+  'Lyon': 'ليون',
+  'Olympique Lyon': 'ليون',
+  'Monaco': 'موناكو',
+  'AS Monaco': 'موناكو',
+  'Lille': 'ليل',
+  'Rennes': 'رين',
+  'Nice': 'نيس',
+  'Strasbourg': 'ستراسبورغ',
+  'Lens': 'لانس',
+  'Montpellier': 'مونبلييه',
+  'Nantes': 'نانت',
+  'Reims': 'ريمس',
+  'Brest': 'بريست',
+  'Lorient': 'لوريان',
+  'Clermont': 'كليرمون',
+  'Troyes': 'تروا',
+  'Saint-Etienne': 'سانت إتيان',
+  'Bordeaux': 'بوردو'
 }
 
 serve(async (req) => {
