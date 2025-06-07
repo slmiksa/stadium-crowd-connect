@@ -1,10 +1,25 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { Clock, Users, MapPin, RefreshCw, Newspaper, ExternalLink, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Clock, Users, MapPin, RefreshCw, Newspaper, ExternalLink, AlertCircle, Football } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -55,7 +70,6 @@ const Matches = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'finished' | 'news'>('live');
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
-  const [expandedCompetitions, setExpandedCompetitions] = useState<{ [key: string]: boolean }>({});
   const [dataLoaded, setDataLoaded] = useState({
     live: false,
     upcoming: false,
@@ -69,9 +83,40 @@ const Matches = () => {
     news: ''
   });
 
+  // تصحيح أسماء البطولات للعربية
+  const getCompetitionName = (competition: string): string => {
+    const competitionMap: { [key: string]: string } = {
+      'Premier League': 'الدوري الإنجليزي الممتاز',
+      'La Liga': 'الليغا الإسبانية',
+      'Serie A': 'الدوري الإيطالي',
+      'Bundesliga': 'الدوري الألماني',
+      'Ligue 1': 'الدوري الفرنسي',
+      'Champions League': 'دوري أبطال أوروبا',
+      'Europa League': 'الدوري الأوروبي',
+      'Saudi Pro League': 'دوري روشن السعودي',
+      'AFC Champions League': 'دوري أبطال آسيا',
+      'CAF Champions League': 'دوري أبطال أفريقيا',
+      'CONCACAF Champions League': 'دوري أبطال الكونكاكاف',
+      'Copa Libertadores': 'كوبا ليبرتادوريس',
+      'FA Cup': 'كأس الاتحاد الإنجليزي',
+      'King\'s Cup': 'كأس الملك',
+      'Copa del Rey': 'كأس ملك إسبانيا',
+      'DFB Pokal': 'كأس ألمانيا',
+      'Coppa Italia': 'كأس إيطاليا',
+      'Coupe de France': 'كأس فرنسا',
+      'World Cup': 'كأس العالم',
+      'European Championship': 'بطولة أوروبا',
+      'Africa Cup of Nations': 'كأس الأمم الأفريقية',
+      'Asian Cup': 'كأس آسيا',
+      'Copa America': 'كوبا أمريكا'
+    };
+    
+    return competitionMap[competition] || competition;
+  };
+
   // تصفية البطولات النسائية
   const isWomensCompetition = (competition: string): boolean => {
-    const womensKeywords = ['Women', 'النساء', 'السيدات', 'Female', 'كأس الأمم النسائية'];
+    const womensKeywords = ['Women', 'النساء', 'السيدات', 'Female', 'كأس الأمم النسائية', 'Women\'s'];
     return womensKeywords.some(keyword => 
       competition.toLowerCase().includes(keyword.toLowerCase())
     );
@@ -79,20 +124,23 @@ const Matches = () => {
 
   // ترتيب البطولات حسب الأولوية
   const getCompetitionPriority = (competition: string): number => {
+    const arabicName = getCompetitionName(competition);
     const priorities: { [key: string]: number } = {
       'دوري روشن السعودي': 1,
       'دوري أبطال آسيا': 2,
-      'دوري الأبطال الأوروبي': 3,
+      'دوري أبطال أوروبا': 3,
       'الدوري الإنجليزي الممتاز': 4,
       'الليغا الإسبانية': 5,
       'الدوري الألماني': 6,
       'الدوري الإيطالي': 7,
       'الدوري الفرنسي': 8,
       'كأس الملك': 9,
-      'كأس العالم': 10
+      'كأس العالم': 10,
+      'دوري أبطال أفريقيا': 11,
+      'كأس الأمم الأفريقية': 12
     };
     
-    return priorities[competition] || 999;
+    return priorities[arabicName] || 999;
   };
 
   // تجميع المباريات حسب البطولة
@@ -100,10 +148,11 @@ const Matches = () => {
     const grouped: GroupedMatches = {};
     
     matches.forEach(match => {
-      if (!grouped[match.competition]) {
-        grouped[match.competition] = [];
+      const competitionName = getCompetitionName(match.competition);
+      if (!grouped[competitionName]) {
+        grouped[competitionName] = [];
       }
-      grouped[match.competition].push(match);
+      grouped[competitionName].push(match);
     });
 
     // ترتيب المباريات داخل كل بطولة حسب التاريخ
@@ -177,7 +226,7 @@ const Matches = () => {
           ...prev, 
           [status]: data?.message || `لا توجد مباريات ${
             status === 'live' ? 'مباشرة الآن' :
-            status === 'upcoming' ? 'غدا' :
+            status === 'upcoming' ? 'غداً' :
             'أمس'
           }` 
         }));
@@ -197,7 +246,7 @@ const Matches = () => {
         ...prev, 
         [status]: `حدث خطأ في تحميل المباريات ${
           status === 'live' ? 'المباشرة' :
-          status === 'upcoming' ? 'غدا' :
+          status === 'upcoming' ? 'غداً' :
           'أمس'
         }. يرجى المحاولة لاحقاً.` 
       }));
@@ -249,9 +298,16 @@ const Matches = () => {
     setIsRefreshing(false);
   };
 
-  const handleMatchClick = (matchId: string) => {
-    console.log('الانتقال لتفاصيل المباراة:', matchId);
-    navigate(`/match-details/${matchId}`);
+  const handleMatchClick = (match: Match) => {
+    console.log('الانتقال لتفاصيل المباراة:', match);
+    // استخدام معرف فريد للمباراة بدلاً من الـ id
+    const matchIdentifier = `${match.homeTeam}-vs-${match.awayTeam}-${match.date}`.replace(/\s+/g, '-');
+    navigate(`/match-details/${matchIdentifier}`, { 
+      state: { 
+        match,
+        matchData: match 
+      } 
+    });
   };
 
   const handleNewsClick = (newsItem: NewsItem) => {
@@ -294,174 +350,191 @@ const Matches = () => {
     }
   };
 
-  const toggleCompetitionExpanded = (competition: string) => {
-    setExpandedCompetitions(prev => ({
-      ...prev,
-      [competition]: !prev[competition]
-    }));
+  const getTabTitle = (tab: string) => {
+    switch (tab) {
+      case 'live':
+        return 'مباشر';
+      case 'upcoming':
+        return 'غداً';
+      case 'finished':
+        return 'أمس';
+      case 'news':
+        return 'أخبار';
+      default:
+        return tab;
+    }
   };
 
-  const MatchCard = ({ match }: { match: Match }) => (
-    <div 
-      onClick={() => handleMatchClick(match.id)}
-      className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
-    >
-      <div className="flex items-center justify-between mb-3 sm:mb-4 px-1">
-        <div className="flex-1 text-center">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-700/40 rounded-xl p-1.5 sm:p-2 mx-auto mb-2 flex items-center justify-center border border-gray-600/30">
-            {match.homeLogo ? (
-              <img src={match.homeLogo} alt={match.homeTeam} className="w-full h-full object-contain" />
-            ) : (
-              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-600 rounded-full"></div>
-            )}
-          </div>
-          <p className="font-bold text-white text-xs sm:text-sm leading-tight px-1">{match.homeTeam}</p>
+  // تأثير اللاعب يركل الكرة
+  const SoccerPlayerAnimation = () => (
+    <div className="flex items-center justify-center py-8">
+      <div className="relative">
+        <div className="animate-bounce">
+          <Football className="w-8 h-8 text-green-400" />
         </div>
+        <div className="absolute -right-12 top-0 animate-pulse">
+          <div className="w-6 h-10 bg-blue-500 rounded-t-full"></div>
+        </div>
+      </div>
+    </div>
+  );
 
-        <div className="mx-2 sm:mx-4 text-center min-w-[80px] sm:min-w-[100px]">
+  const MatchRow = ({ match }: { match: Match }) => (
+    <TableRow 
+      onClick={() => handleMatchClick(match)}
+      className="cursor-pointer hover:bg-gray-800/60 transition-all duration-300 transform hover:scale-[1.01]"
+    >
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end space-x-2 space-x-reverse">
+          {match.homeLogo && (
+            <img src={match.homeLogo} alt={match.homeTeam} className="w-6 h-6 object-contain" />
+          )}
+          <span className="font-medium text-white">{match.homeTeam}</span>
+        </div>
+      </TableCell>
+      
+      <TableCell className="text-center">
+        <div className="flex flex-col items-center space-y-1">
           {match.status === 'live' && (
-            <div className="flex items-center justify-center mb-2">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 rounded-full animate-pulse ml-1"></div>
+            <div className="flex items-center space-x-1 space-x-reverse">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
               <span className="text-red-400 text-xs font-bold">مباشر</span>
               {match.minute && (
-                <span className="text-red-400 text-xs mr-1 bg-red-500/20 px-1 py-0.5 rounded">
+                <span className="text-red-400 text-xs bg-red-500/20 px-1 py-0.5 rounded">
                   {match.minute}'
                 </span>
               )}
             </div>
           )}
           
-          <div className="bg-gray-700/50 rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-600/40">
+          <div className="bg-gray-700/50 rounded-lg px-3 py-1 border border-gray-600/40">
             {match.homeScore !== null && match.homeScore !== undefined && 
              match.awayScore !== null && match.awayScore !== undefined ? (
-              <div className="text-xl sm:text-2xl font-bold text-white">
+              <span className="text-lg font-bold text-white">
                 {match.homeScore} - {match.awayScore}
-              </div>
+              </span>
             ) : (
-              <div className="text-gray-300 text-base sm:text-lg font-medium">
+              <span className="text-gray-300 font-medium">
                 {match.status === 'upcoming' ? formatTime(match.date) : 'vs'}
-              </div>
+              </span>
             )}
           </div>
           
           {match.status === 'upcoming' && (
-            <div className="text-xs text-gray-400 mt-1">
+            <span className="text-xs text-gray-400">
               {formatDate(match.date)}
-            </div>
+            </span>
           )}
         </div>
-
-        <div className="flex-1 text-center">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-700/40 rounded-xl p-1.5 sm:p-2 mx-auto mb-2 flex items-center justify-center border border-gray-600/30">
-            {match.awayLogo ? (
-              <img src={match.awayLogo} alt={match.awayTeam} className="w-full h-full object-contain" />
-            ) : (
-              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-600 rounded-full"></div>
-            )}
-          </div>
-          <p className="font-bold text-white text-xs sm:text-sm leading-tight px-1">{match.awayTeam}</p>
+      </TableCell>
+      
+      <TableCell className="text-left">
+        <div className="flex items-center space-x-2 space-x-reverse">
+          <span className="font-medium text-white">{match.awayTeam}</span>
+          {match.awayLogo && (
+            <img src={match.awayLogo} alt={match.awayTeam} className="w-6 h-6 object-contain" />
+          )}
         </div>
-      </div>
-
-      <div className="border-t border-gray-700/50 pt-2 sm:pt-3">
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center text-gray-400">
-            <Clock size={10} className="sm:size-3 ml-1 text-blue-400" />
-            <span className="text-xs">{formatTime(match.date)}</span>
-          </div>
-          <span className={`font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-xs ${
-            match.status === 'live' ? 'text-red-400 bg-red-500/20' : 
-            match.status === 'finished' ? 'text-green-400 bg-green-500/20' : 
-            'text-blue-400 bg-blue-500/20'
-          }`}>
-            {getMatchStatus(match.status)}
-          </span>
+      </TableCell>
+      
+      <TableCell className="text-center">
+        <div className="flex items-center justify-center space-x-2 space-x-reverse text-xs">
+          <Clock size={12} className="text-blue-400" />
+          <span className="text-gray-400">{formatTime(match.date)}</span>
         </div>
-      </div>
-    </div>
+      </TableCell>
+      
+      <TableCell className="text-center">
+        <span className={`font-medium px-2 py-1 rounded-lg text-xs ${
+          match.status === 'live' ? 'text-red-400 bg-red-500/20' : 
+          match.status === 'finished' ? 'text-green-400 bg-green-500/20' : 
+          'text-blue-400 bg-blue-500/20'
+        }`}>
+          {getMatchStatus(match.status)}
+        </span>
+      </TableCell>
+    </TableRow>
   );
 
-  const CompetitionGroup = ({ competition, matches }: { competition: string, matches: Match[] }) => {
-    const isExpanded = expandedCompetitions[competition];
-    const isWomens = isWomensCompetition(competition);
-    
-    return (
-      <div className="mb-6">
-        <div 
-          onClick={() => toggleCompetitionExpanded(competition)}
-          className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-300 ${
-            isWomens 
-              ? 'bg-pink-600/20 border border-pink-500/30 hover:bg-pink-600/30' 
-              : 'bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30'
-          }`}
-        >
-          <div className="flex items-center space-x-3 space-x-reverse">
-            {matches[0]?.leagueFlag && (
-              <img 
-                src={matches[0].leagueFlag} 
-                alt="" 
-                className="w-6 h-4 object-cover rounded shadow-sm" 
-              />
-            )}
-            <div>
-              <h3 className={`font-bold text-lg ${isWomens ? 'text-pink-300' : 'text-blue-300'}`}>
-                {competition}
-                {isWomens && <span className="text-xs mr-2 bg-pink-500/30 px-2 py-0.5 rounded">نساء</span>}
-              </h3>
-              <p className="text-gray-400 text-sm">{matches.length} مباراة</p>
+  const CompetitionSection = ({ competition, matches, isWomens }: { 
+    competition: string, 
+    matches: Match[], 
+    isWomens: boolean 
+  }) => (
+    <AccordionItem value={competition} className="border-gray-700/50">
+      <AccordionTrigger className={`${
+        isWomens 
+          ? 'text-pink-300 hover:text-pink-200' 
+          : 'text-blue-300 hover:text-blue-200'
+      } font-bold`}>
+        <div className="flex items-center space-x-3 space-x-reverse">
+          {matches[0]?.leagueFlag && (
+            <img 
+              src={matches[0].leagueFlag} 
+              alt="" 
+              className="w-6 h-4 object-cover rounded shadow-sm" 
+            />
+          )}
+          <div className="text-right">
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <span>{competition}</span>
+              {isWomens && (
+                <span className="text-xs bg-pink-500/30 px-2 py-0.5 rounded">نساء</span>
+              )}
             </div>
-          </div>
-          <div className="flex items-center space-x-2 space-x-reverse">
-            <span className={`text-sm font-medium ${isWomens ? 'text-pink-300' : 'text-blue-300'}`}>
-              {isExpanded ? 'إخفاء' : 'عرض'}
-            </span>
-            {isExpanded ? (
-              <ChevronUp size={20} className={isWomens ? 'text-pink-300' : 'text-blue-300'} />
-            ) : (
-              <ChevronDown size={20} className={isWomens ? 'text-pink-300' : 'text-blue-300'} />
-            )}
+            <span className="text-gray-400 text-sm font-normal">{matches.length} مباراة</span>
           </div>
         </div>
-        
-        {isExpanded && (
-          <div className="mt-4 space-y-3">
-            {matches.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
+      </AccordionTrigger>
+      <AccordionContent>
+        <div className="rounded-lg border border-gray-700/50 overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-800/40 hover:bg-gray-800/40">
+                <TableHead className="text-right text-gray-300">الفريق المضيف</TableHead>
+                <TableHead className="text-center text-gray-300">النتيجة</TableHead>
+                <TableHead className="text-left text-gray-300">الفريق الضيف</TableHead>
+                <TableHead className="text-center text-gray-300">الوقت</TableHead>
+                <TableHead className="text-center text-gray-300">الحالة</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {matches.map((match, index) => (
+                <MatchRow key={`${match.id}-${index}`} match={match} />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  );
 
   const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => (
     <div 
       onClick={() => handleNewsClick(newsItem)}
-      className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl mx-2 sm:mx-0"
+      className="bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
     >
       {newsItem.image && newsItem.image !== '/placeholder.svg' && (
-        <div className="mb-3 sm:mb-4 rounded-xl overflow-hidden">
+        <div className="mb-4 rounded-lg overflow-hidden">
           <img 
             src={newsItem.image} 
             alt={newsItem.title} 
-            className="w-full h-40 sm:h-48 object-cover hover:scale-105 transition-transform duration-300"
+            className="w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
           />
         </div>
       )}
 
-      <div className="space-y-2 sm:space-y-3">
+      <div className="space-y-3">
         {newsItem.category && (
-          <div className="inline-block">
-            <span className="bg-purple-600/20 text-purple-300 px-2 py-1 rounded-lg text-xs font-medium">
-              {newsItem.category}
-            </span>
-          </div>
+          <span className="inline-block bg-purple-600/20 text-purple-300 px-2 py-1 rounded-lg text-xs font-medium">
+            {newsItem.category}
+          </span>
         )}
 
-        <h3 className="text-base sm:text-lg font-bold text-white leading-relaxed line-clamp-2">{newsItem.title}</h3>
+        <h3 className="text-lg font-bold text-white leading-relaxed line-clamp-2">{newsItem.title}</h3>
         <p className="text-gray-300 text-sm leading-relaxed line-clamp-3">{newsItem.description}</p>
         
-        <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-700/30">
+        <div className="flex items-center justify-between pt-3 border-t border-gray-700/30">
           <span className="text-xs text-gray-400">{newsItem.source}</span>
           <div className="flex items-center space-x-2 space-x-reverse">
             <span className="text-xs text-gray-400">{formatDate(newsItem.date)}</span>
@@ -478,11 +551,11 @@ const Matches = () => {
     if (!selectedNews) return null;
 
     return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
-        <div className="bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-2">
-          <div className="p-4 sm:p-6">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-gray-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg sm:text-xl font-bold text-white pr-4">{selectedNews.title}</h2>
+              <h2 className="text-xl font-bold text-white pr-4">{selectedNews.title}</h2>
               <button
                 onClick={() => setSelectedNews(null)}
                 className="text-gray-400 hover:text-white transition-colors text-xl"
@@ -492,11 +565,11 @@ const Matches = () => {
             </div>
 
             {selectedNews.image && selectedNews.image !== '/placeholder.svg' && (
-              <div className="mb-4 rounded-xl overflow-hidden">
+              <div className="mb-4 rounded-lg overflow-hidden">
                 <img 
                   src={selectedNews.image} 
                   alt={selectedNews.title} 
-                  className="w-full h-48 sm:h-64 object-cover"
+                  className="w-full h-64 object-cover"
                 />
               </div>
             )}
@@ -516,7 +589,7 @@ const Matches = () => {
               <p className="text-gray-300 leading-relaxed">{selectedNews.description}</p>
               
               {selectedNews.content && selectedNews.content !== selectedNews.description && (
-                <div className="bg-gray-700/30 rounded-xl p-4">
+                <div className="bg-gray-700/30 rounded-lg p-4">
                   <p className="text-gray-300 leading-relaxed">{selectedNews.content}</p>
                 </div>
               )}
@@ -524,7 +597,7 @@ const Matches = () => {
               {selectedNews.url && selectedNews.url !== '#' && (
                 <button
                   onClick={() => handleNewsUrlClick(selectedNews.url!)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl font-medium transition-colors flex items-center justify-center space-x-2 space-x-reverse"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 space-x-reverse"
                 >
                   <span>قراءة المقال كاملاً</span>
                   <ExternalLink size={16} />
@@ -538,11 +611,12 @@ const Matches = () => {
   };
 
   const EmptyState = ({ type, message }: { type: string, message: string }) => (
-    <div className="text-center py-8 sm:py-12 mx-2 sm:mx-0">
-      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-gray-600 to-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
-        <AlertCircle size={20} className="sm:size-6 text-white" />
+    <div className="text-center py-12">
+      <SoccerPlayerAnimation />
+      <div className="w-16 h-16 bg-gradient-to-r from-gray-600 to-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
+        <AlertCircle size={24} className="text-white" />
       </div>
-      <p className="text-gray-400 text-base sm:text-lg px-4">{message}</p>
+      <p className="text-gray-400 text-lg px-4">{message}</p>
       <p className="text-gray-500 text-sm mt-2 px-4">يرجى المحاولة لاحقاً أو تحديث الصفحة</p>
     </div>
   );
@@ -573,133 +647,128 @@ const Matches = () => {
 
   return (
     <Layout>
-      <div className="w-full h-full min-h-screen bg-gray-900 overflow-x-hidden">
-        <div className="w-full h-full space-y-0">
-          <div className="w-full text-center px-4 py-6 bg-gray-900">
-            <div className="flex items-center justify-between mb-2 w-full">
-              <div></div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">المباريات والأخبار</h1>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900">
+        {/* Header */}
+        <div className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/50 sticky top-0 z-40">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex items-center justify-between">
+              <SoccerPlayerAnimation />
+              <div className="text-center">
+                <h1 className="text-3xl font-bold text-white mb-2">المباريات والأخبار</h1>
+                <p className="text-gray-400">تابع أحدث المباريات والنتائج والأخبار الرياضية</p>
+              </div>
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors"
+                className="p-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
               >
-                <RefreshCw size={18} className={`sm:size-5 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-            <p className="text-gray-400 text-sm sm:text-base">تابع أحدث المباريات والنتائج والأخبار الرياضية مُرتبة حسب البطولة</p>
-          </div>
-
-          <div className="w-full bg-gray-800/60 backdrop-blur-sm p-1 border-b border-gray-700/50">
-            <div className="grid grid-cols-4 gap-0.5 sm:gap-1 w-full">
-              <button
-                onClick={() => setActiveTab('live')}
-                className={`py-3 px-2 text-xs font-bold transition-all duration-300 w-full ${
-                  activeTab === 'live'
-                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                }`}
-              >
-                <span className="block sm:inline">مباشر</span>
-                <span className="block sm:inline"> ({allMatches.live.length})</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('upcoming')}
-                className={`py-3 px-2 text-xs font-bold transition-all duration-300 w-full ${
-                  activeTab === 'upcoming'
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                }`}
-              >
-                <span className="block sm:inline">غدا</span>
-                <span className="block sm:inline"> ({allMatches.upcoming.length})</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('finished')}
-                className={`py-3 px-2 text-xs font-bold transition-all duration-300 w-full ${
-                  activeTab === 'finished'
-                    ? 'bg-green-600 text-white shadow-lg shadow-green-600/30'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                }`}
-              >
-                <span className="block sm:inline">أمس</span>
-                <span className="block sm:inline"> ({allMatches.finished.length})</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('news')}
-                className={`py-3 px-2 text-xs font-bold transition-all duration-300 w-full ${
-                  activeTab === 'news'
-                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                }`}
-              >
-                <span className="block sm:inline">أخبار</span>
-                <span className="block sm:inline"> ({news.length})</span>
+                <RefreshCw size={20} className={`text-white ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
+        </div>
 
-          <div className="w-full space-y-3 sm:space-y-4 p-4 pb-20">
-            {isTabLoading ? (
-              <div className="text-center py-8 sm:py-12 w-full">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-gray-400">جاري التحميل...</p>
-              </div>
-            ) : activeTab === 'news' ? (
-              news.length === 0 ? (
-                <EmptyState type="news" message={currentErrorMessage || 'لا توجد أخبار متاحة حالياً'} />
-              ) : (
-                news.map((newsItem) => (
-                  <NewsCard key={newsItem.id} newsItem={newsItem} />
-                ))
-              )
+        {/* Navigation Tabs */}
+        <div className="bg-gray-800/60 backdrop-blur-sm border-b border-gray-700/50 sticky top-[120px] z-30">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-4 gap-1">
+              {(['live', 'upcoming', 'finished', 'news'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`py-4 px-4 text-sm font-bold transition-all duration-300 rounded-t-lg ${
+                    activeTab === tab
+                      ? tab === 'live' 
+                        ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+                        : tab === 'upcoming'
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                        : tab === 'finished'
+                        ? 'bg-green-600 text-white shadow-lg shadow-green-600/30'
+                        : 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+                  }`}
+                >
+                  <div className="flex flex-col items-center space-y-1">
+                    <span>{getTabTitle(tab)}</span>
+                    <span className="text-xs">
+                      ({tab === 'news' ? news.length : allMatches[tab as keyof typeof allMatches].length})
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="container mx-auto px-4 py-6 pb-20">
+          {isTabLoading ? (
+            <div className="text-center py-12">
+              <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-400">جاري التحميل...</p>
+            </div>
+          ) : activeTab === 'news' ? (
+            news.length === 0 ? (
+              <EmptyState type="news" message={currentErrorMessage || 'لا توجد أخبار متاحة حالياً'} />
             ) : (
-              currentMatches.length === 0 ? (
-                <EmptyState 
-                  type={activeTab} 
-                  message={currentErrorMessage || `لا توجد مباريات ${
-                    activeTab === 'live' ? 'مباشرة الآن' :
-                    activeTab === 'upcoming' ? 'غدا' :
-                    'أمس'
-                  }`} 
-                />
-              ) : (
-                <div className="space-y-6">
-                  {/* بطولات الرجال */}
-                  {mensCompetitions.length > 0 && (
-                    <div className="space-y-4">
-                      <h2 className="text-xl font-bold text-blue-300 border-b border-blue-500/30 pb-2">
-                        بطولات الرجال
-                      </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {news.map((newsItem) => (
+                  <NewsCard key={newsItem.id} newsItem={newsItem} />
+                ))}
+              </div>
+            )
+          ) : (
+            currentMatches.length === 0 ? (
+              <EmptyState 
+                type={activeTab} 
+                message={currentErrorMessage || `لا توجد مباريات ${getTabTitle(activeTab)}`} 
+              />
+            ) : (
+              <div className="space-y-8">
+                {/* بطولات الرجال */}
+                {mensCompetitions.length > 0 && (
+                  <div>
+                    <div className="flex items-center space-x-2 space-x-reverse mb-6">
+                      <Users className="w-6 h-6 text-blue-400" />
+                      <h2 className="text-2xl font-bold text-blue-300">بطولات الرجال</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-blue-500/50 to-transparent"></div>
+                    </div>
+                    <Accordion type="multiple" className="space-y-4">
                       {mensCompetitions.map((competition) => (
-                        <CompetitionGroup
+                        <CompetitionSection
                           key={competition}
                           competition={competition}
                           matches={groupedMatches[competition]}
+                          isWomens={false}
                         />
                       ))}
-                    </div>
-                  )}
+                    </Accordion>
+                  </div>
+                )}
 
-                  {/* بطولات النساء */}
-                  {womensCompetitions.length > 0 && (
-                    <div className="space-y-4">
-                      <h2 className="text-xl font-bold text-pink-300 border-b border-pink-500/30 pb-2">
-                        بطولات النساء
-                      </h2>
+                {/* بطولات النساء */}
+                {womensCompetitions.length > 0 && (
+                  <div>
+                    <div className="flex items-center space-x-2 space-x-reverse mb-6">
+                      <Users className="w-6 h-6 text-pink-400" />
+                      <h2 className="text-2xl font-bold text-pink-300">بطولات النساء</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-pink-500/50 to-transparent"></div>
+                    </div>
+                    <Accordion type="multiple" className="space-y-4">
                       {womensCompetitions.map((competition) => (
-                        <CompetitionGroup
+                        <CompetitionSection
                           key={competition}
                           competition={competition}
                           matches={groupedMatches[competition]}
+                          isWomens={true}
                         />
                       ))}
-                    </div>
-                  )}
-                </div>
-              )
-            )}
-          </div>
+                    </Accordion>
+                  </div>
+                )}
+              </div>
+            )
+          )}
         </div>
 
         <NewsModal />
