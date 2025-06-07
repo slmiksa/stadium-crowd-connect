@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -186,13 +185,13 @@ const Matches = () => {
         apiStatus = 'live';
       } else if (status === 'today') {
         apiStatus = 'upcoming';
-        targetDate = today;
+        targetDate = today; // مباريات اليوم
       } else if (status === 'tomorrow') {
         apiStatus = 'upcoming';
-        targetDate = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+        targetDate = new Date(today.getTime() + 24 * 60 * 60 * 1000); // مباريات الغد
       } else if (status === 'yesterday') {
         apiStatus = 'finished';
-        targetDate = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        targetDate = new Date(today.getTime() - 24 * 60 * 60 * 1000); // مباريات الأمس
       }
       
       const dataPromise = supabase.functions.invoke('get-football-matches', {

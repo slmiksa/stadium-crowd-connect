@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -33,9 +32,10 @@ const leagueTranslations: { [key: string]: string } = {
   'Conference League': 'دوري المؤتمر الأوروبي',
   'UEFA Conference League': 'دوري المؤتمر الأوروبي',
   
-  // الدوري الإنجليزي
+  // الدوري الإنجليزي - تصحيح الترجمة
   'Premier League': 'الدوري الإنجليزي الممتاز',
   'English Premier League': 'الدوري الإنجليزي الممتاز',
+  'EPL': 'الدوري الإنجليزي الممتاز',
   'Championship': 'الدرجة الأولى الإنجليزية',
   'FA Cup': 'كأس الاتحاد الإنجليزي',
   'EFL Cup': 'كأس الرابطة الإنجليزية',
@@ -45,6 +45,7 @@ const leagueTranslations: { [key: string]: string } = {
   // الدوري الإسباني
   'La Liga': 'الليغا الإسبانية',
   'LaLiga': 'الليغا الإسبانية',
+  'Spanish La Liga': 'الليغا الإسبانية',
   'Copa del Rey': 'كأس الملك الإسباني',
   'Supercopa de España': 'كأس السوبر الإسباني',
   
@@ -62,30 +63,14 @@ const leagueTranslations: { [key: string]: string } = {
   'Coppa Italia': 'كأس إيطاليا',
   'Supercoppa Italiana': 'كأس السوبر الإيطالي',
   
-  // الدوري الفرنسي
+  // الدوري الفرنسي - تصحيح الترجمة
   'Ligue 1': 'الدوري الفرنسي',
   'French Ligue 1': 'الدوري الفرنسي',
   'Ligue 2': 'الدرجة الثانية الفرنسية',
   'Coupe de France': 'كأس فرنسا',
   'Trophée des Champions': 'كأس السوبر الفرنسي',
   
-  // الدوريات الأفريقية
-  'CAF Champions League': 'دوري أبطال أفريقيا',
-  'Africa Cup of Nations': 'كأس الأمم الأفريقية',
-  'Ghana Premier League': 'الدوري الغاني الممتاز',
-  'Egypt Premier League': 'الدوري المصري الممتاز',
-  'Nigerian Professional Football League': 'الدوري النيجيري',
-  'South African Premier Soccer League': 'الدوري الجنوب أفريقي',
-  
-  // الدوريات الأمريكية
-  'CONCACAF Champions League': 'دوري أبطال الكونكاكاف',
-  'Copa Libertadores': 'كوبا ليبرتادوريس',
-  'Major League Soccer': 'الدوري الأمريكي',
-  'Brazilian Serie A': 'الدوري البرازيلي',
-  'Argentine Liga Profesional': 'الدوري الأرجنتيني',
-  'Copa America': 'كوبا أمريكا',
-  
-  // دوريات أخرى مهمة
+  // دوريات أوروبية أخرى
   'Eredivisie': 'الدوري الهولندي',
   'Belgian Pro League': 'الدوري البلجيكي',
   'Primeira Liga': 'الدوري البرتغالي',
@@ -93,8 +78,29 @@ const leagueTranslations: { [key: string]: string } = {
   'Turkish Super League': 'الدوري التركي',
   'Süper Lig': 'الدوري التركي',
   'Scottish Premiership': 'الدوري الاسكتلندي',
-  'Swiss Super League': 'الدوري السويسري'
+  'Swiss Super League': 'الدوري السويسري',
+  
+  // الدوريات الأمريكية
+  'CONCACAF Champions League': 'دوري أبطال الكونكاكاف',
+  'Copa Libertadores': 'كوبا ليبرتادوريس',
+  'Major League Soccer': 'الدوري الأمريكي',
+  'MLS': 'الدوري الأمريكي',
+  'Brazilian Serie A': 'الدوري البرازيلي',
+  'Argentine Liga Profesional': 'الدوري الأرجنتيني',
+  'Copa America': 'كوبا أمريكا'
 }
+
+// قائمة البطولات التي يجب تجاهلها (البطولات الأفريقية المحلية)
+const ignoredLeagues = [
+  'Ghana Premier League',
+  'Egypt Premier League', 
+  'Nigerian Professional Football League',
+  'South African Premier Soccer League',
+  'Ghanaian Premier League',
+  'Congo League',
+  'CAF Champions League', // نبقي هذه فقط للأندية الكبيرة
+  'Africa Cup of Nations' // نبقي هذه فقط للمنتخبات
+]
 
 // ترجمات محسنة ومصححة للفرق
 const teamTranslations: { [key: string]: string } = {
@@ -359,12 +365,20 @@ serve(async (req) => {
         }
       } 
       else if (status === 'upcoming') {
-        // جلب المباريات القادمة لغدا فقط
-        const tomorrow = new Date(Date.now() + 86400000)
-        const searchDate = tomorrow.toISOString().split('T')[0]
+        // تحديد التاريخ بناءً على الطلب
+        let searchDate: string
+        if (date === new Date().toISOString().split('T')[0]) {
+          // مباريات اليوم
+          searchDate = date
+          console.log(`جلب مباريات اليوم: ${searchDate}`)
+        } else {
+          // مباريات الغد
+          const tomorrow = new Date(Date.now() + 86400000)
+          searchDate = tomorrow.toISOString().split('T')[0]
+          console.log(`جلب المباريات القادمة لغدا: ${searchDate}`)
+        }
         
         const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=NS`
-        console.log(`جلب المباريات القادمة لغدا: ${searchDate}`)
         
         try {
           const response = await fetch(apiUrl, {
@@ -379,7 +393,7 @@ serve(async (req) => {
             const data = await response.json()
             if (data.response && data.response.length > 0) {
               allMatches = data.response
-              console.log(`تم العثور على ${data.response.length} مباراة قادمة غدا`)
+              console.log(`تم العثور على ${data.response.length} مباراة في ${searchDate}`)
             }
           }
         } catch (error) {
@@ -392,9 +406,17 @@ serve(async (req) => {
 
     console.log(`إجمالي المباريات المجلبة: ${allMatches.length}`)
 
+    // تصفية البطولات المرفوضة
+    const filteredMatches = allMatches.filter((fixture: any) => {
+      const leagueName = fixture.league.name
+      return !ignoredLeagues.includes(leagueName)
+    })
+
+    console.log(`المباريات بعد التصفية: ${filteredMatches.length}`)
+
     // إذا لم نحصل على مباريات حقيقية، نرجع قائمة فارغة
-    if (allMatches.length === 0) {
-      console.log('لا توجد مباريات حقيقية متاحة')
+    if (filteredMatches.length === 0) {
+      console.log('لا توجد مباريات حقيقية متاحة بعد التصفية')
       return new Response(
         JSON.stringify({ 
           matches: [],
@@ -404,7 +426,7 @@ serve(async (req) => {
           success: true,
           message: `لا توجد مباريات ${
             status === 'live' ? 'مباشرة الآن' :
-            status === 'upcoming' ? 'غدا' :
+            status === 'upcoming' ? (date === new Date().toISOString().split('T')[0] ? 'اليوم' : 'غدا') :
             'أمس'
           }`
         }),
@@ -416,7 +438,7 @@ serve(async (req) => {
     }
 
     // معالجة المباريات الحقيقية فقط
-    const processedMatches = allMatches.map((fixture: any) => {
+    const processedMatches = filteredMatches.map((fixture: any) => {
       const leagueName = fixture.league.name
       const arabicLeagueName = leagueTranslations[leagueName] || leagueName
 
