@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Accordion,
   AccordionContent,
@@ -18,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Clock, Users, MapPin, RefreshCw, Newspaper, ExternalLink, AlertCircle, Play } from 'lucide-react';
+import { Clock, Users, RefreshCw, Newspaper, ExternalLink, AlertCircle, Play, Calendar, Zap } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -55,30 +57,35 @@ interface GroupedMatches {
 const Matches = () => {
   const navigate = useNavigate();
   const { t, isRTL } = useLanguage();
+  const isMobile = useIsMobile();
   const [allMatches, setAllMatches] = useState<{
     live: Match[];
-    upcoming: Match[];
-    finished: Match[];
+    today: Match[];
+    tomorrow: Match[];
+    yesterday: Match[];
   }>({
     live: [],
-    upcoming: [],
-    finished: []
+    today: [],
+    tomorrow: [],
+    yesterday: []
   });
   const [news, setNews] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'finished' | 'news'>('live');
+  const [activeTab, setActiveTab] = useState<'live' | 'today' | 'tomorrow' | 'yesterday' | 'news'>('live');
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
   const [dataLoaded, setDataLoaded] = useState({
     live: false,
-    upcoming: false,
-    finished: false,
+    today: false,
+    tomorrow: false,
+    yesterday: false,
     news: false
   });
   const [errorMessages, setErrorMessages] = useState({
     live: '',
-    upcoming: '',
-    finished: '',
+    today: '',
+    tomorrow: '',
+    yesterday: '',
     news: ''
   });
 
@@ -124,7 +131,7 @@ const Matches = () => {
     // ترتيب المباريات داخل كل بطولة حسب التاريخ
     Object.keys(grouped).forEach(competition => {
       grouped[competition].sort((a, b) => {
-        if (activeTab === 'upcoming') {
+        if (activeTab === 'tomorrow') {
           return new Date(a.date).getTime() - new Date(b.date).getTime();
         } else {
           return new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -152,8 +159,9 @@ const Matches = () => {
       await Promise.all([livePromise, newsPromise]);
       
       // تحميل باقي البيانات في الخلفية
-      fetchMatchData('upcoming');
-      fetchMatchData('finished');
+      fetchMatchData('today');
+      fetchMatchData('tomorrow');
+      fetchMatchData('yesterday');
       
     } catch (error) {
       console.error('خطأ في تحميل البيانات:', error);
@@ -162,16 +170,34 @@ const Matches = () => {
     }
   };
 
-  const fetchMatchData = async (status: 'live' | 'upcoming' | 'finished') => {
+  const fetchMatchData = async (status: 'live' | 'today' | 'tomorrow' | 'yesterday') => {
     try {
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 15000)
       );
       
+      // تحديد التاريخ المناسب لكل تبويب
+      const today = new Date();
+      let targetDate = today;
+      let apiStatus = 'upcoming';
+      
+      if (status === 'live') {
+        apiStatus = 'live';
+      } else if (status === 'today') {
+        apiStatus = 'upcoming';
+        targetDate = today;
+      } else if (status === 'tomorrow') {
+        apiStatus = 'upcoming';
+        targetDate = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+      } else if (status === 'yesterday') {
+        apiStatus = 'finished';
+        targetDate = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+      }
+      
       const dataPromise = supabase.functions.invoke('get-football-matches', {
         body: { 
-          status,
-          date: new Date().toISOString().split('T')[0]
+          status: apiStatus,
+          date: targetDate.toISOString().split('T')[0]
         }
       });
 
@@ -190,11 +216,7 @@ const Matches = () => {
         }));
         setErrorMessages(prev => ({ 
           ...prev, 
-          [status]: data?.message || `لا توجد مباريات ${
-            status === 'live' ? 'مباشرة الآن' :
-            status === 'upcoming' ? 'غداً' :
-            'أمس'
-          }` 
+          [status]: data?.message || `لا توجد مباريات ${getTabTitle(status)}` 
         }));
       }
       
@@ -210,11 +232,7 @@ const Matches = () => {
       }));
       setErrorMessages(prev => ({ 
         ...prev, 
-        [status]: `حدث خطأ في تحميل المباريات ${
-          status === 'live' ? 'المباشرة' :
-          status === 'upcoming' ? 'غداً' :
-          'أمس'
-        }. يرجى المحاولة لاحقاً.` 
+        [status]: `حدث خطأ في تحميل المباريات. يرجى المحاولة لاحقاً.` 
       }));
       setDataLoaded(prev => ({ ...prev, [status]: true }));
     }
@@ -266,7 +284,6 @@ const Matches = () => {
 
   const handleMatchClick = (match: Match) => {
     console.log('الانتقال لتفاصيل المباراة:', match);
-    // استخدام معرف المباراة الفعلي من API بدلاً من إنشاء معرف جديد
     navigate(`/match-details/${match.id}`, { 
       state: { 
         match,
@@ -319,14 +336,33 @@ const Matches = () => {
     switch (tab) {
       case 'live':
         return 'مباشر';
-      case 'upcoming':
+      case 'today':
+        return 'اليوم';
+      case 'tomorrow':
         return 'غداً';
-      case 'finished':
+      case 'yesterday':
         return 'أمس';
       case 'news':
         return 'أخبار';
       default:
         return tab;
+    }
+  };
+
+  const getTabIcon = (tab: string) => {
+    switch (tab) {
+      case 'live':
+        return <Zap className="w-4 h-4" />;
+      case 'today':
+        return <Calendar className="w-4 h-4" />;
+      case 'tomorrow':
+        return <Clock className="w-4 h-4" />;
+      case 'yesterday':
+        return <Calendar className="w-4 h-4" />;
+      case 'news':
+        return <Newspaper className="w-4 h-4" />;
+      default:
+        return null;
     }
   };
 
@@ -349,16 +385,18 @@ const Matches = () => {
       onClick={() => handleMatchClick(match)}
       className="cursor-pointer hover:bg-gray-800/60 transition-all duration-300 transform hover:scale-[1.01]"
     >
-      <TableCell className="text-right">
+      <TableCell className="text-right p-2">
         <div className="flex items-center justify-end space-x-2 space-x-reverse">
           {match.homeLogo && (
-            <img src={match.homeLogo} alt={match.homeTeam} className="w-6 h-6 object-contain" />
+            <img src={match.homeLogo} alt={match.homeTeam} className="w-5 h-5 object-contain" />
           )}
-          <span className="font-medium text-white">{match.homeTeam}</span>
+          <span className={`font-medium text-white ${isMobile ? 'text-sm' : 'text-base'}`}>
+            {isMobile ? match.homeTeam.substring(0, 10) + (match.homeTeam.length > 10 ? '...' : '') : match.homeTeam}
+          </span>
         </div>
       </TableCell>
       
-      <TableCell className="text-center">
+      <TableCell className="text-center p-2">
         <div className="flex flex-col items-center space-y-1">
           {match.status === 'live' && (
             <div className="flex items-center space-x-1 space-x-reverse">
@@ -372,20 +410,20 @@ const Matches = () => {
             </div>
           )}
           
-          <div className="bg-gray-700/50 rounded-lg px-3 py-1 border border-gray-600/40">
+          <div className="bg-gray-700/50 rounded-lg px-2 py-1 border border-gray-600/40">
             {match.homeScore !== null && match.homeScore !== undefined && 
              match.awayScore !== null && match.awayScore !== undefined ? (
-              <span className="text-lg font-bold text-white">
+              <span className={`font-bold text-white ${isMobile ? 'text-sm' : 'text-lg'}`}>
                 {match.homeScore} - {match.awayScore}
               </span>
             ) : (
-              <span className="text-gray-300 font-medium">
+              <span className={`text-gray-300 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
                 {match.status === 'upcoming' ? formatTime(match.date) : 'vs'}
               </span>
             )}
           </div>
           
-          {match.status === 'upcoming' && (
+          {match.status === 'upcoming' && !isMobile && (
             <span className="text-xs text-gray-400">
               {formatDate(match.date)}
             </span>
@@ -393,31 +431,37 @@ const Matches = () => {
         </div>
       </TableCell>
       
-      <TableCell className="text-left">
+      <TableCell className="text-left p-2">
         <div className="flex items-center space-x-2 space-x-reverse">
-          <span className="font-medium text-white">{match.awayTeam}</span>
+          <span className={`font-medium text-white ${isMobile ? 'text-sm' : 'text-base'}`}>
+            {isMobile ? match.awayTeam.substring(0, 10) + (match.awayTeam.length > 10 ? '...' : '') : match.awayTeam}
+          </span>
           {match.awayLogo && (
-            <img src={match.awayLogo} alt={match.awayTeam} className="w-6 h-6 object-contain" />
+            <img src={match.awayLogo} alt={match.awayTeam} className="w-5 h-5 object-contain" />
           )}
         </div>
       </TableCell>
       
-      <TableCell className="text-center">
-        <div className="flex items-center justify-center space-x-2 space-x-reverse text-xs">
-          <Clock size={12} className="text-blue-400" />
-          <span className="text-gray-400">{formatTime(match.date)}</span>
-        </div>
-      </TableCell>
-      
-      <TableCell className="text-center">
-        <span className={`font-medium px-2 py-1 rounded-lg text-xs ${
-          match.status === 'live' ? 'text-red-400 bg-red-500/20' : 
-          match.status === 'finished' ? 'text-green-400 bg-green-500/20' : 
-          'text-blue-400 bg-blue-500/20'
-        }`}>
-          {getMatchStatus(match.status)}
-        </span>
-      </TableCell>
+      {!isMobile && (
+        <>
+          <TableCell className="text-center p-2">
+            <div className="flex items-center justify-center space-x-2 space-x-reverse text-xs">
+              <Clock size={12} className="text-blue-400" />
+              <span className="text-gray-400">{formatTime(match.date)}</span>
+            </div>
+          </TableCell>
+          
+          <TableCell className="text-center p-2">
+            <span className={`font-medium px-2 py-1 rounded-lg text-xs ${
+              match.status === 'live' ? 'text-red-400 bg-red-500/20' : 
+              match.status === 'finished' ? 'text-green-400 bg-green-500/20' : 
+              'text-blue-400 bg-blue-500/20'
+            }`}>
+              {getMatchStatus(match.status)}
+            </span>
+          </TableCell>
+        </>
+      )}
     </TableRow>
   );
 
@@ -431,7 +475,7 @@ const Matches = () => {
         isWomens 
           ? 'text-pink-300 hover:text-pink-200' 
           : 'text-blue-300 hover:text-blue-200'
-      } font-bold`}>
+      } font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
         <div className="flex items-center space-x-3 space-x-reverse">
           {matches[0]?.leagueFlag && (
             <img 
@@ -442,7 +486,9 @@ const Matches = () => {
           )}
           <div className="text-right">
             <div className="flex items-center space-x-2 space-x-reverse">
-              <span>{competition}</span>
+              <span className={isMobile ? 'text-sm' : 'text-base'}>
+                {isMobile && competition.length > 20 ? competition.substring(0, 20) + '...' : competition}
+              </span>
               {isWomens && (
                 <span className="text-xs bg-pink-500/30 px-2 py-0.5 rounded">نساء</span>
               )}
@@ -456,11 +502,15 @@ const Matches = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-800/40 hover:bg-gray-800/40">
-                <TableHead className="text-right text-gray-300">الفريق المضيف</TableHead>
-                <TableHead className="text-center text-gray-300">النتيجة</TableHead>
-                <TableHead className="text-left text-gray-300">الفريق الضيف</TableHead>
-                <TableHead className="text-center text-gray-300">الوقت</TableHead>
-                <TableHead className="text-center text-gray-300">الحالة</TableHead>
+                <TableHead className={`text-right text-gray-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>المضيف</TableHead>
+                <TableHead className={`text-center text-gray-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>النتيجة</TableHead>
+                <TableHead className={`text-left text-gray-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>الضيف</TableHead>
+                {!isMobile && (
+                  <>
+                    <TableHead className="text-center text-gray-300 text-sm">الوقت</TableHead>
+                    <TableHead className="text-center text-gray-300 text-sm">الحالة</TableHead>
+                  </>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -484,7 +534,9 @@ const Matches = () => {
           <img 
             src={newsItem.image} 
             alt={newsItem.title} 
-            className="w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
+            className={`w-full object-cover hover:scale-105 transition-transform duration-300 ${
+              isMobile ? 'h-32' : 'h-48'
+            }`}
           />
         </div>
       )}
@@ -496,8 +548,16 @@ const Matches = () => {
           </span>
         )}
 
-        <h3 className="text-lg font-bold text-white leading-relaxed line-clamp-2">{newsItem.title}</h3>
-        <p className="text-gray-300 text-sm leading-relaxed line-clamp-3">{newsItem.description}</p>
+        <h3 className={`font-bold text-white leading-relaxed line-clamp-2 ${
+          isMobile ? 'text-base' : 'text-lg'
+        }`}>
+          {newsItem.title}
+        </h3>
+        <p className={`text-gray-300 leading-relaxed line-clamp-3 ${
+          isMobile ? 'text-sm' : 'text-sm'
+        }`}>
+          {newsItem.description}
+        </p>
         
         <div className="flex items-center justify-between pt-3 border-t border-gray-700/30">
           <span className="text-xs text-gray-400">{newsItem.source}</span>
@@ -517,10 +577,16 @@ const Matches = () => {
 
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-gray-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className={`bg-gray-800 rounded-xl w-full max-h-[90vh] overflow-y-auto ${
+          isMobile ? 'max-w-full' : 'max-w-2xl'
+        }`}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white pr-4">{selectedNews.title}</h2>
+              <h2 className={`font-bold text-white pr-4 ${
+                isMobile ? 'text-lg' : 'text-xl'
+              }`}>
+                {selectedNews.title}
+              </h2>
               <button
                 onClick={() => setSelectedNews(null)}
                 className="text-gray-400 hover:text-white transition-colors text-xl"
@@ -534,7 +600,9 @@ const Matches = () => {
                 <img 
                   src={selectedNews.image} 
                   alt={selectedNews.title} 
-                  className="w-full h-64 object-cover"
+                  className={`w-full object-cover ${
+                    isMobile ? 'h-48' : 'h-64'
+                  }`}
                 />
               </div>
             )}
@@ -581,8 +649,10 @@ const Matches = () => {
       <div className="w-16 h-16 bg-gradient-to-r from-gray-600 to-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
         <AlertCircle size={24} className="text-white" />
       </div>
-      <p className="text-gray-400 text-lg px-4">{message}</p>
-      <p className="text-gray-500 text-sm mt-2 px-4">يرجى المحاولة لاحقاً أو تحديث الصفحة</p>
+      <p className={`text-gray-400 px-4 ${isMobile ? 'text-base' : 'text-lg'}`}>{message}</p>
+      <p className={`text-gray-500 mt-2 px-4 ${isMobile ? 'text-sm' : 'text-sm'}`}>
+        يرجى المحاولة لاحقاً أو تحديث الصفحة
+      </p>
     </div>
   );
 
@@ -615,125 +685,153 @@ const Matches = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900">
         {/* Header */}
         <div className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/50 sticky top-0 z-40">
-          <div className="container mx-auto px-4 py-6">
+          <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
-              <SoccerPlayerAnimation />
-              <div className="text-center">
-                <h1 className="text-3xl font-bold text-white mb-2">المباريات والأخبار</h1>
-                <p className="text-gray-400">تابع أحدث المباريات والنتائج والأخبار الرياضية</p>
+              {!isMobile && <SoccerPlayerAnimation />}
+              <div className="text-center flex-1">
+                <h1 className={`font-bold text-white mb-2 ${isMobile ? 'text-xl' : 'text-3xl'}`}>
+                  المباريات والأخبار
+                </h1>
+                <p className={`text-gray-400 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                  تابع أحدث المباريات والنتائج والأخبار الرياضية
+                </p>
               </div>
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="p-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
+                className={`bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl ${
+                  isMobile ? 'p-2' : 'p-3'
+                }`}
               >
-                <RefreshCw size={20} className={`text-white ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw size={isMobile ? 16 : 20} className={`text-white ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-gray-800/60 backdrop-blur-sm border-b border-gray-700/50 sticky top-[120px] z-30">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-4 gap-1">
-              {(['live', 'upcoming', 'finished', 'news'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`py-4 px-4 text-sm font-bold transition-all duration-300 rounded-t-lg ${
-                    activeTab === tab
-                      ? tab === 'live' 
-                        ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
-                        : tab === 'upcoming'
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                        : tab === 'finished'
-                        ? 'bg-green-600 text-white shadow-lg shadow-green-600/30'
-                        : 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
-                      : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                  }`}
-                >
-                  <div className="flex flex-col items-center space-y-1">
-                    <span>{getTabTitle(tab)}</span>
-                    <span className="text-xs">
+        <div className="bg-gray-800/60 backdrop-blur-sm border-b border-gray-700/50 sticky top-[100px] z-30">
+          <div className="container mx-auto px-2">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
+              <TabsList className={`grid w-full grid-cols-5 bg-gray-800/40 ${isMobile ? 'h-12' : 'h-14'}`}>
+                {(['live', 'today', 'tomorrow', 'yesterday', 'news'] as const).map((tab) => (
+                  <TabsTrigger
+                    key={tab}
+                    value={tab}
+                    className={`flex flex-col items-center justify-center space-y-1 text-xs font-bold transition-all duration-300 ${
+                      activeTab === tab
+                        ? tab === 'live' 
+                          ? 'bg-red-600 text-white shadow-lg'
+                          : tab === 'today'
+                          ? 'bg-green-600 text-white shadow-lg'
+                          : tab === 'tomorrow'
+                          ? 'bg-blue-600 text-white shadow-lg'
+                          : tab === 'yesterday'
+                          ? 'bg-orange-600 text-white shadow-lg'
+                          : 'bg-purple-600 text-white shadow-lg'
+                        : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+                    } ${isMobile ? 'px-1 py-2' : 'px-3 py-3'}`}
+                  >
+                    <div className="flex items-center space-x-1 space-x-reverse">
+                      {getTabIcon(tab)}
+                      <span className={isMobile ? 'text-xs' : 'text-sm'}>
+                        {getTabTitle(tab)}
+                      </span>
+                    </div>
+                    <span className="text-xs opacity-80">
                       ({tab === 'news' ? news.length : allMatches[tab as keyof typeof allMatches].length})
                     </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="container mx-auto px-4 py-6 pb-20">
-          {isTabLoading ? (
-            <div className="text-center py-12">
-              <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-400">جاري التحميل...</p>
-            </div>
-          ) : activeTab === 'news' ? (
-            news.length === 0 ? (
-              <EmptyState type="news" message={currentErrorMessage || 'لا توجد أخبار متاحة حالياً'} />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {news.map((newsItem) => (
-                  <NewsCard key={newsItem.id} newsItem={newsItem} />
+                  </TabsTrigger>
                 ))}
-              </div>
-            )
-          ) : (
-            currentMatches.length === 0 ? (
-              <EmptyState 
-                type={activeTab} 
-                message={currentErrorMessage || `لا توجد مباريات ${getTabTitle(activeTab)}`} 
-              />
-            ) : (
-              <div className="space-y-8">
-                {/* بطولات الرجال */}
-                {mensCompetitions.length > 0 && (
-                  <div>
-                    <div className="flex items-center space-x-2 space-x-reverse mb-6">
-                      <Users className="w-6 h-6 text-blue-400" />
-                      <h2 className="text-2xl font-bold text-blue-300">بطولات الرجال</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-blue-500/50 to-transparent"></div>
-                    </div>
-                    <Accordion type="multiple" className="space-y-4">
-                      {mensCompetitions.map((competition) => (
-                        <CompetitionSection
-                          key={competition}
-                          competition={competition}
-                          matches={groupedMatches[competition]}
-                          isWomens={false}
-                        />
-                      ))}
-                    </Accordion>
-                  </div>
-                )}
+              </TabsList>
 
-                {/* بطولات النساء */}
-                {womensCompetitions.length > 0 && (
-                  <div>
-                    <div className="flex items-center space-x-2 space-x-reverse mb-6">
-                      <Users className="w-6 h-6 text-pink-400" />
-                      <h2 className="text-2xl font-bold text-pink-300">بطولات النساء</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-pink-500/50 to-transparent"></div>
+              {/* Content */}
+              <div className="px-2 py-4 pb-20">
+                {(['live', 'today', 'tomorrow', 'yesterday'] as const).map((tab) => (
+                  <TabsContent key={tab} value={tab}>
+                    {isTabLoading ? (
+                      <div className="text-center py-12">
+                        <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="text-gray-400">جاري التحميل...</p>
+                      </div>
+                    ) : allMatches[tab].length === 0 ? (
+                      <EmptyState 
+                        type={tab} 
+                        message={errorMessages[tab] || `لا توجد مباريات ${getTabTitle(tab)}`} 
+                      />
+                    ) : (
+                      <div className="space-y-6">
+                        {/* بطولات الرجال */}
+                        {mensCompetitions.length > 0 && (
+                          <div>
+                            <div className="flex items-center space-x-2 space-x-reverse mb-4">
+                              <Users className="w-5 h-5 text-blue-400" />
+                              <h2 className={`font-bold text-blue-300 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+                                بطولات الرجال
+                              </h2>
+                              <div className="flex-1 h-px bg-gradient-to-r from-blue-500/50 to-transparent"></div>
+                            </div>
+                            <Accordion type="multiple" className="space-y-3">
+                              {mensCompetitions.map((competition) => (
+                                <CompetitionSection
+                                  key={competition}
+                                  competition={competition}
+                                  matches={groupedMatches[competition]}
+                                  isWomens={false}
+                                />
+                              ))}
+                            </Accordion>
+                          </div>
+                        )}
+
+                        {/* بطولات النساء */}
+                        {womensCompetitions.length > 0 && (
+                          <div>
+                            <div className="flex items-center space-x-2 space-x-reverse mb-4">
+                              <Users className="w-5 h-5 text-pink-400" />
+                              <h2 className={`font-bold text-pink-300 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+                                بطولات النساء
+                              </h2>
+                              <div className="flex-1 h-px bg-gradient-to-r from-pink-500/50 to-transparent"></div>
+                            </div>
+                            <Accordion type="multiple" className="space-y-3">
+                              {womensCompetitions.map((competition) => (
+                                <CompetitionSection
+                                  key={competition}
+                                  competition={competition}
+                                  matches={groupedMatches[competition]}
+                                  isWomens={true}
+                                />
+                              ))}
+                            </Accordion>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </TabsContent>
+                ))}
+
+                <TabsContent value="news">
+                  {!dataLoaded.news ? (
+                    <div className="text-center py-12">
+                      <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <p className="text-gray-400">جاري التحميل...</p>
                     </div>
-                    <Accordion type="multiple" className="space-y-4">
-                      {womensCompetitions.map((competition) => (
-                        <CompetitionSection
-                          key={competition}
-                          competition={competition}
-                          matches={groupedMatches[competition]}
-                          isWomens={true}
-                        />
+                  ) : news.length === 0 ? (
+                    <EmptyState type="news" message={errorMessages.news || 'لا توجد أخبار متاحة حالياً'} />
+                  ) : (
+                    <div className={`grid gap-4 ${
+                      isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                    }`}>
+                      {news.map((newsItem) => (
+                        <NewsCard key={newsItem.id} newsItem={newsItem} />
                       ))}
-                    </Accordion>
-                  </div>
-                )}
+                    </div>
+                  )}
+                </TabsContent>
               </div>
-            )
-          )}
+            </Tabs>
+          </div>
         </div>
 
         <NewsModal />
