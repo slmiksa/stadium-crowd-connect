@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -20,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Clock, Users, RefreshCw, Newspaper, ExternalLink, AlertCircle, Play, Calendar, Zap } from 'lucide-react';
+import { Clock, Users, RefreshCw, Newspaper, ExternalLink, AlertCircle, Play, Calendar, Zap, CirclePlay } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -366,15 +367,29 @@ const Matches = () => {
     }
   };
 
+  // كرة القدم المتحركة
+  const AnimatedSoccerBall = ({ size = "w-8 h-8", className = "" }: { size?: string, className?: string }) => (
+    <div className={`${size} ${className} relative animate-bounce`}>
+      <div className="w-full h-full bg-white rounded-full shadow-lg relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-300 rounded-full">
+          <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 border-2 border-black rounded-full bg-transparent"></div>
+          <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 w-0.5 h-1/3 bg-black"></div>
+          <div className="absolute top-1/2 left-1/3 w-1/3 h-0.5 bg-black"></div>
+          <div className="absolute top-2/3 left-1/2 transform -translate-x-1/2 w-0.5 h-1/4 bg-black"></div>
+        </div>
+      </div>
+    </div>
+  );
+
   // تأثير اللاعب يركض مع الكرة
   const SoccerPlayerAnimation = () => (
     <div className="flex items-center justify-center py-8">
       <div className="relative">
-        <div className="animate-bounce">
-          <Play className="w-8 h-8 text-green-400 rotate-90" />
-        </div>
-        <div className="absolute -right-12 top-0 animate-pulse">
-          <div className="w-6 h-10 bg-blue-500 rounded-t-full"></div>
+        <AnimatedSoccerBall size="w-10 h-10" className="animate-pulse" />
+        <div className="absolute -right-16 top-0 animate-bounce delay-75">
+          <div className="w-8 h-12 bg-gradient-to-b from-blue-500 to-blue-700 rounded-t-full shadow-lg relative">
+            <div className="absolute top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-yellow-300 rounded-full"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -383,37 +398,39 @@ const Matches = () => {
   const MatchRow = ({ match }: { match: Match }) => (
     <TableRow 
       onClick={() => handleMatchClick(match)}
-      className="cursor-pointer hover:bg-gray-800/60 transition-all duration-300 transform hover:scale-[1.01]"
+      className="cursor-pointer hover:bg-gradient-to-r hover:from-blue-900/40 hover:to-purple-900/40 transition-all duration-300 transform hover:scale-[1.01] group border-b border-gray-700/30"
     >
-      <TableCell className="text-right p-2">
-        <div className="flex items-center justify-end space-x-2 space-x-reverse">
+      <TableCell className="text-right p-4">
+        <div className="flex items-center justify-end space-x-3 space-x-reverse">
           {match.homeLogo && (
-            <img src={match.homeLogo} alt={match.homeTeam} className="w-5 h-5 object-contain" />
+            <div className="relative">
+              <img src={match.homeLogo} alt={match.homeTeam} className="w-6 h-6 object-contain rounded-full shadow-md group-hover:scale-110 transition-transform duration-200" />
+            </div>
           )}
-          <span className={`font-medium text-white ${isMobile ? 'text-sm' : 'text-base'}`}>
-            {isMobile ? match.homeTeam.substring(0, 10) + (match.homeTeam.length > 10 ? '...' : '') : match.homeTeam}
+          <span className={`font-bold text-white group-hover:text-blue-300 transition-colors ${isMobile ? 'text-sm' : 'text-base'}`}>
+            {isMobile ? match.homeTeam.substring(0, 12) + (match.homeTeam.length > 12 ? '...' : '') : match.homeTeam}
           </span>
         </div>
       </TableCell>
       
-      <TableCell className="text-center p-2">
-        <div className="flex flex-col items-center space-y-1">
+      <TableCell className="text-center p-4">
+        <div className="flex flex-col items-center space-y-2">
           {match.status === 'live' && (
-            <div className="flex items-center space-x-1 space-x-reverse">
+            <div className="flex items-center space-x-2 space-x-reverse">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              <span className="text-red-400 text-xs font-bold">مباشر</span>
+              <span className="text-red-400 text-xs font-bold bg-red-500/20 px-2 py-1 rounded-full">مباشر</span>
               {match.minute && (
-                <span className="text-red-400 text-xs bg-red-500/20 px-1 py-0.5 rounded">
+                <span className="text-red-400 text-xs bg-red-500/30 px-2 py-1 rounded-full border border-red-500/50">
                   {match.minute}'
                 </span>
               )}
             </div>
           )}
           
-          <div className="bg-gray-700/50 rounded-lg px-2 py-1 border border-gray-600/40">
+          <div className="bg-gradient-to-r from-gray-700/60 to-gray-600/60 rounded-xl px-4 py-2 border border-gray-600/40 shadow-lg backdrop-blur-sm">
             {match.homeScore !== null && match.homeScore !== undefined && 
              match.awayScore !== null && match.awayScore !== undefined ? (
-              <span className={`font-bold text-white ${isMobile ? 'text-sm' : 'text-lg'}`}>
+              <span className={`font-bold text-white ${isMobile ? 'text-base' : 'text-xl'}`}>
                 {match.homeScore} - {match.awayScore}
               </span>
             ) : (
@@ -424,38 +441,40 @@ const Matches = () => {
           </div>
           
           {match.status === 'upcoming' && !isMobile && (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-400 bg-blue-500/10 px-2 py-1 rounded-lg">
               {formatDate(match.date)}
             </span>
           )}
         </div>
       </TableCell>
       
-      <TableCell className="text-left p-2">
-        <div className="flex items-center space-x-2 space-x-reverse">
-          <span className={`font-medium text-white ${isMobile ? 'text-sm' : 'text-base'}`}>
-            {isMobile ? match.awayTeam.substring(0, 10) + (match.awayTeam.length > 10 ? '...' : '') : match.awayTeam}
+      <TableCell className="text-left p-4">
+        <div className="flex items-center space-x-3 space-x-reverse">
+          <span className={`font-bold text-white group-hover:text-blue-300 transition-colors ${isMobile ? 'text-sm' : 'text-base'}`}>
+            {isMobile ? match.awayTeam.substring(0, 12) + (match.awayTeam.length > 12 ? '...' : '') : match.awayTeam}
           </span>
           {match.awayLogo && (
-            <img src={match.awayLogo} alt={match.awayTeam} className="w-5 h-5 object-contain" />
+            <div className="relative">
+              <img src={match.awayLogo} alt={match.awayTeam} className="w-6 h-6 object-contain rounded-full shadow-md group-hover:scale-110 transition-transform duration-200" />
+            </div>
           )}
         </div>
       </TableCell>
       
       {!isMobile && (
         <>
-          <TableCell className="text-center p-2">
-            <div className="flex items-center justify-center space-x-2 space-x-reverse text-xs">
-              <Clock size={12} className="text-blue-400" />
-              <span className="text-gray-400">{formatTime(match.date)}</span>
+          <TableCell className="text-center p-4">
+            <div className="flex items-center justify-center space-x-2 space-x-reverse text-xs bg-blue-500/10 px-3 py-1 rounded-lg">
+              <Clock size={14} className="text-blue-400" />
+              <span className="text-gray-300">{formatTime(match.date)}</span>
             </div>
           </TableCell>
           
-          <TableCell className="text-center p-2">
-            <span className={`font-medium px-2 py-1 rounded-lg text-xs ${
-              match.status === 'live' ? 'text-red-400 bg-red-500/20' : 
-              match.status === 'finished' ? 'text-green-400 bg-green-500/20' : 
-              'text-blue-400 bg-blue-500/20'
+          <TableCell className="text-center p-4">
+            <span className={`font-bold px-3 py-1 rounded-lg text-xs border ${
+              match.status === 'live' ? 'text-red-400 bg-red-500/20 border-red-500/30' : 
+              match.status === 'finished' ? 'text-green-400 bg-green-500/20 border-green-500/30' : 
+              'text-blue-400 bg-blue-500/20 border-blue-500/30'
             }`}>
               {getMatchStatus(match.status)}
             </span>
@@ -470,45 +489,48 @@ const Matches = () => {
     matches: Match[], 
     isWomens: boolean 
   }) => (
-    <AccordionItem value={competition} className="border-gray-700/50">
+    <AccordionItem value={competition} className="border border-gray-700/30 rounded-xl overflow-hidden mb-4 bg-gradient-to-r from-gray-800/40 to-gray-700/40 backdrop-blur-sm">
       <AccordionTrigger className={`${
         isWomens 
-          ? 'text-pink-300 hover:text-pink-200' 
-          : 'text-blue-300 hover:text-blue-200'
-      } font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
-        <div className="flex items-center space-x-3 space-x-reverse">
+          ? 'text-pink-300 hover:text-pink-200 bg-gradient-to-r from-pink-900/20 to-purple-900/20' 
+          : 'text-blue-300 hover:text-blue-200 bg-gradient-to-r from-blue-900/20 to-indigo-900/20'
+      } font-bold px-6 py-4 ${isMobile ? 'text-sm' : 'text-base'} hover:from-blue-800/30 hover:to-indigo-800/30 transition-all duration-300`}>
+        <div className="flex items-center space-x-4 space-x-reverse">
           {matches[0]?.leagueFlag && (
-            <img 
-              src={matches[0].leagueFlag} 
-              alt="" 
-              className="w-6 h-4 object-cover rounded shadow-sm" 
-            />
+            <div className="relative">
+              <img 
+                src={matches[0].leagueFlag} 
+                alt="" 
+                className="w-8 h-6 object-cover rounded-md shadow-md border border-gray-600/50" 
+              />
+            </div>
           )}
+          <AnimatedSoccerBall size="w-6 h-6" />
           <div className="text-right">
-            <div className="flex items-center space-x-2 space-x-reverse">
+            <div className="flex items-center space-x-3 space-x-reverse">
               <span className={isMobile ? 'text-sm' : 'text-base'}>
-                {isMobile && competition.length > 20 ? competition.substring(0, 20) + '...' : competition}
+                {isMobile && competition.length > 25 ? competition.substring(0, 25) + '...' : competition}
               </span>
               {isWomens && (
-                <span className="text-xs bg-pink-500/30 px-2 py-0.5 rounded">نساء</span>
+                <span className="text-xs bg-pink-500/30 px-2 py-1 rounded-full border border-pink-500/30">نساء</span>
               )}
             </div>
             <span className="text-gray-400 text-sm font-normal">{matches.length} مباراة</span>
           </div>
         </div>
       </AccordionTrigger>
-      <AccordionContent>
-        <div className="rounded-lg border border-gray-700/50 overflow-hidden">
+      <AccordionContent className="p-0">
+        <div className="bg-gray-800/20 border-t border-gray-700/30">
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-800/40 hover:bg-gray-800/40">
-                <TableHead className={`text-right text-gray-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>المضيف</TableHead>
-                <TableHead className={`text-center text-gray-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>النتيجة</TableHead>
-                <TableHead className={`text-left text-gray-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>الضيف</TableHead>
+              <TableRow className="bg-gray-800/60 hover:bg-gray-800/60 border-b border-gray-700/30">
+                <TableHead className={`text-right text-gray-300 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>المضيف</TableHead>
+                <TableHead className={`text-center text-gray-300 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>النتيجة</TableHead>
+                <TableHead className={`text-left text-gray-300 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>الضيف</TableHead>
                 {!isMobile && (
                   <>
-                    <TableHead className="text-center text-gray-300 text-sm">الوقت</TableHead>
-                    <TableHead className="text-center text-gray-300 text-sm">الحالة</TableHead>
+                    <TableHead className="text-center text-gray-300 font-bold text-sm">الوقت</TableHead>
+                    <TableHead className="text-center text-gray-300 font-bold text-sm">الحالة</TableHead>
                   </>
                 )}
               </TableRow>
@@ -527,28 +549,28 @@ const Matches = () => {
   const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => (
     <div 
       onClick={() => handleNewsClick(newsItem)}
-      className="bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50 hover:bg-gray-700/60 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+      className="bg-gradient-to-br from-gray-800/70 to-gray-700/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:bg-gradient-to-br hover:from-gray-700/80 hover:to-gray-600/80 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-2xl group"
     >
       {newsItem.image && newsItem.image !== '/placeholder.svg' && (
-        <div className="mb-4 rounded-lg overflow-hidden">
+        <div className="mb-4 rounded-xl overflow-hidden shadow-md">
           <img 
             src={newsItem.image} 
             alt={newsItem.title} 
-            className={`w-full object-cover hover:scale-105 transition-transform duration-300 ${
-              isMobile ? 'h-32' : 'h-48'
+            className={`w-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+              isMobile ? 'h-36' : 'h-48'
             }`}
           />
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {newsItem.category && (
-          <span className="inline-block bg-purple-600/20 text-purple-300 px-2 py-1 rounded-lg text-xs font-medium">
+          <span className="inline-block bg-gradient-to-r from-purple-600/30 to-blue-600/30 text-purple-300 px-3 py-1 rounded-lg text-xs font-bold border border-purple-500/30">
             {newsItem.category}
           </span>
         )}
 
-        <h3 className={`font-bold text-white leading-relaxed line-clamp-2 ${
+        <h3 className={`font-bold text-white leading-relaxed line-clamp-2 group-hover:text-blue-300 transition-colors ${
           isMobile ? 'text-base' : 'text-lg'
         }`}>
           {newsItem.title}
@@ -560,11 +582,11 @@ const Matches = () => {
         </p>
         
         <div className="flex items-center justify-between pt-3 border-t border-gray-700/30">
-          <span className="text-xs text-gray-400">{newsItem.source}</span>
+          <span className="text-xs text-gray-400 font-medium">{newsItem.source}</span>
           <div className="flex items-center space-x-2 space-x-reverse">
             <span className="text-xs text-gray-400">{formatDate(newsItem.date)}</span>
             {newsItem.url && newsItem.url !== '#' && (
-              <ExternalLink size={12} className="text-gray-400" />
+              <ExternalLink size={12} className="text-blue-400" />
             )}
           </div>
         </div>
@@ -576,12 +598,12 @@ const Matches = () => {
     if (!selectedNews) return null;
 
     return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className={`bg-gray-800 rounded-xl w-full max-h-[90vh] overflow-y-auto ${
+      <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className={`bg-gradient-to-br from-gray-800 to-gray-700 rounded-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-600/50 shadow-2xl ${
           isMobile ? 'max-w-full' : 'max-w-2xl'
         }`}>
           <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-6">
               <h2 className={`font-bold text-white pr-4 ${
                 isMobile ? 'text-lg' : 'text-xl'
               }`}>
@@ -589,14 +611,14 @@ const Matches = () => {
               </h2>
               <button
                 onClick={() => setSelectedNews(null)}
-                className="text-gray-400 hover:text-white transition-colors text-xl"
+                className="text-gray-400 hover:text-white transition-colors text-xl bg-gray-700/50 hover:bg-gray-600/50 w-8 h-8 rounded-full flex items-center justify-center"
               >
                 ✕
               </button>
             </div>
 
             {selectedNews.image && selectedNews.image !== '/placeholder.svg' && (
-              <div className="mb-4 rounded-lg overflow-hidden">
+              <div className="mb-6 rounded-xl overflow-hidden shadow-lg">
                 <img 
                   src={selectedNews.image} 
                   alt={selectedNews.title} 
@@ -609,12 +631,12 @@ const Matches = () => {
 
             <div className="space-y-4">
               <div className="flex items-center justify-between text-sm text-gray-400">
-                <span>{selectedNews.source}</span>
+                <span className="font-medium">{selectedNews.source}</span>
                 <span>{formatDate(selectedNews.date)}</span>
               </div>
 
               {selectedNews.category && (
-                <span className="inline-block bg-purple-600/20 text-purple-300 px-3 py-1 rounded-lg text-sm font-medium">
+                <span className="inline-block bg-gradient-to-r from-purple-600/30 to-blue-600/30 text-purple-300 px-4 py-2 rounded-lg text-sm font-bold border border-purple-500/30">
                   {selectedNews.category}
                 </span>
               )}
@@ -622,7 +644,7 @@ const Matches = () => {
               <p className="text-gray-300 leading-relaxed">{selectedNews.description}</p>
               
               {selectedNews.content && selectedNews.content !== selectedNews.description && (
-                <div className="bg-gray-700/30 rounded-lg p-4">
+                <div className="bg-gradient-to-r from-gray-700/40 to-gray-600/40 rounded-xl p-4 border border-gray-600/30">
                   <p className="text-gray-300 leading-relaxed">{selectedNews.content}</p>
                 </div>
               )}
@@ -630,7 +652,7 @@ const Matches = () => {
               {selectedNews.url && selectedNews.url !== '#' && (
                 <button
                   onClick={() => handleNewsUrlClick(selectedNews.url!)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 space-x-reverse"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-4 rounded-xl font-bold transition-all duration-300 flex items-center justify-center space-x-2 space-x-reverse shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                 >
                   <span>قراءة المقال كاملاً</span>
                   <ExternalLink size={16} />
@@ -644,13 +666,15 @@ const Matches = () => {
   };
 
   const EmptyState = ({ type, message }: { type: string, message: string }) => (
-    <div className="text-center py-12">
-      <SoccerPlayerAnimation />
-      <div className="w-16 h-16 bg-gradient-to-r from-gray-600 to-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
-        <AlertCircle size={24} className="text-white" />
+    <div className="text-center py-16">
+      <div className="mb-8">
+        <SoccerPlayerAnimation />
       </div>
-      <p className={`text-gray-400 px-4 ${isMobile ? 'text-base' : 'text-lg'}`}>{message}</p>
-      <p className={`text-gray-500 mt-2 px-4 ${isMobile ? 'text-sm' : 'text-sm'}`}>
+      <div className="w-20 h-20 bg-gradient-to-br from-gray-600 to-gray-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+        <AlertCircle size={32} className="text-white" />
+      </div>
+      <p className={`text-gray-300 px-4 font-medium ${isMobile ? 'text-base' : 'text-lg'}`}>{message}</p>
+      <p className={`text-gray-500 mt-3 px-4 ${isMobile ? 'text-sm' : 'text-sm'}`}>
         يرجى المحاولة لاحقاً أو تحديث الصفحة
       </p>
     </div>
@@ -675,62 +699,76 @@ const Matches = () => {
   if (isLoading) {
     return (
       <Layout>
-        <LoadingSpinner />
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20 flex items-center justify-center">
+          <div className="text-center">
+            <AnimatedSoccerBall size="w-16 h-16" className="mx-auto mb-4" />
+            <LoadingSpinner />
+          </div>
+        </div>
       </Layout>
     );
   }
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20">
         {/* Header */}
-        <div className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/50 sticky top-0 z-40">
-          <div className="container mx-auto px-4 py-4">
+        <div className="bg-gradient-to-r from-gray-900/90 to-gray-800/90 backdrop-blur-sm border-b border-gray-700/50 sticky top-0 z-40 shadow-lg">
+          <div className="container mx-auto px-4 py-6">
             <div className="flex items-center justify-between">
-              {!isMobile && <SoccerPlayerAnimation />}
+              <div className="flex items-center space-x-4 space-x-reverse">
+                <AnimatedSoccerBall size={isMobile ? "w-10 h-10" : "w-12 h-12"} />
+                {!isMobile && (
+                  <div className="hidden md:block">
+                    <SoccerPlayerAnimation />
+                  </div>
+                )}
+              </div>
+              
               <div className="text-center flex-1">
-                <h1 className={`font-bold text-white mb-2 ${isMobile ? 'text-xl' : 'text-3xl'}`}>
+                <h1 className={`font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2 ${isMobile ? 'text-xl' : 'text-4xl'}`}>
                   المباريات والأخبار
                 </h1>
                 <p className={`text-gray-400 ${isMobile ? 'text-sm' : 'text-base'}`}>
                   تابع أحدث المباريات والنتائج والأخبار الرياضية
                 </p>
               </div>
+              
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className={`bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl ${
-                  isMobile ? 'p-2' : 'p-3'
+                className={`bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                  isMobile ? 'p-3' : 'p-4'
                 }`}
               >
-                <RefreshCw size={isMobile ? 16 : 20} className={`text-white ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw size={isMobile ? 18 : 22} className={`text-white ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-gray-800/60 backdrop-blur-sm border-b border-gray-700/50 sticky top-[100px] z-30">
+        <div className="bg-gradient-to-r from-gray-800/70 to-gray-700/70 backdrop-blur-sm border-b border-gray-700/50 sticky top-[120px] z-30 shadow-md">
           <div className="container mx-auto px-2">
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-              <TabsList className={`grid w-full grid-cols-5 bg-gray-800/40 ${isMobile ? 'h-12' : 'h-14'}`}>
+              <TabsList className={`grid w-full grid-cols-5 bg-gray-800/60 backdrop-blur-sm border border-gray-700/30 ${isMobile ? 'h-14' : 'h-16'} rounded-xl`}>
                 {(['live', 'today', 'tomorrow', 'yesterday', 'news'] as const).map((tab) => (
                   <TabsTrigger
                     key={tab}
                     value={tab}
-                    className={`flex flex-col items-center justify-center space-y-1 text-xs font-bold transition-all duration-300 ${
+                    className={`flex flex-col items-center justify-center space-y-1 text-xs font-bold transition-all duration-300 rounded-lg ${
                       activeTab === tab
                         ? tab === 'live' 
-                          ? 'bg-red-600 text-white shadow-lg'
+                          ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-500/25'
                           : tab === 'today'
-                          ? 'bg-green-600 text-white shadow-lg'
+                          ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/25'
                           : tab === 'tomorrow'
-                          ? 'bg-blue-600 text-white shadow-lg'
+                          ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/25'
                           : tab === 'yesterday'
-                          ? 'bg-orange-600 text-white shadow-lg'
-                          : 'bg-purple-600 text-white shadow-lg'
-                        : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                    } ${isMobile ? 'px-1 py-2' : 'px-3 py-3'}`}
+                          ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg shadow-orange-500/25'
+                          : 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg shadow-purple-500/25'
+                        : 'text-gray-300 hover:text-white hover:bg-gray-700/60'
+                    } ${isMobile ? 'px-2 py-3' : 'px-4 py-4'}`}
                   >
                     <div className="flex items-center space-x-1 space-x-reverse">
                       {getTabIcon(tab)}
@@ -738,7 +776,7 @@ const Matches = () => {
                         {getTabTitle(tab)}
                       </span>
                     </div>
-                    <span className="text-xs opacity-80">
+                    <span className="text-xs opacity-90 bg-white/20 px-2 py-0.5 rounded-full">
                       ({tab === 'news' ? news.length : allMatches[tab as keyof typeof allMatches].length})
                     </span>
                   </TabsTrigger>
@@ -746,13 +784,14 @@ const Matches = () => {
               </TabsList>
 
               {/* Content */}
-              <div className="px-2 py-4 pb-20">
+              <div className="px-2 py-6 pb-24">
                 {(['live', 'today', 'tomorrow', 'yesterday'] as const).map((tab) => (
                   <TabsContent key={tab} value={tab}>
                     {isTabLoading ? (
-                      <div className="text-center py-12">
+                      <div className="text-center py-16">
+                        <AnimatedSoccerBall size="w-12 h-12" className="mx-auto mb-4" />
                         <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                        <p className="text-gray-400">جاري التحميل...</p>
+                        <p className="text-gray-400 font-medium">جاري التحميل...</p>
                       </div>
                     ) : allMatches[tab].length === 0 ? (
                       <EmptyState 
@@ -764,14 +803,15 @@ const Matches = () => {
                         {/* بطولات الرجال */}
                         {mensCompetitions.length > 0 && (
                           <div>
-                            <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                              <Users className="w-5 h-5 text-blue-400" />
-                              <h2 className={`font-bold text-blue-300 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+                            <div className="flex items-center space-x-3 space-x-reverse mb-6">
+                              <Users className="w-6 h-6 text-blue-400" />
+                              <AnimatedSoccerBall size="w-6 h-6" />
+                              <h2 className={`font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                                 بطولات الرجال
                               </h2>
                               <div className="flex-1 h-px bg-gradient-to-r from-blue-500/50 to-transparent"></div>
                             </div>
-                            <Accordion type="multiple" className="space-y-3">
+                            <Accordion type="multiple" className="space-y-4">
                               {mensCompetitions.map((competition) => (
                                 <CompetitionSection
                                   key={competition}
@@ -787,14 +827,15 @@ const Matches = () => {
                         {/* بطولات النساء */}
                         {womensCompetitions.length > 0 && (
                           <div>
-                            <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                              <Users className="w-5 h-5 text-pink-400" />
-                              <h2 className={`font-bold text-pink-300 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+                            <div className="flex items-center space-x-3 space-x-reverse mb-6">
+                              <Users className="w-6 h-6 text-pink-400" />
+                              <AnimatedSoccerBall size="w-6 h-6" />
+                              <h2 className={`font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                                 بطولات النساء
                               </h2>
                               <div className="flex-1 h-px bg-gradient-to-r from-pink-500/50 to-transparent"></div>
                             </div>
-                            <Accordion type="multiple" className="space-y-3">
+                            <Accordion type="multiple" className="space-y-4">
                               {womensCompetitions.map((competition) => (
                                 <CompetitionSection
                                   key={competition}
@@ -813,14 +854,15 @@ const Matches = () => {
 
                 <TabsContent value="news">
                   {!dataLoaded.news ? (
-                    <div className="text-center py-12">
+                    <div className="text-center py-16">
+                      <AnimatedSoccerBall size="w-12 h-12" className="mx-auto mb-4" />
                       <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                      <p className="text-gray-400">جاري التحميل...</p>
+                      <p className="text-gray-400 font-medium">جاري التحميل...</p>
                     </div>
                   ) : news.length === 0 ? (
                     <EmptyState type="news" message={errorMessages.news || 'لا توجد أخبار متاحة حالياً'} />
                   ) : (
-                    <div className={`grid gap-4 ${
+                    <div className={`grid gap-6 ${
                       isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
                     }`}>
                       {news.map((newsItem) => (
