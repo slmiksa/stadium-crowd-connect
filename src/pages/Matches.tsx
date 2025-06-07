@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -19,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Clock, Users, MapPin, RefreshCw, Newspaper, ExternalLink, AlertCircle, Football } from 'lucide-react';
+import { Clock, Users, MapPin, RefreshCw, Newspaper, ExternalLink, AlertCircle, Play } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -365,12 +364,12 @@ const Matches = () => {
     }
   };
 
-  // تأثير اللاعب يركل الكرة
+  // تأثير اللاعب يركض مع الكرة
   const SoccerPlayerAnimation = () => (
     <div className="flex items-center justify-center py-8">
       <div className="relative">
         <div className="animate-bounce">
-          <Football className="w-8 h-8 text-green-400" />
+          <Play className="w-8 h-8 text-green-400 rotate-90" />
         </div>
         <div className="absolute -right-12 top-0 animate-pulse">
           <div className="w-6 h-10 bg-blue-500 rounded-t-full"></div>
