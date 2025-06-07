@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -17,6 +18,7 @@ const leagueTranslations: { [key: string]: string } = {
   // الدوريات الآسيوية
   'AFC Champions League': 'دوري أبطال آسيا',
   'AFC Champions League Elite': 'دوري أبطال آسيا النخبة',
+  'Asian Champions League': 'دوري أبطال آسيا',
   
   // البطولات العالمية
   'World Cup': 'كأس العالم',
@@ -24,7 +26,7 @@ const leagueTranslations: { [key: string]: string } = {
   'FIFA Club World Cup': 'كأس العالم للأندية',
   
   // الدوريات الأوروبية
-  'Champions League': 'دوري الأبطال الأوروبي',
+  'Champions League': 'دوري أبطال أوروبا',
   'UEFA Champions League': 'دوري أبطال أوروبا',
   'Europa League': 'الدوري الأوروبي',
   'UEFA Europa League': 'الدوري الأوروبي',
@@ -38,6 +40,7 @@ const leagueTranslations: { [key: string]: string } = {
   'FA Cup': 'كأس الاتحاد الإنجليزي',
   'EFL Cup': 'كأس الرابطة الإنجليزية',
   'League Cup': 'كأس الرابطة',
+  'Carabao Cup': 'كأس كارابو',
   
   // الدوري الإسباني
   'La Liga': 'الليغا الإسبانية',
@@ -50,6 +53,7 @@ const leagueTranslations: { [key: string]: string } = {
   'German Bundesliga': 'الدوري الألماني',
   '2. Bundesliga': 'الدرجة الثانية الألمانية',
   'DFB Pokal': 'كأس ألمانيا',
+  'DFB-Pokal': 'كأس ألمانيا',
   
   // الدوري الإيطالي
   'Serie A': 'الدوري الإيطالي',
@@ -65,13 +69,31 @@ const leagueTranslations: { [key: string]: string } = {
   'Coupe de France': 'كأس فرنسا',
   'Trophée des Champions': 'كأس السوبر الفرنسي',
   
+  // الدوريات الأفريقية
+  'CAF Champions League': 'دوري أبطال أفريقيا',
+  'Africa Cup of Nations': 'كأس الأمم الأفريقية',
+  'Ghana Premier League': 'الدوري الغاني الممتاز',
+  'Egypt Premier League': 'الدوري المصري الممتاز',
+  'Nigerian Professional Football League': 'الدوري النيجيري',
+  'South African Premier Soccer League': 'الدوري الجنوب أفريقي',
+  
+  // الدوريات الأمريكية
+  'CONCACAF Champions League': 'دوري أبطال الكونكاكاف',
+  'Copa Libertadores': 'كوبا ليبرتادوريس',
+  'Major League Soccer': 'الدوري الأمريكي',
+  'Brazilian Serie A': 'الدوري البرازيلي',
+  'Argentine Liga Profesional': 'الدوري الأرجنتيني',
+  'Copa America': 'كوبا أمريكا',
+  
   // دوريات أخرى مهمة
   'Eredivisie': 'الدوري الهولندي',
   'Belgian Pro League': 'الدوري البلجيكي',
   'Primeira Liga': 'الدوري البرتغالي',
   'Russian Premier League': 'الدوري الروسي',
   'Turkish Super League': 'الدوري التركي',
-  'Major League Soccer': 'الدوري الأمريكي'
+  'Süper Lig': 'الدوري التركي',
+  'Scottish Premiership': 'الدوري الاسكتلندي',
+  'Swiss Super League': 'الدوري السويسري'
 }
 
 // ترجمات محسنة ومصححة للفرق

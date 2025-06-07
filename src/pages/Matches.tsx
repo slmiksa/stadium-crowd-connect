@@ -82,37 +82,6 @@ const Matches = () => {
     news: ''
   });
 
-  // تصحيح أسماء البطولات للعربية
-  const getCompetitionName = (competition: string): string => {
-    const competitionMap: { [key: string]: string } = {
-      'Premier League': 'الدوري الإنجليزي الممتاز',
-      'La Liga': 'الليغا الإسبانية',
-      'Serie A': 'الدوري الإيطالي',
-      'Bundesliga': 'الدوري الألماني',
-      'Ligue 1': 'الدوري الفرنسي',
-      'Champions League': 'دوري أبطال أوروبا',
-      'Europa League': 'الدوري الأوروبي',
-      'Saudi Pro League': 'دوري روشن السعودي',
-      'AFC Champions League': 'دوري أبطال آسيا',
-      'CAF Champions League': 'دوري أبطال أفريقيا',
-      'CONCACAF Champions League': 'دوري أبطال الكونكاكاف',
-      'Copa Libertadores': 'كوبا ليبرتادوريس',
-      'FA Cup': 'كأس الاتحاد الإنجليزي',
-      'King\'s Cup': 'كأس الملك',
-      'Copa del Rey': 'كأس ملك إسبانيا',
-      'DFB Pokal': 'كأس ألمانيا',
-      'Coppa Italia': 'كأس إيطاليا',
-      'Coupe de France': 'كأس فرنسا',
-      'World Cup': 'كأس العالم',
-      'European Championship': 'بطولة أوروبا',
-      'Africa Cup of Nations': 'كأس الأمم الأفريقية',
-      'Asian Cup': 'كأس آسيا',
-      'Copa America': 'كوبا أمريكا'
-    };
-    
-    return competitionMap[competition] || competition;
-  };
-
   // تصفية البطولات النسائية
   const isWomensCompetition = (competition: string): boolean => {
     const womensKeywords = ['Women', 'النساء', 'السيدات', 'Female', 'كأس الأمم النسائية', 'Women\'s'];
@@ -123,7 +92,6 @@ const Matches = () => {
 
   // ترتيب البطولات حسب الأولوية
   const getCompetitionPriority = (competition: string): number => {
-    const arabicName = getCompetitionName(competition);
     const priorities: { [key: string]: number } = {
       'دوري روشن السعودي': 1,
       'دوري أبطال آسيا': 2,
@@ -139,7 +107,7 @@ const Matches = () => {
       'كأس الأمم الأفريقية': 12
     };
     
-    return priorities[arabicName] || 999;
+    return priorities[competition] || 999;
   };
 
   // تجميع المباريات حسب البطولة
@@ -147,11 +115,10 @@ const Matches = () => {
     const grouped: GroupedMatches = {};
     
     matches.forEach(match => {
-      const competitionName = getCompetitionName(match.competition);
-      if (!grouped[competitionName]) {
-        grouped[competitionName] = [];
+      if (!grouped[match.competition]) {
+        grouped[match.competition] = [];
       }
-      grouped[competitionName].push(match);
+      grouped[match.competition].push(match);
     });
 
     // ترتيب المباريات داخل كل بطولة حسب التاريخ
@@ -299,9 +266,8 @@ const Matches = () => {
 
   const handleMatchClick = (match: Match) => {
     console.log('الانتقال لتفاصيل المباراة:', match);
-    // استخدام معرف فريد للمباراة بدلاً من الـ id
-    const matchIdentifier = `${match.homeTeam}-vs-${match.awayTeam}-${match.date}`.replace(/\s+/g, '-');
-    navigate(`/match-details/${matchIdentifier}`, { 
+    // استخدام معرف المباراة الفعلي من API بدلاً من إنشاء معرف جديد
+    navigate(`/match-details/${match.id}`, { 
       state: { 
         match,
         matchData: match 

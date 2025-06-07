@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -58,9 +59,25 @@ serve(async (req) => {
     
     console.log(`Fetching details for match ID: ${matchId}`)
 
+    // التحقق من أن معرف المباراة رقمي
+    const numericMatchId = parseInt(matchId)
+    if (isNaN(numericMatchId)) {
+      console.log('Invalid match ID format:', matchId)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid match ID format',
+          match: null
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
     try {
       // جلب تفاصيل المباراة
-      const fixtureUrl = `https://v3.football.api-sports.io/fixtures?id=${matchId}`
+      const fixtureUrl = `https://v3.football.api-sports.io/fixtures?id=${numericMatchId}`
       console.log('Fetching fixture details from:', fixtureUrl)
       
       const fixtureResponse = await fetch(fixtureUrl, {
@@ -94,7 +111,7 @@ serve(async (req) => {
       })
 
       if (!fixtureData.response || fixtureData.response.length === 0) {
-        console.log('No fixture found for match ID:', matchId)
+        console.log('No fixture found for match ID:', numericMatchId)
         return new Response(
           JSON.stringify({ 
             error: 'Match not found',
@@ -113,7 +130,7 @@ serve(async (req) => {
       // جلب أحداث المباراة (أهداف وكروت)
       let events = []
       try {
-        const eventsUrl = `https://v3.football.api-sports.io/fixtures/events?fixture=${matchId}`
+        const eventsUrl = `https://v3.football.api-sports.io/fixtures/events?fixture=${numericMatchId}`
         console.log('Fetching events from:', eventsUrl)
         
         const eventsResponse = await fetch(eventsUrl, {
@@ -138,7 +155,7 @@ serve(async (req) => {
       // جلب تشكيلة الفرق
       let lineups = []
       try {
-        const lineupsUrl = `https://v3.football.api-sports.io/fixtures/lineups?fixture=${matchId}`
+        const lineupsUrl = `https://v3.football.api-sports.io/fixtures/lineups?fixture=${numericMatchId}`
         console.log('Fetching lineups from:', lineupsUrl)
         
         const lineupsResponse = await fetch(lineupsUrl, {
@@ -163,7 +180,7 @@ serve(async (req) => {
       // جلب إحصائيات المباراة
       let statistics = []
       try {
-        const statsUrl = `https://v3.football.api-sports.io/fixtures/statistics?fixture=${matchId}`
+        const statsUrl = `https://v3.football.api-sports.io/fixtures/statistics?fixture=${numericMatchId}`
         console.log('Fetching statistics from:', statsUrl)
         
         const statsResponse = await fetch(statsUrl, {
@@ -230,7 +247,7 @@ serve(async (req) => {
         statistics: statistics
       }
 
-      console.log(`=== Returning match details for ID: ${matchId} ===`)
+      console.log(`=== Returning match details for ID: ${numericMatchId} ===`)
       console.log('Match details summary:', {
         teams: `${matchDetails.homeTeam} vs ${matchDetails.awayTeam}`,
         score: `${matchDetails.homeScore || 0}-${matchDetails.awayScore || 0}`,
