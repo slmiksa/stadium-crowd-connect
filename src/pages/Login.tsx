@@ -1,55 +1,61 @@
-
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const Login = () => {
-  const { login, register, isLoading } = useAuth();
+  const navigate = useNavigate();
   const { t, isRTL } = useLanguage();
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    username: ''
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    if (!email || !password) {
-      setError(isRTL ? 'يرجى ملء جميع الحقول' : 'Please fill in all fields');
-      return;
-    }
-
-    if (isSignUp && !username) {
-      setError(isRTL ? 'يرجى إدخال اسم المستخدم' : 'Please enter a username');
-      return;
-    }
+    setIsLoading(true);
 
     try {
-      let success = false;
-      
-      if (isSignUp) {
-        success = await register(email, password, username);
-        if (success) {
-          setError(isRTL ? 'تم إنشاء الحساب بنجاح! يرجى تسجيل الدخول' : 'Account created successfully! Please log in');
-          setIsSignUp(false);
-          setPassword('');
-          setUsername('');
-        } else {
-          setError(isRTL ? 'فشل في إنشاء الحساب. يرجى المحاولة مرة أخرى.' : 'Failed to create account. Please try again.');
-        }
-      } else {
-        success = await login(email, password);
-        if (!success) {
-          setError(isRTL ? 'بيانات تسجيل الدخول غير صحيحة. يرجى التحقق من البريد الإلكتروني وكلمة المرور.' : 'Invalid login credentials. Please check your email and password.');
-        }
-      }
-    } catch (error) {
-      console.error('Auth error:', error);
-      setError(isRTL ? 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.' : 'An unexpected error occurred. Please try again.');
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: isRTL ? 'تم تسجيل الدخول بنجاح' : 'Login successful',
+        description: isRTL ? 'مرحباً بك مرة أخرى!' : 'Welcome back!',
+      });
+
+      navigate('/');
+    } catch (error: any) {
+      toast({
+        title: isRTL ? 'خطأ في تسجيل الدخول' : 'Login error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -63,109 +69,169 @@ const Login = () => {
               <img 
                 src="/lovable-uploads/befc9f3d-22fa-48f9-988f-ae24ad434089.png" 
                 alt="TIFUE Logo" 
-                className="w-24 h-24 object-contain"
+                className="w-32 h-32 object-contain"
               />
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">
               {isRTL ? 'مرحباً بك' : 'Welcome'}
             </h1>
             <p className="text-zinc-400">
-              {isSignUp 
-                ? (isRTL ? 'إنشاء حساب جديد' : 'Create a new account')
-                : (isRTL ? 'تسجيل الدخول إلى حسابك' : 'Sign in to your account')
-              }
+              {isRTL ? 'سجل دخولك للمتابعة' : 'Sign in to continue'}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {isSignUp && (
-              <div className="relative">
-                <User size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder={isRTL ? 'اسم المستخدم' : 'Username'}
-                  className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 transition-colors"
-                  disabled={isLoading}
-                  required={isSignUp}
-                />
-              </div>
-            )}
-
-            <div className="relative">
-              <Mail size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={isRTL ? 'البريد الإلكتروني' : 'Email'}
-                className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 transition-colors"
-                disabled={isLoading}
-                required
-              />
-            </div>
-
-            <div className="relative">
-              <Lock size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={isRTL ? 'كلمة المرور' : 'Password'}
-                className="w-full pl-10 pr-10 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 transition-colors"
-                disabled={isLoading}
-                required
-                minLength={6}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-zinc-300 transition-colors"
-                disabled={isLoading}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-
-            {error && (
-              <div className="text-red-400 text-sm text-center bg-red-950/20 border border-red-900/20 rounded-lg p-3">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center justify-center"
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                isSignUp 
-                  ? (isRTL ? 'إنشاء حساب' : 'Sign Up')
-                  : (isRTL ? 'تسجيل الدخول' : 'Sign In')
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError('');
-                setPassword('');
-                setUsername('');
-              }}
-              disabled={isLoading}
-              className="text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50"
-            >
-              {isSignUp
-                ? (isRTL ? 'لديك حساب بالفعل؟ تسجيل الدخول' : 'Already have an account? Sign In')
-                : (isRTL ? 'ليس لديك حساب؟ إنشاء حساب' : "Don't have an account? Sign Up")
-              }
-            </button>
-          </div>
+          {/* Tabs */}
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">{t('login')}</TabsTrigger>
+              <TabsTrigger value="register">{t('register')}</TabsTrigger>
+            </TabsList>
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <Label htmlFor="email">{t('email')}</Label>
+                  <Input 
+                    type="email" 
+                    name="email" 
+                    id="email" 
+                    value={formData.email} 
+                    onChange={handleInputChange} 
+                    placeholder={t('emailPlaceholder')} 
+                    required 
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="password">{t('password')}</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      id="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder={t('passwordPlaceholder')}
+                      required
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      <span className="sr-only">Toggle password</span>
+                    </Button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <LogIn className="mr-2 h-4 w-4 animate-spin" />
+                      {t('loggingIn')}
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="mr-2 h-4 w-4" />
+                      {t('login')}
+                    </>
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+            <TabsContent value="register">
+              <form className="space-y-4">
+                <div>
+                  <Label htmlFor="username">{t('username')}</Label>
+                  <Input
+                    type="text"
+                    name="username"
+                    id="username"
+                    value={formData.username}
+                    onChange={handleInputChange}
+                    placeholder={t('usernamePlaceholder')}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">{t('email')}</Label>
+                  <Input
+                    type="email"
+                    name="email"
+                    id="register-email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder={t('emailPlaceholder')}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="password">{t('password')}</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      id="register-password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder={t('passwordPlaceholder')}
+                      required
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      <span className="sr-only">Toggle password</span>
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      name="confirmPassword"
+                      id="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      placeholder={t('confirmPasswordPlaceholder')}
+                      required
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      <span className="sr-only">Toggle password</span>
+                    </Button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <UserPlus className="mr-2 h-4 w-4 animate-spin" />
+                      {t('registering')}
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      {t('register')}
+                    </>
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>
