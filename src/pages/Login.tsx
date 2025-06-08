@@ -57,7 +57,15 @@ const Login = () => {
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-zinc-900 rounded-lg p-8 border border-zinc-800">
+          {/* App Logo */}
           <div className="text-center mb-8">
+            <div className="flex justify-center mb-6">
+              <img 
+                src="/lovable-uploads/befc9f3d-22fa-48f9-988f-ae24ad434089.png" 
+                alt="TIFUE Logo" 
+                className="w-24 h-24 object-contain"
+              />
+            </div>
             <h1 className="text-3xl font-bold text-white mb-2">
               {isRTL ? 'مرحباً بك' : 'Welcome'}
             </h1>
