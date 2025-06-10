@@ -6,148 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// ترجمات محسنة ومصححة للدوريات مع إضافة البطولات الحالية
-const leagueTranslations: { [key: string]: string } = {
-  // الدوريات السعودية
-  'Saudi Pro League': 'دوري روشن السعودي',
-  'Saudi Professional League': 'دوري روشن السعودي',
-  'King Cup': 'كأس الملك',
-  'Saudi Super Cup': 'كأس السوبر السعودي',
-  'Arab Club Champions Cup': 'كأس العرب للأندية الأبطال',
-  
-  // الدوريات العربية الأخرى
-  'Egyptian Premier League': 'الدوري المصري',
-  'Egypt Premier League': 'الدوري المصري',
-  'Moroccan Botola Pro': 'الدوري المغربي',
-  'Moroccan Premier League': 'الدوري المغربي',
-  'Tunisian Ligue Professionnelle 1': 'الدوري التونسي',
-  'Jordanian Pro League': 'الدوري الأردني',
-  'Lebanese Premier League': 'الدوري اللبناني',
-  'Kuwaiti Premier League': 'الدوري الكويتي',
-  'Qatar Stars League': 'الدوري القطري',
-  'UAE Pro League': 'الدوري الإماراتي',
-  'Bahraini Premier League': 'الدوري البحريني',
-  'Omani Professional League': 'الدوري العماني',
-  'Iraqi Premier League': 'الدوري العراقي',
-  'Syrian Premier League': 'الدوري السوري',
-  'Lebanese Cup': 'كأس لبنان',
-  'Jordan Cup': 'كأس الأردن',
-  'Kuwait Cup': 'كأس الكويت',
-  'UAE Cup': 'كأس الإمارات',
-  
-  // الدوريات الآسيوية
-  'AFC Champions League': 'دوري أبطال آسيا',
-  'AFC Champions League Elite': 'دوري أبطال آسيا النخبة',
-  'Asian Champions League': 'دوري أبطال آسيا',
-  'AFC Cup': 'كأس الاتحاد الآسيوي',
-  'Asian Cup': 'كأس آسيا',
-  'AFC Asian Cup': 'كأس آسيا',
-  
-  // البطولات العالمية وتصفياتها
-  'World Cup': 'كأس العالم',
-  'FIFA World Cup': 'كأس العالم فيفا',
-  'FIFA Club World Cup': 'كأس العالم للأندية',
-  'World Cup Qualification': 'تصفيات كأس العالم',
-  'FIFA World Cup Qualification': 'تصفيات كأس العالم',
-  'World Cup Qualifiers': 'تصفيات كأس العالم',
-  'WC Qualification': 'تصفيات كأس العالم',
-  'World Cup Qualification - Asia': 'تصفيات كأس العالم آسيا',
-  'World Cup Qualification - Europe': 'تصفيات كأس العالم أوروبا',
-  'World Cup Qualification - Africa': 'تصفيات كأس العالم أفريقيا',
-  'World Cup Qualification - South America': 'تصفيات كأس العالم أمريكا الجنوبية',
-  'World Cup Qualification - North America': 'تصفيات كأس العالم أمريكا الشمالية',
-  'World Cup Qualification - Oceania': 'تصفيات كأس العالم أوقيانوسيا',
-  'World Cup Qualification Intercontinental Play-offs': 'ملحق تصفيات كأس العالم',
-  'FIFA World Cup qualification': 'تصفيات كأس العالم',
-  
-  // الدوريات الأوروبية
-  'Champions League': 'دوري أبطال أوروبا',
-  'UEFA Champions League': 'دوري أبطال أوروبا',
-  'Europa League': 'الدوري الأوروبي',
-  'UEFA Europa League': 'الدوري الأوروبي',
-  'Conference League': 'دوري المؤتمر الأوروبي',
-  'UEFA Conference League': 'دوري المؤتمر الأوروبي',
-  'UEFA Nations League': 'دوري الأمم الأوروبية',
-  'European Championship': 'بطولة أوروبا',
-  'UEFA European Championship': 'بطولة أوروبا',
-  'Euro 2024': 'يورو 2024',
-  'UEFA Euro': 'بطولة أوروبا',
-  
-  // الدوري الإنجليزي
-  'Premier League': 'الدوري الإنجليزي الممتاز',
-  'English Premier League': 'الدوري الإنجليزي الممتاز',
-  'EPL': 'الدوري الإنجليزي الممتاز',
-  'Championship': 'الدرجة الأولى الإنجليزية',
-  'FA Cup': 'كأس الاتحاد الإنجليزي',
-  'EFL Cup': 'كأس الرابطة الإنجليزية',
-  'League Cup': 'كأس الرابطة',
-  'Carabao Cup': 'كأس كارابو',
-  
-  // الدوري الإسباني
-  'La Liga': 'الليغا الإسبانية',
-  'LaLiga': 'الليغا الإسبانية',
-  'Spanish La Liga': 'الليغا الإسبانية',
-  'Copa del Rey': 'كأس الملك الإسباني',
-  'Supercopa de España': 'كأس السوبر الإسباني',
-  
-  // الدوري الألماني
-  'Bundesliga': 'الدوري الألماني',
-  'German Bundesliga': 'الدوري الألماني',
-  '2. Bundesliga': 'الدرجة الثانية الألمانية',
-  'DFB Pokal': 'كأس ألمانيا',
-  'DFB-Pokal': 'كأس ألمانيا',
-  
-  // الدوري الإيطالي
-  'Serie A': 'الدوري الإيطالي',
-  'Italian Serie A': 'الدوري الإيطالي',
-  'Serie B': 'الدرجة الثانية الإيطالية',
-  'Coppa Italia': 'كأس إيطاليا',
-  'Supercoppa Italiana': 'كأس السوبر الإيطالي',
-  
-  // الدوري الفرنسي
-  'Ligue 1': 'الدوري الفرنسي',
-  'French Ligue 1': 'الدوري الفرنسي',
-  'Ligue 2': 'الدرجة الثانية الفرنسية',
-  'Coupe de France': 'كأس فرنسا',
-  'Trophée des Champions': 'كأس السوبر الفرنسي',
-  
-  // دوريات أوروبية أخرى
-  'Eredivisie': 'الدوري الهولندي',
-  'Belgian Pro League': 'الدوري البلجيكي',
-  'Primeira Liga': 'الدوري البرتغالي',
-  'Russian Premier League': 'الدوري الروسي',
-  'Turkish Super League': 'الدوري التركي',
-  'Süper Lig': 'الدوري التركي',
-  'Scottish Premiership': 'الدوري الاسكتلندي',
-  'Swiss Super League': 'الدوري السويسري',
-  'Austrian Bundesliga': 'الدوري النمساوي',
-  'Czech First League': 'الدوري التشيكي',
-  'Polish Ekstraklasa': 'الدوري البولندي',
-  
-  // الدوريات الأمريكية والقارية
-  'CONCACAF Champions League': 'دوري أبطال الكونكاكاف',
-  'Copa Libertadores': 'كوبا ليبرتادوريس',
-  'Major League Soccer': 'الدوري الأمريكي',
-  'MLS': 'الدوري الأمريكي',
-  'Brazilian Serie A': 'الدوري البرازيلي',
-  'Argentine Liga Profesional': 'الدوري الأرجنتيني',
-  'Copa America': 'كوبا أمريكا',
-  'CONMEBOL Copa America': 'كوبا أمريكا',
-  'CAF Champions League': 'دوري أبطال أفريقيا',
-  'Africa Cup of Nations': 'كأس الأمم الأفريقية',
-  'AFCON': 'كأس الأمم الأفريقية',
-  'CAF Confederation Cup': 'كأس الاتحاد الأفريقي',
-  
-  // بطولات دولية أخرى
-  'Friendlies': 'مباريات ودية',
-  'International Friendlies': 'مباريات ودية دولية',
-  'Friendly': 'مباراة ودية',
-  'Club Friendlies': 'مباريات ودية للأندية',
-  'FIFA Confederations Cup': 'كأس القارات',
-  'Olympics': 'الألعاب الأولمبية',
-  'Olympic Games': 'الألعاب الأولمبية'
-}
-
 // قائمة البطولات التي يجب تجاهلها (تقليل البطولات المرفوضة)
 const ignoredLeagues = [
   'Ghana Premier League',
@@ -496,7 +354,6 @@ serve(async (req) => {
     // معالجة المباريات الحقيقية فقط
     const processedMatches = filteredMatches.map((fixture: any) => {
       const leagueName = fixture.league.name
-      const arabicLeagueName = leagueTranslations[leagueName] || leagueName
 
       const homeTeamName = teamTranslations[fixture.teams.home.name] || fixture.teams.home.name
       const awayTeamName = teamTranslations[fixture.teams.away.name] || fixture.teams.away.name
@@ -523,7 +380,7 @@ serve(async (req) => {
         awayScore: fixture.goals.away,
         status: matchStatus,
         date: fixture.fixture.date,
-        competition: arabicLeagueName,
+        competition: leagueName, // استخدام اسم البطولة كما هو من API
         homeLogo: fixture.teams.home.logo,
         awayLogo: fixture.teams.away.logo,
         leagueFlag: fixture.league.flag,

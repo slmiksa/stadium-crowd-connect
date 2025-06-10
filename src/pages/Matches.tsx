@@ -103,37 +103,42 @@ const Matches = () => {
   // تصنيف البطولات حسب النوع - محسن لجميع البطولات
   const getCompetitionCategory = (competition: string): CompetitionCategory => {
     const arabCompetitions = [
-      'دوري روشن السعودي', 'الدوري المصري', 'الدوري المغربي', 'الدوري التونسي',
-      'الدوري الأردني', 'الدوري اللبناني', 'الدوري الكويتي', 'الدوري القطري',
-      'الدوري الإماراتي', 'الدوري البحريني', 'الدوري العماني', 'الدوري اليمني',
-      'الدوري العراقي', 'الدوري السوري', 'كأس الملك', 'كأس مصر', 'كأس المغرب', 
-      'كأس تونس', 'كأس الأردن', 'كأس لبنان', 'كأس الكويت', 'كأس الإمارات',
-      'دوري أبطال العرب', 'كأس العرب للأندية الأبطال', 'البطولة العربية للأندية'
+      'Saudi Pro League', 'Saudi Professional League', 'King Cup', 'Saudi Super Cup',
+      'Egyptian Premier League', 'Egypt Premier League', 'Moroccan Botola Pro', 
+      'Moroccan Premier League', 'Tunisian Ligue Professionnelle 1', 'Jordanian Pro League',
+      'Lebanese Premier League', 'Kuwaiti Premier League', 'Qatar Stars League',
+      'UAE Pro League', 'Bahraini Premier League', 'Omani Professional League',
+      'Iraqi Premier League', 'Syrian Premier League', 'Arab Club Champions Cup'
     ];
 
     const europeanCompetitions = [
-      'الدوري الإنجليزي الممتاز', 'الليغا الإسبانية', 'الدوري الألماني', 
-      'الدوري الإيطالي', 'الدوري الفرنسي', 'الدوري الهولندي', 'الدوري البرتغالي',
-      'الدوري البلجيكي', 'الدوري التركي', 'الدوري الروسي', 'الدوري الاسكتلندي',
-      'الدوري السويسري', 'الدوري النمساوي', 'الدوري التشيكي', 'الدوري البولندي',
-      'كأس الاتحاد الإنجليزي', 'كأس الملك الإسباني', 'كأس ألمانيا', 'كأس إيطاليا',
-      'كأس فرنسا', 'الدرجة الأولى الإنجليزية', 'الدرجة الثانية الألمانية',
-      'كأس السوبر الإسباني', 'كأس السوبر الإيطالي', 'كأس السوبر الفرنسي'
+      'Premier League', 'English Premier League', 'EPL', 'La Liga', 'LaLiga', 
+      'Spanish La Liga', 'Bundesliga', 'German Bundesliga', 'Serie A', 'Italian Serie A',
+      'Ligue 1', 'French Ligue 1', 'Eredivisie', 'Belgian Pro League', 'Primeira Liga',
+      'Russian Premier League', 'Turkish Super League', 'Süper Lig', 'Scottish Premiership',
+      'Swiss Super League', 'Austrian Bundesliga', 'Czech First League', 'Polish Ekstraklasa',
+      'FA Cup', 'Copa del Rey', 'DFB Pokal', 'DFB-Pokal', 'Coppa Italia', 'Coupe de France',
+      'Championship', 'EFL Cup', 'League Cup', 'Carabao Cup', '2. Bundesliga', 'Serie B', 'Ligue 2'
     ];
 
     const continentalCompetitions = [
-      'دوري أبطال أوروبا', 'الدوري الأوروبي', 'دوري المؤتمر الأوروبي',
-      'دوري الأمم الأوروبية', 'بطولة أوروبا', 'يورو 2024',
-      'دوري أبطال آسيا', 'دوري أبطال آسيا النخبة', 'كأس الاتحاد الآسيوي', 'كأس آسيا',
-      'دوري أبطال أفريقيا', 'كأس الأمم الأفريقية', 'كأس الاتحاد الأفريقي',
-      'كوبا ليبرتادوريس', 'دوري أبطال الكونكاكاف', 'كوبا أمريكا'
+      'Champions League', 'UEFA Champions League', 'Europa League', 'UEFA Europa League',
+      'Conference League', 'UEFA Conference League', 'UEFA Nations League',
+      'European Championship', 'UEFA European Championship', 'Euro 2024', 'UEFA Euro',
+      'AFC Champions League', 'AFC Champions League Elite', 'Asian Champions League',
+      'AFC Cup', 'Asian Cup', 'AFC Asian Cup', 'CAF Champions League', 'Africa Cup of Nations',
+      'AFCON', 'CAF Confederation Cup', 'CONCACAF Champions League', 'Copa Libertadores',
+      'Copa America', 'CONMEBOL Copa America'
     ];
 
     const worldcupCompetitions = [
-      'كأس العالم', 'كأس العالم فيفا', 'كأس العالم للأندية', 'تصفيات كأس العالم',
-      'تصفيات كأس العالم آسيا', 'تصفيات كأس العالم أوروبا', 'تصفيات كأس العالم أفريقيا',
-      'تصفيات كأس العالم أمريكا الجنوبية', 'تصفيات كأس العالم أمريكا الشمالية',
-      'تصفيات كأس العالم أوقيانوسيا', 'ملحق تصفيات كأس العالم', 'كأس القارات'
+      'World Cup', 'FIFA World Cup', 'FIFA Club World Cup', 'Club World Cup',
+      'World Cup Qualification', 'FIFA World Cup Qualification', 'World Cup Qualifiers',
+      'WC Qualification', 'World Cup Qualification - Asia', 'World Cup Qualification - Europe',
+      'World Cup Qualification - Africa', 'World Cup Qualification - South America',
+      'World Cup Qualification - North America', 'World Cup Qualification - Oceania',
+      'World Cup Qualification Intercontinental Play-offs', 'FIFA World Cup qualification',
+      'FIFA Confederations Cup', 'Olympics', 'Olympic Games'
     ];
 
     // البحث الأولي - مطابقة دقيقة
@@ -145,12 +150,17 @@ const Matches = () => {
     // البحث بالكلمات المفتاحية للتصفيات والبطولات التي قد تأتي بأسماء مختلفة
     const competitionLower = competition.toLowerCase();
     
-    // تصفيات كأس العالم
+    // تصفيات كأس العالم وكأس العالم للأندية
     if (competitionLower.includes('world cup') || 
+        competitionLower.includes('club world cup') ||
+        competitionLower.includes('fifa club world cup') ||
         competitionLower.includes('تصفيات') ||
         competitionLower.includes('qualification') ||
         competitionLower.includes('qualifiers') ||
-        competitionLower.includes('wc qualification')) {
+        competitionLower.includes('wc qualification') ||
+        competitionLower.includes('confederations cup') ||
+        competitionLower.includes('olympics') ||
+        competitionLower.includes('olympic')) {
       return 'worldcup';
     }
 
@@ -164,7 +174,9 @@ const Matches = () => {
         competitionLower.includes('afcon') ||
         competitionLower.includes('asian cup') ||
         competitionLower.includes('libertadores') ||
-        competitionLower.includes('concacaf')) {
+        competitionLower.includes('concacaf') ||
+        competitionLower.includes('afc cup') ||
+        competitionLower.includes('caf ')) {
       return 'continental';
     }
 
@@ -177,7 +189,13 @@ const Matches = () => {
         competitionLower.includes('eredivisie') ||
         competitionLower.includes('primeira liga') ||
         competitionLower.includes('süper lig') ||
-        competitionLower.includes('premiership')) {
+        competitionLower.includes('super lig') ||
+        competitionLower.includes('premiership') ||
+        competitionLower.includes('fa cup') ||
+        competitionLower.includes('copa del rey') ||
+        competitionLower.includes('dfb') ||
+        competitionLower.includes('coppa italia') ||
+        competitionLower.includes('coupe de france')) {
       return 'european';
     }
 
@@ -207,30 +225,46 @@ const Matches = () => {
   const getCompetitionPriority = (competition: string): number => {
     const priorities: { [key: string]: number } = {
       // بطولات عربية - أولوية عالية
-      'دوري روشن السعودي': 1,
-      'كأس الملك': 2,
-      'الدوري المصري': 3,
-      'الدوري المغربي': 4,
-      'الدوري التونسي': 5,
-      'دوري أبطال العرب': 6,
+      'Saudi Pro League': 1,
+      'Saudi Professional League': 1,
+      'King Cup': 2,
+      'Egyptian Premier League': 3,
+      'Egypt Premier League': 3,
+      'Moroccan Botola Pro': 4,
+      'Moroccan Premier League': 4,
+      'Tunisian Ligue Professionnelle 1': 5,
+      'Arab Club Champions Cup': 6,
       
       // بطولات أوروبية مهمة
-      'دوري أبطال أوروبا': 10,
-      'الدوري الإنجليزي الممتاز': 11,
-      'الليغا الإسبانية': 12,
-      'الدوري الألماني': 13,
-      'الدوري الإيطالي': 14,
-      'الدوري الفرنسي': 15,
+      'UEFA Champions League': 10,
+      'Champions League': 10,
+      'Premier League': 11,
+      'English Premier League': 11,
+      'La Liga': 12,
+      'LaLiga': 12,
+      'Spanish La Liga': 12,
+      'Bundesliga': 13,
+      'German Bundesliga': 13,
+      'Serie A': 14,
+      'Italian Serie A': 14,
+      'Ligue 1': 15,
+      'French Ligue 1': 15,
       
       // بطولات قارية
-      'دوري أبطال آسيا': 20,
-      'دوري أبطال أفريقيا': 21,
-      'الدوري الأوروبي': 22,
+      'AFC Champions League': 20,
+      'AFC Champions League Elite': 20,
+      'CAF Champions League': 21,
+      'UEFA Europa League': 22,
+      'Europa League': 22,
       
       // كأس العالم وتصفياته
-      'كأس العالم': 30,
-      'تصفيات كأس العالم': 31,
-      'كأس العالم للأندية': 32
+      'FIFA World Cup': 30,
+      'World Cup': 30,
+      'FIFA Club World Cup': 31,
+      'Club World Cup': 31,
+      'World Cup Qualification': 32,
+      'FIFA World Cup Qualification': 32,
+      'World Cup Qualifiers': 32
     };
     
     return priorities[competition] || 999;
@@ -516,7 +550,7 @@ const Matches = () => {
       case 'continental':
         return 'البطولات القارية';
       case 'worldcup':
-        return 'كأس العالم والتصفيات';
+        return 'كأس العالم والأندية';
       default:
         return 'جميع البطولات';
     }
