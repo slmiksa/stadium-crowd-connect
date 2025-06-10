@@ -7,6 +7,13 @@ import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -20,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Clock, Users, RefreshCw, Newspaper, ExternalLink, AlertCircle, Play, Calendar, Zap, CirclePlay } from 'lucide-react';
+import { Clock, Users, RefreshCw, Newspaper, ExternalLink, AlertCircle, Filter, Globe, Trophy, MapPin, Zap, Calendar } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -54,6 +61,9 @@ interface GroupedMatches {
   [competition: string]: Match[];
 }
 
+type CompetitionCategory = 'arab' | 'european' | 'continental' | 'worldcup' | 'all';
+type MatchStatus = 'live' | 'today' | 'tomorrow' | 'yesterday' | 'news';
+
 const Matches = () => {
   const navigate = useNavigate();
   const { t, isRTL } = useLanguage();
@@ -72,7 +82,8 @@ const Matches = () => {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'live' | 'today' | 'tomorrow' | 'yesterday' | 'news'>('live');
+  const [activeTab, setActiveTab] = useState<MatchStatus>('live');
+  const [selectedCategory, setSelectedCategory] = useState<CompetitionCategory>('all');
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
   const [dataLoaded, setDataLoaded] = useState({
     live: false,
@@ -89,39 +100,89 @@ const Matches = () => {
     news: ''
   });
 
-  // تصفية البطولات النسائية
-  const isWomensCompetition = (competition: string): boolean => {
-    const womensKeywords = ['Women', 'النساء', 'السيدات', 'Female', 'كأس الأمم النسائية', 'Women\'s'];
-    return womensKeywords.some(keyword => 
-      competition.toLowerCase().includes(keyword.toLowerCase())
-    );
+  // تصنيف البطولات حسب النوع
+  const getCompetitionCategory = (competition: string): CompetitionCategory => {
+    const arabCompetitions = [
+      'دوري روشن السعودي', 'الدوري المصري', 'الدوري المغربي', 'الدوري التونسي',
+      'الدوري الأردني', 'الدوري اللبناني', 'الدوري الكويتي', 'الدوري القطري',
+      'الدوري الإماراتي', 'الدوري البحريني', 'الدوري العماني', 'الدوري اليمني',
+      'كأس الملك', 'كأس مصر', 'كأس المغرب', 'كأس تونس', 'كأس الأردن',
+      'دوري أبطال العرب', 'كأس العرب للأندية الأبطال', 'البطولة العربية للأندية'
+    ];
+
+    const europeanCompetitions = [
+      'الدوري الإنجليزي الممتاز', 'الليغا الإسبانية', 'الدوري الألماني', 
+      'الدوري الإيطالي', 'الدوري الفرنسي', 'الدوري الهولندي', 'الدوري البرتغالي',
+      'الدوري البلجيكي', 'الدوري التركي', 'الدوري الروسي', 'الدوري الاسكتلندي',
+      'كأس الاتحاد الإنجليزي', 'كأس الملك الإسباني', 'كأس ألمانيا', 'كأس إيطاليا',
+      'كأس فرنسا', 'الدرجة الأولى الإنجليزية', 'الدرجة الثانية الألمانية'
+    ];
+
+    const continentalCompetitions = [
+      'دوري أبطال أوروبا', 'الدوري الأوروبي', 'دوري المؤتمر الأوروبي',
+      'دوري أبطال آسيا', 'دوري أبطال آسيا النخبة', 'دوري أبطال أفريقيا',
+      'كأس الأمم الأفريقية', 'كوبا ليبرتادوريس', 'دوري أبطال الكونكاكاف',
+      'كوبا أمريكا', 'يورو 2024', 'كأس آسيا'
+    ];
+
+    const worldcupCompetitions = [
+      'كأس العالم', 'كأس العالم فيفا', 'كأس العالم للأندية', 'تصفيات كأس العالم',
+      'تصفيات كأس العالم آسيا', 'تصفيات كأس العالم أوروبا', 'تصفيات كأس العالم أفريقيا',
+      'تصفيات كأس العالم أمريكا الجنوبية'
+    ];
+
+    if (arabCompetitions.includes(competition)) return 'arab';
+    if (europeanCompetitions.includes(competition)) return 'european';
+    if (continentalCompetitions.includes(competition)) return 'continental';
+    if (worldcupCompetitions.includes(competition)) return 'worldcup';
+    return 'all';
   };
 
   // ترتيب البطولات حسب الأولوية
   const getCompetitionPriority = (competition: string): number => {
     const priorities: { [key: string]: number } = {
+      // بطولات عربية - أولوية عالية
       'دوري روشن السعودي': 1,
-      'دوري أبطال آسيا': 2,
-      'دوري أبطال أوروبا': 3,
-      'الدوري الإنجليزي الممتاز': 4,
-      'الليغا الإسبانية': 5,
-      'الدوري الألماني': 6,
-      'الدوري الإيطالي': 7,
-      'الدوري الفرنسي': 8,
-      'كأس الملك': 9,
-      'كأس العالم': 10,
-      'دوري أبطال أفريقيا': 11,
-      'كأس الأمم الأفريقية': 12
+      'كأس الملك': 2,
+      'الدوري المصري': 3,
+      'الدوري المغربي': 4,
+      'الدوري التونسي': 5,
+      'دوري أبطال العرب': 6,
+      
+      // بطولات أوروبية مهمة
+      'دوري أبطال أوروبا': 10,
+      'الدوري الإنجليزي الممتاز': 11,
+      'الليغا الإسبانية': 12,
+      'الدوري الألماني': 13,
+      'الدوري الإيطالي': 14,
+      'الدوري الفرنسي': 15,
+      
+      // بطولات قارية
+      'دوري أبطال آسيا': 20,
+      'دوري أبطال أفريقيا': 21,
+      'الدوري الأوروبي': 22,
+      
+      // كأس العالم وتصفياته
+      'كأس العالم': 30,
+      'تصفيات كأس العالم': 31,
+      'كأس العالم للأندية': 32
     };
     
     return priorities[competition] || 999;
   };
 
+  // تصفية المباريات حسب الفئة المختارة
+  const filterMatchesByCategory = (matches: Match[]): Match[] => {
+    if (selectedCategory === 'all') return matches;
+    return matches.filter(match => getCompetitionCategory(match.competition) === selectedCategory);
+  };
+
   // تجميع المباريات حسب البطولة
   const groupMatchesByCompetition = (matches: Match[]): GroupedMatches => {
+    const filteredMatches = filterMatchesByCategory(matches);
     const grouped: GroupedMatches = {};
     
-    matches.forEach(match => {
+    filteredMatches.forEach(match => {
       if (!grouped[match.competition]) {
         grouped[match.competition] = [];
       }
@@ -366,7 +427,36 @@ const Matches = () => {
     }
   };
 
-  // كرة القدم المتحركة
+  const getCategoryIcon = (category: CompetitionCategory) => {
+    switch (category) {
+      case 'arab':
+        return <MapPin className="w-4 h-4" />;
+      case 'european':
+        return <Globe className="w-4 h-4" />;
+      case 'continental':
+        return <Trophy className="w-4 h-4" />;
+      case 'worldcup':
+        return <Trophy className="w-4 h-4 text-yellow-400" />;
+      default:
+        return <Filter className="w-4 h-4" />;
+    }
+  };
+
+  const getCategoryName = (category: CompetitionCategory) => {
+    switch (category) {
+      case 'arab':
+        return 'الدوريات العربية';
+      case 'european':
+        return 'الدوريات الأوروبية';
+      case 'continental':
+        return 'البطولات القارية';
+      case 'worldcup':
+        return 'كأس العالم والتصفيات';
+      default:
+        return 'جميع البطولات';
+    }
+  };
+
   const AnimatedSoccerBall = ({ size = "w-8 h-8", className = "" }: { size?: string, className?: string }) => (
     <div className={`${size} ${className} relative animate-bounce`}>
       <div className="w-full h-full bg-white rounded-full shadow-lg relative overflow-hidden">
@@ -380,7 +470,6 @@ const Matches = () => {
     </div>
   );
 
-  // تأثير اللاعب يركض مع الكرة
   const SoccerPlayerAnimation = () => (
     <div className="flex items-center justify-center py-8">
       <div className="relative">
@@ -483,67 +572,75 @@ const Matches = () => {
     </TableRow>
   );
 
-  const CompetitionSection = ({ competition, matches, isWomens }: { 
-    competition: string, 
-    matches: Match[], 
-    isWomens: boolean 
-  }) => (
-    <AccordionItem value={competition} className="border border-gray-700/30 rounded-xl overflow-hidden mb-4 bg-gradient-to-r from-gray-800/40 to-gray-700/40 backdrop-blur-sm">
-      <AccordionTrigger className={`${
-        isWomens 
-          ? 'text-pink-300 hover:text-pink-200 bg-gradient-to-r from-pink-900/20 to-purple-900/20' 
-          : 'text-blue-300 hover:text-blue-200 bg-gradient-to-r from-blue-900/20 to-indigo-900/20'
-      } font-bold px-6 py-4 ${isMobile ? 'text-sm' : 'text-base'} hover:from-blue-800/30 hover:to-indigo-800/30 transition-all duration-300`}>
-        <div className="flex items-center space-x-4 space-x-reverse">
-          {matches[0]?.leagueFlag && (
-            <div className="relative">
-              <img 
-                src={matches[0].leagueFlag} 
-                alt="" 
-                className="w-8 h-6 object-cover rounded-md shadow-md border border-gray-600/50" 
-              />
+  const CompetitionSection = ({ competition, matches }: { competition: string, matches: Match[] }) => {
+    const category = getCompetitionCategory(competition);
+    const isWorldCup = category === 'worldcup';
+    const isArab = category === 'arab';
+    const isEuropean = category === 'european';
+    const isContinental = category === 'continental';
+    
+    return (
+      <AccordionItem value={competition} className="border border-gray-700/30 rounded-xl overflow-hidden mb-4 bg-gradient-to-r from-gray-800/40 to-gray-700/40 backdrop-blur-sm">
+        <AccordionTrigger className={`font-bold px-6 py-4 ${isMobile ? 'text-sm' : 'text-base'} transition-all duration-300 ${
+          isWorldCup 
+            ? 'text-yellow-300 hover:text-yellow-200 bg-gradient-to-r from-yellow-900/20 to-amber-900/20 hover:from-yellow-800/30 hover:to-amber-800/30' 
+            : isArab
+            ? 'text-green-300 hover:text-green-200 bg-gradient-to-r from-green-900/20 to-emerald-900/20 hover:from-green-800/30 hover:to-emerald-800/30'
+            : isEuropean
+            ? 'text-blue-300 hover:text-blue-200 bg-gradient-to-r from-blue-900/20 to-indigo-900/20 hover:from-blue-800/30 hover:to-indigo-800/30'
+            : isContinental
+            ? 'text-purple-300 hover:text-purple-200 bg-gradient-to-r from-purple-900/20 to-violet-900/20 hover:from-purple-800/30 hover:to-violet-800/30'
+            : 'text-gray-300 hover:text-gray-200 bg-gradient-to-r from-gray-900/20 to-gray-800/20 hover:from-gray-800/30 hover:to-gray-700/30'
+        }`}>
+          <div className="flex items-center space-x-4 space-x-reverse">
+            {matches[0]?.leagueFlag && (
+              <div className="relative">
+                <img 
+                  src={matches[0].leagueFlag} 
+                  alt="" 
+                  className="w-8 h-6 object-cover rounded-md shadow-md border border-gray-600/50" 
+                />
+              </div>
+            )}
+            <AnimatedSoccerBall size="w-6 h-6" />
+            <div className="text-right">
+              <div className="flex items-center space-x-3 space-x-reverse">
+                <span className={isMobile ? 'text-sm' : 'text-base'}>
+                  {isMobile && competition.length > 25 ? competition.substring(0, 25) + '...' : competition}
+                </span>
+                {getCategoryIcon(category)}
+              </div>
+              <span className="text-gray-400 text-sm font-normal">{matches.length} مباراة</span>
             </div>
-          )}
-          <AnimatedSoccerBall size="w-6 h-6" />
-          <div className="text-right">
-            <div className="flex items-center space-x-3 space-x-reverse">
-              <span className={isMobile ? 'text-sm' : 'text-base'}>
-                {isMobile && competition.length > 25 ? competition.substring(0, 25) + '...' : competition}
-              </span>
-              {isWomens && (
-                <span className="text-xs bg-pink-500/30 px-2 py-1 rounded-full border border-pink-500/30">نساء</span>
-              )}
-            </div>
-            <span className="text-gray-400 text-sm font-normal">{matches.length} مباراة</span>
           </div>
-        </div>
-      </AccordionTrigger>
-      <AccordionContent className="p-0">
-        <div className="bg-gray-800/20 border-t border-gray-700/30">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-800/60 hover:bg-gray-800/60 border-b border-gray-700/30">
-                <TableHead className={`text-right text-gray-300 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>المضيف</TableHead>
-                <TableHead className={`text-center text-gray-300 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>النتيجة</TableHead>
-                <TableHead className={`text-left text-gray-300 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>الضيف</TableHead>
-                {!isMobile && (
-                  <>
-                    <TableHead className="text-center text-gray-300 font-bold text-sm">الوقت</TableHead>
-                    <TableHead className="text-center text-gray-300 font-bold text-sm">الحالة</TableHead>
-                  </>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {matches.map((match, index) => (
-                <MatchRow key={`${match.id}-${index}`} match={match} />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </AccordionContent>
-    </AccordionItem>
-  );
+        </AccordionTrigger>
+        <AccordionContent className="p-0">
+          <div className="bg-gray-800/20 border-t border-gray-700/30">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-800/60 hover:bg-gray-800/60 border-b border-gray-700/30">
+                  <TableHead className={`text-right text-gray-300 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>المضيف</TableHead>
+                  <TableHead className={`text-center text-gray-300 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>النتيجة</TableHead>
+                  <TableHead className={`text-left text-gray-300 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>الضيف</TableHead>
+                  {!isMobile && (
+                    <>
+                      <TableHead className="text-center text-gray-300 font-bold text-sm">الوقت</TableHead>
+                      <TableHead className="text-center text-gray-300 font-bold text-sm">الحالة</TableHead>
+                    </>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {matches.map((match, index) => (
+                  <MatchRow key={`${match.id}-${index}`} match={match} />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    );
+  };
 
   const NewsCard = ({ newsItem }: { newsItem: NewsItem }) => (
     <div 
@@ -686,13 +783,8 @@ const Matches = () => {
   // تجميع المباريات حسب البطولة
   const groupedMatches = groupMatchesByCompetition(currentMatches);
   
-  // فصل البطولات النسائية عن الرجالية وترتيبها
-  const mensCompetitions = Object.keys(groupedMatches)
-    .filter(comp => !isWomensCompetition(comp))
-    .sort((a, b) => getCompetitionPriority(a) - getCompetitionPriority(b));
-  
-  const womensCompetitions = Object.keys(groupedMatches)
-    .filter(comp => isWomensCompetition(comp))
+  // ترتيب البطولات حسب الأولوية
+  const sortedCompetitions = Object.keys(groupedMatches)
     .sort((a, b) => getCompetitionPriority(a) - getCompetitionPriority(b));
 
   if (isLoading) {
@@ -782,6 +874,53 @@ const Matches = () => {
                 ))}
               </TabsList>
 
+              {/* Filters for matches */}
+              {activeTab !== 'news' && (
+                <div className="flex items-center justify-center py-4 space-x-4 space-x-reverse">
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <Filter className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-400 text-sm font-medium">فلترة حسب:</span>
+                  </div>
+                  <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as CompetitionCategory)}>
+                    <SelectTrigger className="w-64 bg-gray-800/60 border-gray-700/50 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                      <SelectItem value="all" className="text-white hover:bg-gray-700">
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          {getCategoryIcon('all')}
+                          <span>{getCategoryName('all')}</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="arab" className="text-white hover:bg-gray-700">
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          {getCategoryIcon('arab')}
+                          <span>{getCategoryName('arab')}</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="european" className="text-white hover:bg-gray-700">
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          {getCategoryIcon('european')}
+                          <span>{getCategoryName('european')}</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="continental" className="text-white hover:bg-gray-700">
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          {getCategoryIcon('continental')}
+                          <span>{getCategoryName('continental')}</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="worldcup" className="text-white hover:bg-gray-700">
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          {getCategoryIcon('worldcup')}
+                          <span>{getCategoryName('worldcup')}</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Content */}
               <div className="px-2 py-6 pb-24">
                 {(['live', 'today', 'tomorrow', 'yesterday'] as const).map((tab) => (
@@ -792,60 +931,30 @@ const Matches = () => {
                         <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                         <p className="text-gray-400 font-medium">جاري التحميل...</p>
                       </div>
-                    ) : allMatches[tab].length === 0 ? (
+                    ) : sortedCompetitions.length === 0 ? (
                       <EmptyState 
                         type={tab} 
-                        message={errorMessages[tab] || `لا توجد مباريات ${getTabTitle(tab)}`} 
+                        message={errorMessages[tab] || `لا توجد مباريات ${getTabTitle(tab)} في ${getCategoryName(selectedCategory)}`} 
                       />
                     ) : (
                       <div className="space-y-6">
-                        {/* بطولات الرجال */}
-                        {mensCompetitions.length > 0 && (
-                          <div>
-                            <div className="flex items-center space-x-3 space-x-reverse mb-6">
-                              <Users className="w-6 h-6 text-blue-400" />
-                              <AnimatedSoccerBall size="w-6 h-6" />
-                              <h2 className={`font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-                                بطولات الرجال
-                              </h2>
-                              <div className="flex-1 h-px bg-gradient-to-r from-blue-500/50 to-transparent"></div>
-                            </div>
-                            <Accordion type="multiple" className="space-y-4">
-                              {mensCompetitions.map((competition) => (
-                                <CompetitionSection
-                                  key={competition}
-                                  competition={competition}
-                                  matches={groupedMatches[competition]}
-                                  isWomens={false}
-                                />
-                              ))}
-                            </Accordion>
-                          </div>
-                        )}
-
-                        {/* بطولات النساء */}
-                        {womensCompetitions.length > 0 && (
-                          <div>
-                            <div className="flex items-center space-x-3 space-x-reverse mb-6">
-                              <Users className="w-6 h-6 text-pink-400" />
-                              <AnimatedSoccerBall size="w-6 h-6" />
-                              <h2 className={`font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-                                بطولات النساء
-                              </h2>
-                              <div className="flex-1 h-px bg-gradient-to-r from-pink-500/50 to-transparent"></div>
-                            </div>
-                            <Accordion type="multiple" className="space-y-4">
-                              {womensCompetitions.map((competition) => (
-                                <CompetitionSection
-                                  key={competition}
-                                  competition={competition}
-                                  matches={groupedMatches[competition]}
-                                  isWomens={true}
-                                />
-                              ))}
-                            </Accordion>
-                          </div>
-                        )}
+                        <div className="flex items-center space-x-3 space-x-reverse mb-6">
+                          {getCategoryIcon(selectedCategory)}
+                          <AnimatedSoccerBall size="w-6 h-6" />
+                          <h2 className={`font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+                            {getCategoryName(selectedCategory)}
+                          </h2>
+                          <div className="flex-1 h-px bg-gradient-to-r from-blue-500/50 to-transparent"></div>
+                        </div>
+                        <Accordion type="multiple" className="space-y-4">
+                          {sortedCompetitions.map((competition) => (
+                            <CompetitionSection
+                              key={competition}
+                              competition={competition}
+                              matches={groupedMatches[competition]}
+                            />
+                          ))}
+                        </Accordion>
                       </div>
                     )}
                   </TabsContent>
@@ -861,12 +970,22 @@ const Matches = () => {
                   ) : news.length === 0 ? (
                     <EmptyState type="news" message={errorMessages.news || 'لا توجد أخبار متاحة حالياً'} />
                   ) : (
-                    <div className={`grid gap-6 ${
-                      isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-                    }`}>
-                      {news.map((newsItem) => (
-                        <NewsCard key={newsItem.id} newsItem={newsItem} />
-                      ))}
+                    <div className="space-y-6">
+                      <div className="flex items-center space-x-3 space-x-reverse mb-6">
+                        <Newspaper className="w-6 h-6 text-purple-400" />
+                        <AnimatedSoccerBall size="w-6 h-6" />
+                        <h2 className={`font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+                          الأخبار الرياضية
+                        </h2>
+                        <div className="flex-1 h-px bg-gradient-to-r from-purple-500/50 to-transparent"></div>
+                      </div>
+                      <div className={`grid gap-6 ${
+                        isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                      }`}>
+                        {news.map((newsItem) => (
+                          <NewsCard key={newsItem.id} newsItem={newsItem} />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </TabsContent>
