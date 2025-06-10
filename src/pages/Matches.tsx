@@ -100,13 +100,14 @@ const Matches = () => {
     news: ''
   });
 
-  // تصنيف البطولات حسب النوع
+  // تصنيف البطولات حسب النوع - محسن لجميع البطولات
   const getCompetitionCategory = (competition: string): CompetitionCategory => {
     const arabCompetitions = [
       'دوري روشن السعودي', 'الدوري المصري', 'الدوري المغربي', 'الدوري التونسي',
       'الدوري الأردني', 'الدوري اللبناني', 'الدوري الكويتي', 'الدوري القطري',
       'الدوري الإماراتي', 'الدوري البحريني', 'الدوري العماني', 'الدوري اليمني',
-      'كأس الملك', 'كأس مصر', 'كأس المغرب', 'كأس تونس', 'كأس الأردن',
+      'الدوري العراقي', 'الدوري السوري', 'كأس الملك', 'كأس مصر', 'كأس المغرب', 
+      'كأس تونس', 'كأس الأردن', 'كأس لبنان', 'كأس الكويت', 'كأس الإمارات',
       'دوري أبطال العرب', 'كأس العرب للأندية الأبطال', 'البطولة العربية للأندية'
     ];
 
@@ -114,27 +115,91 @@ const Matches = () => {
       'الدوري الإنجليزي الممتاز', 'الليغا الإسبانية', 'الدوري الألماني', 
       'الدوري الإيطالي', 'الدوري الفرنسي', 'الدوري الهولندي', 'الدوري البرتغالي',
       'الدوري البلجيكي', 'الدوري التركي', 'الدوري الروسي', 'الدوري الاسكتلندي',
+      'الدوري السويسري', 'الدوري النمساوي', 'الدوري التشيكي', 'الدوري البولندي',
       'كأس الاتحاد الإنجليزي', 'كأس الملك الإسباني', 'كأس ألمانيا', 'كأس إيطاليا',
-      'كأس فرنسا', 'الدرجة الأولى الإنجليزية', 'الدرجة الثانية الألمانية'
+      'كأس فرنسا', 'الدرجة الأولى الإنجليزية', 'الدرجة الثانية الألمانية',
+      'كأس السوبر الإسباني', 'كأس السوبر الإيطالي', 'كأس السوبر الفرنسي'
     ];
 
     const continentalCompetitions = [
       'دوري أبطال أوروبا', 'الدوري الأوروبي', 'دوري المؤتمر الأوروبي',
-      'دوري أبطال آسيا', 'دوري أبطال آسيا النخبة', 'دوري أبطال أفريقيا',
-      'كأس الأمم الأفريقية', 'كوبا ليبرتادوريس', 'دوري أبطال الكونكاكاف',
-      'كوبا أمريكا', 'يورو 2024', 'كأس آسيا'
+      'دوري الأمم الأوروبية', 'بطولة أوروبا', 'يورو 2024',
+      'دوري أبطال آسيا', 'دوري أبطال آسيا النخبة', 'كأس الاتحاد الآسيوي', 'كأس آسيا',
+      'دوري أبطال أفريقيا', 'كأس الأمم الأفريقية', 'كأس الاتحاد الأفريقي',
+      'كوبا ليبرتادوريس', 'دوري أبطال الكونكاكاف', 'كوبا أمريكا'
     ];
 
     const worldcupCompetitions = [
       'كأس العالم', 'كأس العالم فيفا', 'كأس العالم للأندية', 'تصفيات كأس العالم',
       'تصفيات كأس العالم آسيا', 'تصفيات كأس العالم أوروبا', 'تصفيات كأس العالم أفريقيا',
-      'تصفيات كأس العالم أمريكا الجنوبية'
+      'تصفيات كأس العالم أمريكا الجنوبية', 'تصفيات كأس العالم أمريكا الشمالية',
+      'تصفيات كأس العالم أوقيانوسيا', 'ملحق تصفيات كأس العالم', 'كأس القارات'
     ];
 
+    // البحث الأولي - مطابقة دقيقة
     if (arabCompetitions.includes(competition)) return 'arab';
     if (europeanCompetitions.includes(competition)) return 'european';
     if (continentalCompetitions.includes(competition)) return 'continental';
     if (worldcupCompetitions.includes(competition)) return 'worldcup';
+
+    // البحث بالكلمات المفتاحية للتصفيات والبطولات التي قد تأتي بأسماء مختلفة
+    const competitionLower = competition.toLowerCase();
+    
+    // تصفيات كأس العالم
+    if (competitionLower.includes('world cup') || 
+        competitionLower.includes('تصفيات') ||
+        competitionLower.includes('qualification') ||
+        competitionLower.includes('qualifiers') ||
+        competitionLower.includes('wc qualification')) {
+      return 'worldcup';
+    }
+
+    // البطولات القارية
+    if (competitionLower.includes('champions league') ||
+        competitionLower.includes('europa league') ||
+        competitionLower.includes('conference league') ||
+        competitionLower.includes('nations league') ||
+        competitionLower.includes('euro') ||
+        competitionLower.includes('copa america') ||
+        competitionLower.includes('afcon') ||
+        competitionLower.includes('asian cup') ||
+        competitionLower.includes('libertadores') ||
+        competitionLower.includes('concacaf')) {
+      return 'continental';
+    }
+
+    // الدوريات الأوروبية
+    if (competitionLower.includes('premier league') ||
+        competitionLower.includes('la liga') ||
+        competitionLower.includes('bundesliga') ||
+        competitionLower.includes('serie a') ||
+        competitionLower.includes('ligue 1') ||
+        competitionLower.includes('eredivisie') ||
+        competitionLower.includes('primeira liga') ||
+        competitionLower.includes('süper lig') ||
+        competitionLower.includes('premiership')) {
+      return 'european';
+    }
+
+    // الدوريات العربية
+    if (competitionLower.includes('saudi') ||
+        competitionLower.includes('egypt') ||
+        competitionLower.includes('morocco') ||
+        competitionLower.includes('tunisia') ||
+        competitionLower.includes('jordan') ||
+        competitionLower.includes('lebanon') ||
+        competitionLower.includes('kuwait') ||
+        competitionLower.includes('qatar') ||
+        competitionLower.includes('uae') ||
+        competitionLower.includes('emirates') ||
+        competitionLower.includes('bahrain') ||
+        competitionLower.includes('oman') ||
+        competitionLower.includes('iraq') ||
+        competitionLower.includes('syria') ||
+        competitionLower.includes('arab')) {
+      return 'arab';
+    }
+
     return 'all';
   };
 
@@ -1001,3 +1066,5 @@ const Matches = () => {
 };
 
 export default Matches;
+
+</edits_to_apply>

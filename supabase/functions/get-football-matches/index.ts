@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -5,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// ترجمات محسنة ومصححة للدوريات
+// ترجمات محسنة ومصححة للدوريات مع إضافة البطولات الحالية
 const leagueTranslations: { [key: string]: string } = {
   // الدوريات السعودية
   'Saudi Pro League': 'دوري روشن السعودي',
@@ -14,15 +15,50 @@ const leagueTranslations: { [key: string]: string } = {
   'Saudi Super Cup': 'كأس السوبر السعودي',
   'Arab Club Champions Cup': 'كأس العرب للأندية الأبطال',
   
+  // الدوريات العربية الأخرى
+  'Egyptian Premier League': 'الدوري المصري',
+  'Egypt Premier League': 'الدوري المصري',
+  'Moroccan Botola Pro': 'الدوري المغربي',
+  'Moroccan Premier League': 'الدوري المغربي',
+  'Tunisian Ligue Professionnelle 1': 'الدوري التونسي',
+  'Jordanian Pro League': 'الدوري الأردني',
+  'Lebanese Premier League': 'الدوري اللبناني',
+  'Kuwaiti Premier League': 'الدوري الكويتي',
+  'Qatar Stars League': 'الدوري القطري',
+  'UAE Pro League': 'الدوري الإماراتي',
+  'Bahraini Premier League': 'الدوري البحريني',
+  'Omani Professional League': 'الدوري العماني',
+  'Iraqi Premier League': 'الدوري العراقي',
+  'Syrian Premier League': 'الدوري السوري',
+  'Lebanese Cup': 'كأس لبنان',
+  'Jordan Cup': 'كأس الأردن',
+  'Kuwait Cup': 'كأس الكويت',
+  'UAE Cup': 'كأس الإمارات',
+  
   // الدوريات الآسيوية
   'AFC Champions League': 'دوري أبطال آسيا',
   'AFC Champions League Elite': 'دوري أبطال آسيا النخبة',
   'Asian Champions League': 'دوري أبطال آسيا',
+  'AFC Cup': 'كأس الاتحاد الآسيوي',
+  'Asian Cup': 'كأس آسيا',
+  'AFC Asian Cup': 'كأس آسيا',
   
-  // البطولات العالمية
+  // البطولات العالمية وتصفياتها
   'World Cup': 'كأس العالم',
   'FIFA World Cup': 'كأس العالم فيفا',
   'FIFA Club World Cup': 'كأس العالم للأندية',
+  'World Cup Qualification': 'تصفيات كأس العالم',
+  'FIFA World Cup Qualification': 'تصفيات كأس العالم',
+  'World Cup Qualifiers': 'تصفيات كأس العالم',
+  'WC Qualification': 'تصفيات كأس العالم',
+  'World Cup Qualification - Asia': 'تصفيات كأس العالم آسيا',
+  'World Cup Qualification - Europe': 'تصفيات كأس العالم أوروبا',
+  'World Cup Qualification - Africa': 'تصفيات كأس العالم أفريقيا',
+  'World Cup Qualification - South America': 'تصفيات كأس العالم أمريكا الجنوبية',
+  'World Cup Qualification - North America': 'تصفيات كأس العالم أمريكا الشمالية',
+  'World Cup Qualification - Oceania': 'تصفيات كأس العالم أوقيانوسيا',
+  'World Cup Qualification Intercontinental Play-offs': 'ملحق تصفيات كأس العالم',
+  'FIFA World Cup qualification': 'تصفيات كأس العالم',
   
   // الدوريات الأوروبية
   'Champions League': 'دوري أبطال أوروبا',
@@ -31,8 +67,13 @@ const leagueTranslations: { [key: string]: string } = {
   'UEFA Europa League': 'الدوري الأوروبي',
   'Conference League': 'دوري المؤتمر الأوروبي',
   'UEFA Conference League': 'دوري المؤتمر الأوروبي',
+  'UEFA Nations League': 'دوري الأمم الأوروبية',
+  'European Championship': 'بطولة أوروبا',
+  'UEFA European Championship': 'بطولة أوروبا',
+  'Euro 2024': 'يورو 2024',
+  'UEFA Euro': 'بطولة أوروبا',
   
-  // الدوري الإنجليزي - تصحيح الترجمة
+  // الدوري الإنجليزي
   'Premier League': 'الدوري الإنجليزي الممتاز',
   'English Premier League': 'الدوري الإنجليزي الممتاز',
   'EPL': 'الدوري الإنجليزي الممتاز',
@@ -63,7 +104,7 @@ const leagueTranslations: { [key: string]: string } = {
   'Coppa Italia': 'كأس إيطاليا',
   'Supercoppa Italiana': 'كأس السوبر الإيطالي',
   
-  // الدوري الفرنسي - تصحيح الترجمة
+  // الدوري الفرنسي
   'Ligue 1': 'الدوري الفرنسي',
   'French Ligue 1': 'الدوري الفرنسي',
   'Ligue 2': 'الدرجة الثانية الفرنسية',
@@ -79,27 +120,41 @@ const leagueTranslations: { [key: string]: string } = {
   'Süper Lig': 'الدوري التركي',
   'Scottish Premiership': 'الدوري الاسكتلندي',
   'Swiss Super League': 'الدوري السويسري',
+  'Austrian Bundesliga': 'الدوري النمساوي',
+  'Czech First League': 'الدوري التشيكي',
+  'Polish Ekstraklasa': 'الدوري البولندي',
   
-  // الدوريات الأمريكية
+  // الدوريات الأمريكية والقارية
   'CONCACAF Champions League': 'دوري أبطال الكونكاكاف',
   'Copa Libertadores': 'كوبا ليبرتادوريس',
   'Major League Soccer': 'الدوري الأمريكي',
   'MLS': 'الدوري الأمريكي',
   'Brazilian Serie A': 'الدوري البرازيلي',
   'Argentine Liga Profesional': 'الدوري الأرجنتيني',
-  'Copa America': 'كوبا أمريكا'
+  'Copa America': 'كوبا أمريكا',
+  'CONMEBOL Copa America': 'كوبا أمريكا',
+  'CAF Champions League': 'دوري أبطال أفريقيا',
+  'Africa Cup of Nations': 'كأس الأمم الأفريقية',
+  'AFCON': 'كأس الأمم الأفريقية',
+  'CAF Confederation Cup': 'كأس الاتحاد الأفريقي',
+  
+  // بطولات دولية أخرى
+  'Friendlies': 'مباريات ودية',
+  'International Friendlies': 'مباريات ودية دولية',
+  'Friendly': 'مباراة ودية',
+  'Club Friendlies': 'مباريات ودية للأندية',
+  'FIFA Confederations Cup': 'كأس القارات',
+  'Olympics': 'الألعاب الأولمبية',
+  'Olympic Games': 'الألعاب الأولمبية'
 }
 
-// قائمة البطولات التي يجب تجاهلها (البطولات الأفريقية المحلية)
+// قائمة البطولات التي يجب تجاهلها (تقليل البطولات المرفوضة)
 const ignoredLeagues = [
   'Ghana Premier League',
-  'Egypt Premier League', 
   'Nigerian Professional Football League',
   'South African Premier Soccer League',
   'Ghanaian Premier League',
-  'Congo League',
-  'CAF Champions League', // نبقي هذه فقط للأندية الكبيرة
-  'Africa Cup of Nations' // نبقي هذه فقط للمنتخبات
+  'Congo League'
 ]
 
 // ترجمات محسنة ومصححة للفرق
@@ -143,6 +198,27 @@ const teamTranslations: { [key: string]: string } = {
   'Al Wehda': 'الوحدة',
   'Al-Wehda': 'الوحدة',
   
+  // المنتخبات العربية
+  'Saudi Arabia': 'السعودية',
+  'Egypt': 'مصر',
+  'Morocco': 'المغرب',
+  'Tunisia': 'تونس',
+  'Algeria': 'الجزائر',
+  'Jordan': 'الأردن',
+  'Lebanon': 'لبنان',
+  'Kuwait': 'الكويت',
+  'Qatar': 'قطر',
+  'UAE': 'الإمارات',
+  'United Arab Emirates': 'الإمارات',
+  'Bahrain': 'البحرين',
+  'Oman': 'عمان',
+  'Iraq': 'العراق',
+  'Syria': 'سوريا',
+  'Palestine': 'فلسطين',
+  'Yemen': 'اليمن',
+  'Libya': 'ليبيا',
+  'Sudan': 'السودان',
+  
   // الفرق الإنجليزية
   'Manchester United': 'مانشستر يونايتد',
   'Manchester City': 'مانشستر سيتي',
@@ -165,15 +241,6 @@ const teamTranslations: { [key: string]: string } = {
   'Everton': 'إيفرتون',
   'Leicester': 'ليستر سيتي',
   'Leicester City': 'ليستر سيتي',
-  'Leeds United': 'ليدز يونايتد',
-  'Southampton': 'ساوثهامبتون',
-  'Burnley': 'بيرنلي',
-  'Norwich': 'نورويتش',
-  'Watford': 'واتفورد',
-  'Sheffield United': 'شيفيلد يونايتد',
-  'Nottingham Forest': 'نوتينغهام فورست',
-  'Bournemouth': 'بورنموث',
-  'Luton Town': 'لوتن تاون',
   
   // الفرق الإسبانية
   'Real Madrid': 'ريال مدريد',
@@ -187,19 +254,6 @@ const teamTranslations: { [key: string]: string } = {
   'Villarreal': 'فياريال',
   'Real Sociedad': 'ريال سوسيداد',
   'Athletic Bilbao': 'أتلتيك بيلباو',
-  'Getafe': 'خيتافي',
-  'Osasuna': 'أوساسونا',
-  'Celta Vigo': 'سيلتا فيغو',
-  'Mallorca': 'مايوركا',
-  'Cadiz': 'قادش',
-  'Espanyol': 'إسبانيول',
-  'Girona': 'جيرونا',
-  'Rayo Vallecano': 'رايو فاليكانو',
-  'Almeria': 'الميريا',
-  'Las Palmas': 'لاس بالماس',
-  'Granada': 'غرناطة',
-  'Alaves': 'ألافيس',
-  'Elche': 'إلتشي',
   
   // الفرق الألمانية
   'Bayern Munich': 'بايرن ميونيخ',
@@ -208,18 +262,6 @@ const teamTranslations: { [key: string]: string } = {
   'RB Leipzig': 'آر بي لايبزيغ',
   'Bayer Leverkusen': 'باير ليفركوزن',
   'Eintracht Frankfurt': 'آينتراخت فرانكفورت',
-  'VfL Wolfsburg': 'فولفسبورغ',
-  'Borussia Mönchengladbach': 'بوروسيا مونشنغلادباخ',
-  'TSG Hoffenheim': 'هوفنهايم',
-  'FC Cologne': 'كولونيا',
-  'Union Berlin': 'يونيون برلين',
-  'SC Freiburg': 'فرايبورغ',
-  'VfB Stuttgart': 'شتوتغارت',
-  'Mainz': 'ماينز',
-  'Augsburg': 'أوغسبورغ',
-  'Hertha Berlin': 'هيرتا برلين',
-  'Arminia Bielefeld': 'أرمينيا بيليفيلد',
-  'Greuther Fürth': 'غرويتر فورث',
   
   // الفرق الإيطالية
   'Juventus': 'يوفنتوس',
@@ -232,22 +274,6 @@ const teamTranslations: { [key: string]: string } = {
   'Napoli': 'نابولي',
   'Lazio': 'لاتسيو',
   'Atalanta': 'أتالانتا',
-  'Fiorentina': 'فيورنتينا',
-  'Torino': 'تورينو',
-  'Sassuolo': 'ساسولو',
-  'Bologna': 'بولونيا',
-  'Udinese': 'أودينيزي',
-  'Sampdoria': 'سامبدوريا',
-  'Cagliari': 'كالياري',
-  'Genoa': 'جنوة',
-  'Spezia': 'سبيتسيا',
-  'Venezia': 'فينيسيا',
-  'Salernitana': 'ساليرنيتانا',
-  'Empoli': 'إمبولي',
-  'Hellas Verona': 'هيلاس فيرونا',
-  'Lecce': 'ليتشي',
-  'Monza': 'مونزا',
-  'Cremonese': 'كريمونيزي',
   
   // الفرق الفرنسية
   'Paris Saint-Germain': 'باريس سان جيرمان',
@@ -258,20 +284,50 @@ const teamTranslations: { [key: string]: string } = {
   'Olympique Lyon': 'ليون',
   'Monaco': 'موناكو',
   'AS Monaco': 'موناكو',
-  'Lille': 'ليل',
-  'Rennes': 'رين',
-  'Nice': 'نيس',
-  'Strasbourg': 'ستراسبورغ',
-  'Lens': 'لانس',
-  'Montpellier': 'مونبلييه',
-  'Nantes': 'نانت',
-  'Reims': 'ريمس',
-  'Brest': 'بريست',
-  'Lorient': 'لوريان',
-  'Clermont': 'كليرمون',
-  'Troyes': 'تروا',
-  'Saint-Etienne': 'سانت إتيان',
-  'Bordeaux': 'بوردو'
+  
+  // المنتخبات الأوروبية
+  'Germany': 'ألمانيا',
+  'France': 'فرنسا',
+  'Spain': 'إسبانيا',
+  'Italy': 'إيطاليا',
+  'England': 'إنجلترا',
+  'Netherlands': 'هولندا',
+  'Portugal': 'البرتغال',
+  'Belgium': 'بلجيكا',
+  'Croatia': 'كرواتيا',
+  'Denmark': 'الدنمارك',
+  'Switzerland': 'سويسرا',
+  'Austria': 'النمسا',
+  'Poland': 'بولندا',
+  'Czech Republic': 'التشيك',
+  'Ukraine': 'أوكرانيا',
+  'Serbia': 'صربيا',
+  'Turkey': 'تركيا',
+  'Russia': 'روسيا',
+  'Norway': 'النرويج',
+  'Sweden': 'السويد',
+  'Finland': 'فنلندا',
+  
+  // المنتخبات الأمريكية والآسيوية
+  'Brazil': 'البرازيل',
+  'Argentina': 'الأرجنتين',
+  'Uruguay': 'الأوروغواي',
+  'Colombia': 'كولومبيا',
+  'Chile': 'تشيلي',
+  'Peru': 'بيرو',
+  'Ecuador': 'الإكوادور',
+  'Mexico': 'المكسيك',
+  'USA': 'الولايات المتحدة',
+  'United States': 'الولايات المتحدة',
+  'Canada': 'كندا',
+  'Japan': 'اليابان',
+  'South Korea': 'كوريا الجنوبية',
+  'Australia': 'أستراليا',
+  'Iran': 'إيران',
+  'China': 'الصين',
+  'Thailand': 'تايلاند',
+  'India': 'الهند',
+  'Indonesia': 'إندونيسيا'
 }
 
 serve(async (req) => {
@@ -406,7 +462,7 @@ serve(async (req) => {
 
     console.log(`إجمالي المباريات المجلبة: ${allMatches.length}`)
 
-    // تصفية البطولات المرفوضة
+    // تصفية البطولات المرفوضة (تقليل القائمة لعدم إزالة الكثير)
     const filteredMatches = allMatches.filter((fixture: any) => {
       const leagueName = fixture.league.name
       return !ignoredLeagues.includes(leagueName)
