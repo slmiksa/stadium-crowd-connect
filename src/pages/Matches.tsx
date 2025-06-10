@@ -1066,5 +1066,3 @@ const Matches = () => {
 };
 
 export default Matches;
-
-</edits_to_apply>
