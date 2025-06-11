@@ -89,18 +89,19 @@ const AdRequestsManagement = () => {
       } else {
         // Handle the case where profiles might be null or have errors
         const processedRequests = (requestsData || []).map(request => {
-          // Check if profiles is a valid object with username and avatar_url properties
-          const hasValidProfile = request.profiles && 
-                                 typeof request.profiles === 'object' && 
-                                 !Array.isArray(request.profiles) &&
-                                 !('error' in request.profiles) &&
-                                 'username' in request.profiles &&
-                                 'avatar_url' in request.profiles &&
-                                 typeof request.profiles.username === 'string';
+          // Type guard function to check if profiles is valid
+          const isValidProfile = (profiles: any): profiles is { username: string; avatar_url: string } => {
+            return profiles && 
+                   typeof profiles === 'object' && 
+                   !Array.isArray(profiles) &&
+                   !('error' in profiles) &&
+                   typeof profiles.username === 'string' &&
+                   typeof profiles.avatar_url === 'string';
+          };
           
           return {
             ...request,
-            profiles: hasValidProfile ? {
+            profiles: isValidProfile(request.profiles) ? {
               username: request.profiles.username,
               avatar_url: request.profiles.avatar_url
             } : null
