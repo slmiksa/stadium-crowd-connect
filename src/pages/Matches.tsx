@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Clock, Users, RefreshCw, Newspaper, ExternalLink, AlertCircle, Filter, Globe, Trophy, MapPin, Zap, Calendar } from 'lucide-react';
-
 interface Match {
   id: string;
   homeTeam: string;
@@ -42,7 +41,6 @@ interface GroupedMatches {
 }
 type CompetitionCategory = 'arab' | 'european' | 'continental' | 'worldcup' | 'all';
 type MatchStatus = 'live' | 'today' | 'tomorrow' | 'yesterday' | 'news';
-
 const Matches = () => {
   const navigate = useNavigate();
   const {
@@ -196,11 +194,9 @@ const Matches = () => {
     });
     return grouped;
   };
-
   useEffect(() => {
     fetchInitialData();
   }, []);
-
   const fetchInitialData = async () => {
     try {
       setIsLoading(true);
@@ -223,7 +219,6 @@ const Matches = () => {
       setIsLoading(false);
     }
   };
-
   const fetchMatchData = async (status: 'live' | 'today' | 'tomorrow' | 'yesterday') => {
     try {
       const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 15000));
@@ -293,7 +288,6 @@ const Matches = () => {
       }));
     }
   };
-
   const fetchNewsData = async () => {
     try {
       const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 15000));
@@ -336,13 +330,11 @@ const Matches = () => {
       }));
     }
   };
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchInitialData();
     setIsRefreshing(false);
   };
-
   const handleMatchClick = (match: Match) => {
     console.log('الانتقال لتفاصيل المباراة:', match);
     navigate(`/match-details/${match.id}`, {
@@ -352,17 +344,14 @@ const Matches = () => {
       }
     });
   };
-
   const handleNewsClick = (newsItem: NewsItem) => {
     setSelectedNews(newsItem);
   };
-
   const handleNewsUrlClick = (url: string) => {
     if (url && url !== '#') {
       window.open(url, '_blank');
     }
   };
-
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('ar-SA', {
@@ -371,7 +360,6 @@ const Matches = () => {
       hour12: true
     });
   };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ar-SA', {
@@ -379,7 +367,6 @@ const Matches = () => {
       month: 'short'
     });
   };
-
   const getMatchStatus = (status: string) => {
     switch (status) {
       case 'live':
@@ -392,7 +379,6 @@ const Matches = () => {
         return status;
     }
   };
-
   const getTabTitle = (tab: string) => {
     switch (tab) {
       case 'live':
@@ -409,7 +395,6 @@ const Matches = () => {
         return tab;
     }
   };
-
   const getTabIcon = (tab: string) => {
     switch (tab) {
       case 'live':
@@ -426,7 +411,6 @@ const Matches = () => {
         return null;
     }
   };
-
   const getCategoryIcon = (category: CompetitionCategory) => {
     switch (category) {
       case 'arab':
@@ -441,7 +425,6 @@ const Matches = () => {
         return <Filter className="w-4 h-4" />;
     }
   };
-
   const getCategoryName = (category: CompetitionCategory) => {
     switch (category) {
       case 'arab':
@@ -456,7 +439,6 @@ const Matches = () => {
         return 'جميع البطولات';
     }
   };
-
   const AnimatedSoccerBall = ({
     size = "w-8 h-8",
     className = ""
@@ -464,26 +446,20 @@ const Matches = () => {
     size?: string;
     className?: string;
   }) => {
-    return (
-      <div className={`${size} ${className} relative animate-spin`}>
+    return <div className={`${size} ${className} relative animate-spin`}>
         <div className="w-full h-full bg-white rounded-full border-2 border-gray-800 flex items-center justify-center">
           <div className="w-3 h-3 bg-gray-800 rounded-full"></div>
         </div>
-      </div>
-    );
+      </div>;
   };
-
-  const SoccerPlayerAnimation = () => (
-    <div className="flex items-center justify-center py-8">
+  const SoccerPlayerAnimation = () => <div className="flex items-center justify-center py-8">
       <div className="relative">
         <AnimatedSoccerBall size="w-10 h-10" className="animate-pulse" />
         <div className="absolute -right-16 top-0 animate-bounce delay-75">
           
         </div>
       </div>
-    </div>
-  );
-
+    </div>;
   const MatchRow = ({
     match
   }: {
@@ -550,7 +526,6 @@ const Matches = () => {
           </TableCell>
         </>}
     </TableRow>;
-
   const CompetitionSection = ({
     competition,
     matches
@@ -603,7 +578,6 @@ const Matches = () => {
         </AccordionContent>
       </AccordionItem>;
   };
-
   const NewsCard = ({
     newsItem
   }: {
@@ -634,7 +608,6 @@ const Matches = () => {
         </div>
       </div>
     </div>;
-
   const NewsModal = () => {
     if (!selectedNews) return null;
     return <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -678,7 +651,6 @@ const Matches = () => {
         </div>
       </div>;
   };
-
   const EmptyState = ({
     type,
     message
@@ -697,7 +669,6 @@ const Matches = () => {
         يرجى المحاولة لاحقاً أو تحديث الصفحة
       </p>
     </div>;
-
   const currentMatches = allMatches[activeTab as keyof typeof allMatches] || [];
   const isTabLoading = !dataLoaded[activeTab as keyof typeof dataLoaded];
   const currentErrorMessage = errorMessages[activeTab as keyof typeof errorMessages];
@@ -707,7 +678,6 @@ const Matches = () => {
 
   // ترتيب البطولات حسب الأولوية
   const sortedCompetitions = Object.keys(groupedMatches).sort((a, b) => getCompetitionPriority(a) - getCompetitionPriority(b));
-
   if (isLoading) {
     return <Layout>
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20 flex items-center justify-center">
@@ -718,7 +688,6 @@ const Matches = () => {
         </div>
       </Layout>;
   }
-
   return <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20">
         {/* Header */}
@@ -733,9 +702,7 @@ const Matches = () => {
               </div>
               
               <div className="text-center flex-1">
-                <h1 className={`font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2 ${isMobile ? 'text-xl' : 'text-4xl'}`}>
-                  المباريات والأخبار
-                </h1>
+                <h1 className={`font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2 ${isMobile ? 'text-xl' : 'text-4xl'}`}>تابع المباريات مباشر وشاهد الأخبار</h1>
                 <p className={`text-gray-400 ${isMobile ? 'text-sm' : 'text-base'}`}>
                   تابع أحدث المباريات والنتائج والأخبار الرياضية
                 </p>
@@ -861,5 +828,4 @@ const Matches = () => {
       </div>
     </Layout>;
 };
-
 export default Matches;
