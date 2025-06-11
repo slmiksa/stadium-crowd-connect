@@ -267,9 +267,7 @@ const Messages = () => {
   const handleProfileNavigation = async (notification: Notification, event: React.MouseEvent) => {
     event.stopPropagation();
     await markNotificationAsRead(notification.id);
-    
     let userId = null;
-    
     if (notification.type === 'comment' && notification.data?.commenter_id) {
       userId = notification.data.commenter_id;
     } else if (notification.type === 'like' && notification.data?.liker_id) {
@@ -287,7 +285,6 @@ const Messages = () => {
     } else if (notification.type === 'follower_comment' && notification.data?.commenter_id) {
       userId = notification.data.commenter_id;
     }
-    
     if (userId) {
       // التأكد من أنه ليس نفس المستخدم الحالي
       if (userId === user?.id) {
@@ -328,16 +325,13 @@ const Messages = () => {
   const unreadConversationsCount = conversations.filter(c => c.unread).length;
   const unreadNotificationsCount = notifications.filter(n => !n.is_read).length;
   if (!isInitialized || isLoading) {
-    return (
-      <Layout>
+    return <Layout>
         <div className="page-container flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
         </div>
-      </Layout>
-    );
+      </Layout>;
   }
-  return (
-    <Layout>
+  return <Layout>
       <div className="page-container">
         <div className="p-4 h-full overflow-y-auto">
           {/* Header */}
@@ -390,8 +384,8 @@ const Messages = () => {
           {/* Content */}
           <div className="space-y-2">
             {activeTab === 'notifications' ?
-            // Notifications Tab
-            filteredNotifications.length === 0 ? <div className="text-center py-8">
+          // Notifications Tab
+          filteredNotifications.length === 0 ? <div className="text-center py-8">
                     <Bell size={48} className="mx-auto text-zinc-600 mb-4" />
                     <p className="text-zinc-400">
                       {searchQuery ? 'لم يتم العثور على تنبيهات' : 'لا توجد تنبيهات حالياً'}
@@ -401,7 +395,7 @@ const Messages = () => {
                   <div className="flex items-center space-x-3 flex-1">
                     {/* Notification Icon */}
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${notification.type === 'follow' ? 'bg-green-500' : notification.type === 'comment' || notification.type === 'follower_comment' ? 'bg-blue-500' : notification.type === 'like' ? 'bg-red-500' : notification.type === 'message' ? 'bg-purple-500' : notification.type === 'post' ? 'bg-yellow-500' : 'bg-gray-500'}`}>
-                      {notification.type === 'follow' ? <Users size={20} className="text-white" /> : (notification.type === 'comment' || notification.type === 'follower_comment') ? <MessageSquare size={20} className="text-white" /> : <Bell size={20} className="text-white" />}
+                      {notification.type === 'follow' ? <Users size={20} className="text-white" /> : notification.type === 'comment' || notification.type === 'follower_comment' ? <MessageSquare size={20} className="text-white" /> : <Bell size={20} className="text-white" />}
                     </div>
                     
                     {/* Notification Content */}
@@ -463,8 +457,8 @@ const Messages = () => {
                   {!notification.is_read && <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0 ml-2"></div>}
                 </div>
               </div>) :
-            // Messages Tab
-            filteredConversations.length === 0 ? <div className="text-center py-8">
+          // Messages Tab
+          filteredConversations.length === 0 ? <div className="text-center py-8">
                     <MessageSquare size={48} className="mx-auto text-zinc-600 mb-4" />
                     <p className="text-zinc-400">
                       {searchQuery ? 'لم يتم العثور على رسائل' : 'لا توجد رسائل حالياً'}
@@ -508,15 +502,9 @@ const Messages = () => {
           </div>
 
           {/* Floating Action Button - Only show on messages tab */}
-          {activeTab === 'messages' && (
-            <button onClick={() => navigate('/chat-rooms')} className="fixed bottom-24 right-4 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors">
-              <MessageSquare size={24} className="text-white" />
-            </button>
-          )}
+          {activeTab === 'messages'}
         </div>
       </div>
-    </Layout>
-  );
+    </Layout>;
 };
-
 export default Messages;
