@@ -376,7 +376,7 @@ const Messages = () => {
               <div className="flex justify-center">
                 <Button onClick={handleMarkAllNotificationsAsRead} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-lg">
                   <CheckCheck size={20} />
-                  <span className="font-medium">تعليم الكل كمقروء</span>
+                  <span className="font-medium">قراءة الكل</span>
                 </Button>
               </div>
             </div>}
