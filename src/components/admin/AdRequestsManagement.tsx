@@ -1,37 +1,43 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Megaphone, 
-  Eye, 
-  Check, 
-  X, 
-  Phone,
-  Link as LinkIcon,
-  Clock,
-  DollarSign,
-  Calendar,
-  User
+  MessageSquare, 
+  DollarSign, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  Eye,
+  RefreshCw,
+  TrendingUp,
+  Calendar
 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { ar } from 'date-fns/locale';
+import RevenueDetailsModal from './RevenueDetailsModal';
 
 interface AdRequest {
   id: string;
-  user_id: string;
   ad_name: string;
   phone_number: string;
-  ad_link: string | null;
   image_url: string;
+  ad_link: string | null;
   duration_hours: number;
   price: number;
   status: string;
   admin_response: string | null;
   created_at: string;
   updated_at: string;
+  user_id: string;
+  profiles?: {
+    username: string;
+    avatar_url: string;
+  };
 }
 
 interface AdRequestStats {
@@ -43,12 +49,11 @@ interface AdRequestStats {
 }
 
 const AdRequestsManagement = () => {
-  const [requests, setRequests] = useState<AdRequest[]>([]);
   const [stats, setStats] = useState<AdRequestStats | null>(null);
+  const [adRequests, setAdRequests] = useState<AdRequest[]>([]);
+  const [activeTab, setActiveTab] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<AdRequest | null>(null);
-  const [adminResponse, setAdminResponse] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showRevenueDetails, setShowRevenueDetails] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,149 +63,106 @@ const AdRequestsManagement = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching ad requests data...');
       
+      // جلب الإحصائيات
+      const { data: statsData, error: statsError } = await supabase.rpc('get_ad_requests_statistics');
+      if (statsError) {
+        console.error('Error fetching ad requests stats:', statsError);
+      } else if (statsData && statsData.length > 0) {
+        setStats(statsData[0]);
+      }
+
       // جلب طلبات الإعلانات
       const { data: requestsData, error: requestsError } = await supabase
         .from('ad_requests')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id (
+            username,
+            avatar_url
+          )
+        `)
         .order('created_at', { ascending: false });
-
-      console.log('Ad requests response:', { requestsData, requestsError });
 
       if (requestsError) {
         console.error('Error fetching ad requests:', requestsError);
-        toast({
-          title: 'خطأ',
-          description: 'حدث خطأ أثناء جلب طلبات الإعلانات',
-          variant: 'destructive'
-        });
       } else {
-        console.log('Ad requests fetched successfully:', requestsData?.length || 0);
-        setRequests(requestsData || []);
-      }
-
-      // جلب الإحصائيات
-      try {
-        const { data: statsData, error: statsError } = await supabase.rpc('get_ad_requests_statistics');
-        console.log('Stats response:', { statsData, statsError });
-        
-        if (statsError) {
-          console.error('Error fetching stats:', statsError);
-          // حساب الإحصائيات يدوياً إذا فشلت الدالة
-          if (requestsData) {
-            const manualStats = {
-              total_requests: requestsData.length,
-              pending_requests: requestsData.filter(r => r.status === 'pending').length,
-              approved_requests: requestsData.filter(r => r.status === 'approved').length,
-              rejected_requests: requestsData.filter(r => r.status === 'rejected').length,
-              total_revenue: requestsData.filter(r => r.status === 'approved').reduce((sum, r) => sum + r.price, 0)
-            };
-            console.log('Manual stats calculated:', manualStats);
-            setStats(manualStats);
-          }
-        } else if (statsData && statsData.length > 0) {
-          console.log('Stats fetched successfully:', statsData[0]);
-          setStats(statsData[0]);
-        } else {
-          console.log('No stats data returned, calculating manually');
-          // حساب الإحصائيات يدوياً
-          if (requestsData) {
-            const manualStats = {
-              total_requests: requestsData.length,
-              pending_requests: requestsData.filter(r => r.status === 'pending').length,
-              approved_requests: requestsData.filter(r => r.status === 'approved').length,
-              rejected_requests: requestsData.filter(r => r.status === 'rejected').length,
-              total_revenue: requestsData.filter(r => r.status === 'approved').reduce((sum, r) => sum + r.price, 0)
-            };
-            console.log('Manual stats calculated (no RPC data):', manualStats);
-            setStats(manualStats);
-          }
-        }
-      } catch (statsError) {
-        console.error('Stats RPC error:', statsError);
-        // حساب الإحصائيات يدوياً عند حدوث خطأ
-        if (requestsData) {
-          const manualStats = {
-            total_requests: requestsData.length,
-            pending_requests: requestsData.filter(r => r.status === 'pending').length,
-            approved_requests: requestsData.filter(r => r.status === 'approved').length,
-            rejected_requests: requestsData.filter(r => r.status === 'rejected').length,
-            total_revenue: requestsData.filter(r => r.status === 'approved').reduce((sum, r) => sum + r.price, 0)
-          };
-          console.log('Manual stats calculated (RPC exception):', manualStats);
-          setStats(manualStats);
-        }
+        setAdRequests(requestsData || []);
       }
 
     } catch (error) {
-      console.error('Error in fetchData:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء جلب البيانات',
-        variant: 'destructive'
-      });
+      console.error('Error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleStatusUpdate = async (requestId: string, newStatus: string) => {
-    if (!selectedRequest) return;
-
-    setIsSubmitting(true);
+  const updateRequestStatus = async (requestId: string, newStatus: string, adminResponse?: string) => {
     try {
       const { error } = await supabase
         .from('ad_requests')
-        .update({
+        .update({ 
           status: newStatus,
-          admin_response: adminResponse.trim() || null,
+          admin_response: adminResponse || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', requestId);
 
-      if (error) throw error;
-
-      toast({
-        title: 'تم التحديث',
-        description: `تم ${newStatus === 'approved' ? 'قبول' : 'رفض'} الطلب بنجاح`
-      });
-
-      setSelectedRequest(null);
-      setAdminResponse('');
-      await fetchData();
+      if (error) {
+        console.error('Error updating request status:', error);
+        toast({
+          title: 'خطأ',
+          description: 'حدث خطأ أثناء تحديث حالة الطلب',
+          variant: 'destructive'
+        });
+      } else {
+        toast({
+          title: 'تم التحديث',
+          description: `تم ${newStatus === 'approved' ? 'قبول' : 'رفض'} الطلب بنجاح`
+        });
+        fetchData();
+      }
     } catch (error) {
-      console.error('Error updating ad request:', error);
+      console.error('Error:', error);
       toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحديث الطلب',
+        title: 'خطأ غير متوقع',
+        description: 'حدث خطأ غير متوقع',
         variant: 'destructive'
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const getStatusBadge = (status: string) => {
-    const badges = {
-      pending: { text: 'قيد المراجعة', color: 'bg-yellow-500/20 text-yellow-400' },
-      approved: { text: 'مقبول', color: 'bg-green-500/20 text-green-400' },
-      rejected: { text: 'مرفوض', color: 'bg-red-500/20 text-red-400' }
-    };
-    
-    const badge = badges[status as keyof typeof badges] || badges.pending;
-    return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${badge.color}`}>
-        {badge.text}
-      </span>
-    );
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-500/20 text-green-400">موافق عليه</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-500/20 text-red-400">مرفوض</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500/20 text-yellow-400">قيد المراجعة</Badge>;
+      default:
+        return <Badge className="bg-gray-500/20 text-gray-400">{status}</Badge>;
+    }
   };
+
+  const filteredRequests = adRequests.filter(request => {
+    switch (activeTab) {
+      case 'pending':
+        return request.status === 'pending';
+      case 'approved':
+        return request.status === 'approved';
+      case 'rejected':
+        return request.status === 'rejected';
+      default:
+        return true;
+    }
+  });
 
   if (isLoading) {
     return (
       <div className="space-y-4 md:space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6">
+          {[...Array(5)].map((_, i) => (
             <Card key={i} className="bg-zinc-900 border-zinc-800">
               <CardHeader className="animate-pulse pb-2">
                 <div className="h-3 md:h-4 bg-zinc-700 rounded w-3/4"></div>
@@ -213,23 +175,11 @@ const AdRequestsManagement = () => {
     );
   }
 
-  console.log('Rendering AdRequestsManagement with requests:', requests.length);
-
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg md:text-2xl font-bold text-white mb-2">إدارة طلبات الإعلانات</h2>
-          <p className="text-zinc-400 text-sm md:text-base">مراجعة وإدارة طلبات الإعلانات الواردة</p>
-        </div>
-        <Button
-          onClick={fetchData}
-          variant="outline"
-          size="sm"
-          className="text-white border-zinc-700 hover:bg-zinc-800"
-        >
-          تحديث البيانات
-        </Button>
+      <div>
+        <h2 className="text-lg md:text-2xl font-bold text-white mb-2">إدارة طلبات الإعلانات</h2>
+        <p className="text-zinc-400 text-sm md:text-base">مراجعة وإدارة جميع طلبات الإعلانات</p>
       </div>
 
       {/* إحصائيات طلبات الإعلانات */}
@@ -239,7 +189,7 @@ const AdRequestsManagement = () => {
             <CardTitle className="text-xs md:text-sm font-medium text-zinc-400">
               إجمالي الطلبات
             </CardTitle>
-            <Megaphone className="h-3 w-3 md:h-4 md:w-4 text-blue-400" />
+            <MessageSquare className="h-3 w-3 md:h-4 md:w-4 text-blue-400" />
           </CardHeader>
           <CardContent className="p-3 md:p-6 pt-0">
             <div className="text-lg md:text-2xl font-bold text-blue-400">
@@ -265,9 +215,9 @@ const AdRequestsManagement = () => {
         <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
             <CardTitle className="text-xs md:text-sm font-medium text-zinc-400">
-              مقبولة
+              موافق عليها
             </CardTitle>
-            <Check className="h-3 w-3 md:h-4 md:w-4 text-green-400" />
+            <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-green-400" />
           </CardHeader>
           <CardContent className="p-3 md:p-6 pt-0">
             <div className="text-lg md:text-2xl font-bold text-green-400">
@@ -281,7 +231,7 @@ const AdRequestsManagement = () => {
             <CardTitle className="text-xs md:text-sm font-medium text-zinc-400">
               مرفوضة
             </CardTitle>
-            <X className="h-3 w-3 md:h-4 md:w-4 text-red-400" />
+            <XCircle className="h-3 w-3 md:h-4 md:w-4 text-red-400" />
           </CardHeader>
           <CardContent className="p-3 md:p-6 pt-0">
             <div className="text-lg md:text-2xl font-bold text-red-400">
@@ -290,212 +240,156 @@ const AdRequestsManagement = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card 
+          className="bg-zinc-900 border-zinc-800 cursor-pointer hover:bg-zinc-800 transition-colors"
+          onClick={() => setShowRevenueDetails(true)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
             <CardTitle className="text-xs md:text-sm font-medium text-zinc-400">
               إجمالي الإيرادات
             </CardTitle>
-            <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-purple-400" />
+            <div className="flex items-center gap-1">
+              <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-green-400" />
+              <Eye className="h-3 w-3 text-zinc-500" />
+            </div>
           </CardHeader>
           <CardContent className="p-3 md:p-6 pt-0">
-            <div className="text-lg md:text-2xl font-bold text-purple-400">
-              {stats?.total_revenue || 0} ريال
+            <div className="text-lg md:text-2xl font-bold text-green-400">
+              {(stats?.total_revenue || 0).toLocaleString()} ر.س
             </div>
+            <div className="text-xs text-zinc-500 mt-1">انقر لعرض التفاصيل</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* قائمة طلبات الإعلانات */}
+      {/* جدول طلبات الإعلانات */}
       <Card className="bg-zinc-900 border-zinc-800">
-        <CardHeader>
-          <CardTitle className="text-white">طلبات الإعلانات ({requests.length})</CardTitle>
-          <CardDescription className="text-zinc-400">
-            مراجعة جميع طلبات الإعلانات الواردة
-          </CardDescription>
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 md:p-6">
+          <div>
+            <CardTitle className="text-white text-base md:text-lg">طلبات الإعلانات</CardTitle>
+            <CardDescription className="text-zinc-400 text-sm">
+              إدارة ومراجعة جميع طلبات الإعلانات
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchData}
+            disabled={isLoading}
+            className="text-white border-zinc-700 hover:bg-zinc-800 w-full sm:w-auto"
+          >
+            <RefreshCw className={`h-3 w-3 md:h-4 md:w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            تحديث
+          </Button>
         </CardHeader>
-        <CardContent>
-          {requests.length === 0 ? (
-            <div className="text-center py-8">
-              <Megaphone size={48} className="mx-auto text-zinc-600 mb-4" />
-              <p className="text-zinc-400">لا توجد طلبات إعلانات بعد</p>
-              <p className="text-zinc-500 text-sm mt-2">
-                قد تحتاج إلى التحقق من إعدادات قاعدة البيانات أو إضافة طلبات جديدة
-              </p>
+        <CardContent className="p-0">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <div className="px-4 md:px-6">
+              <TabsList className="grid w-full grid-cols-4 bg-zinc-800">
+                <TabsTrigger value="all" className="text-xs md:text-sm">الكل</TabsTrigger>
+                <TabsTrigger value="pending" className="text-xs md:text-sm">قيد المراجعة</TabsTrigger>
+                <TabsTrigger value="approved" className="text-xs md:text-sm">موافق عليها</TabsTrigger>
+                <TabsTrigger value="rejected" className="text-xs md:text-sm">مرفوضة</TabsTrigger>
+              </TabsList>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {requests.map((request) => (
-                <div
-                  key={request.id}
-                  className="flex items-center justify-between p-4 bg-zinc-800 rounded-lg"
-                >
-                  <div className="flex items-center space-x-4 space-x-reverse flex-1">
-                    <div className="w-16 h-16 bg-zinc-700 rounded-lg overflow-hidden flex-shrink-0">
-                      <img
-                        src={request.image_url}
-                        alt={request.ad_name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = '/placeholder.svg';
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-medium truncate">{request.ad_name}</h3>
-                      <div className="flex items-center space-x-4 space-x-reverse text-xs text-zinc-400 mt-1">
-                        <span className="flex items-center">
-                          <Phone className="h-3 w-3 mr-1" />
-                          {request.phone_number}
-                        </span>
-                        <span className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {request.duration_hours === 24 ? 'يوم كامل' : `${request.duration_hours} ساعة`}
-                        </span>
-                        <span className="flex items-center">
-                          <DollarSign className="h-3 w-3 mr-1" />
-                          {request.price} ريال
-                        </span>
-                        <span className="flex items-center">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {new Date(request.created_at).toLocaleDateString('ar')}
-                        </span>
-                      </div>
-                      {request.ad_link && (
-                        <div className="flex items-center text-xs text-blue-400 mt-1">
-                          <LinkIcon className="h-3 w-3 mr-1" />
-                          <a href={request.ad_link} target="_blank" rel="noopener noreferrer" className="hover:underline truncate">
-                            {request.ad_link}
-                          </a>
-                        </div>
-                      )}
-                    </div>
+
+            <TabsContent value={activeTab} className="mt-4">
+              <div className="max-h-[600px] overflow-y-auto">
+                {filteredRequests.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MessageSquare size={48} className="mx-auto text-zinc-600 mb-4" />
+                    <p className="text-zinc-400">لا توجد طلبات في هذه الفئة</p>
                   </div>
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    {getStatusBadge(request.status)}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedRequest(request)}
-                      className="text-zinc-400 hover:text-white"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-zinc-700">
+                        <TableHead className="text-zinc-400">اسم الإعلان</TableHead>
+                        <TableHead className="text-zinc-400">المعلن</TableHead>
+                        <TableHead className="text-zinc-400">المبلغ</TableHead>
+                        <TableHead className="text-zinc-400">المدة</TableHead>
+                        <TableHead className="text-zinc-400">الحالة</TableHead>
+                        <TableHead className="text-zinc-400">التاريخ</TableHead>
+                        <TableHead className="text-zinc-400">الإجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRequests.map((request) => (
+                        <TableRow key={request.id} className="border-zinc-700">
+                          <TableCell className="text-white font-medium">
+                            <div className="flex items-center space-x-3 space-x-reverse">
+                              <img
+                                src={request.image_url}
+                                alt={request.ad_name}
+                                className="w-8 h-8 md:w-10 md:h-10 rounded object-cover"
+                              />
+                              <span className="text-sm md:text-base">{request.ad_name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-zinc-300">
+                            <div>
+                              <div className="font-medium text-sm md:text-base">
+                                {request.profiles?.username || 'مستخدم مجهول'}
+                              </div>
+                              <div className="text-xs md:text-sm text-zinc-500">
+                                {request.phone_number}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-green-400 font-medium text-sm md:text-base">
+                            {request.price.toLocaleString()} ر.س
+                          </TableCell>
+                          <TableCell className="text-zinc-300 text-sm md:text-base">
+                            {request.duration_hours} ساعة
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(request.status)}
+                          </TableCell>
+                          <TableCell className="text-zinc-400 text-xs md:text-sm">
+                            {formatDistanceToNow(new Date(request.created_at), {
+                              addSuffix: true,
+                              locale: ar
+                            })}
+                          </TableCell>
+                          <TableCell>
+                            {request.status === 'pending' && (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-xs"
+                                  onClick={() => updateRequestStatus(request.id, 'approved')}
+                                >
+                                  قبول
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="text-xs"
+                                  onClick={() => updateRequestStatus(request.id, 'rejected')}
+                                >
+                                  رفض
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
-      {/* مودال تفاصيل الطلب */}
-      {selectedRequest && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="bg-zinc-900 border-zinc-800 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <CardTitle className="text-white">تفاصيل طلب الإعلان</CardTitle>
-              <CardDescription className="text-zinc-400">
-                مراجعة وإدارة طلب الإعلان
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-white">اسم الإعلان</Label>
-                  <p className="text-zinc-300 bg-zinc-800 p-2 rounded">{selectedRequest.ad_name}</p>
-                </div>
-                <div>
-                  <Label className="text-white">رقم التواصل</Label>
-                  <p className="text-zinc-300 bg-zinc-800 p-2 rounded">{selectedRequest.phone_number}</p>
-                </div>
-                <div>
-                  <Label className="text-white">المدة</Label>
-                  <p className="text-zinc-300 bg-zinc-800 p-2 rounded">
-                    {selectedRequest.duration_hours === 24 ? 'يوم كامل' : `${selectedRequest.duration_hours} ساعة`}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-white">المبلغ</Label>
-                  <p className="text-zinc-300 bg-zinc-800 p-2 rounded">{selectedRequest.price} ريال</p>
-                </div>
-              </div>
-
-              {selectedRequest.ad_link && (
-                <div>
-                  <Label className="text-white">رابط الإعلان</Label>
-                  <p className="text-blue-400 bg-zinc-800 p-2 rounded truncate">
-                    <a href={selectedRequest.ad_link} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                      {selectedRequest.ad_link}
-                    </a>
-                  </p>
-                </div>
-              )}
-
-              <div>
-                <Label className="text-white">صورة الإعلان</Label>
-                <div className="w-full h-48 bg-zinc-800 rounded overflow-hidden">
-                  <img
-                    src={selectedRequest.image_url}
-                    alt={selectedRequest.ad_name}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              </div>
-
-              {selectedRequest.status === 'pending' && (
-                <div>
-                  <Label className="text-white">رد الإدارة (اختياري)</Label>
-                  <Textarea
-                    value={adminResponse}
-                    onChange={(e) => setAdminResponse(e.target.value)}
-                    className="bg-zinc-800 border-zinc-700 text-white"
-                    placeholder="أضف رد أو ملاحظات للعميل..."
-                    rows={3}
-                  />
-                </div>
-              )}
-
-              {selectedRequest.admin_response && (
-                <div>
-                  <Label className="text-white">رد الإدارة السابق</Label>
-                  <p className="text-zinc-300 bg-zinc-800 p-2 rounded">{selectedRequest.admin_response}</p>
-                </div>
-              )}
-
-              <div className="flex gap-4">
-                {selectedRequest.status === 'pending' && (
-                  <>
-                    <Button
-                      onClick={() => handleStatusUpdate(selectedRequest.id, 'approved')}
-                      disabled={isSubmitting}
-                      className="bg-green-600 hover:bg-green-700 flex-1"
-                    >
-                      <Check className="h-4 w-4 mr-2" />
-                      قبول الطلب
-                    </Button>
-                    <Button
-                      onClick={() => handleStatusUpdate(selectedRequest.id, 'rejected')}
-                      disabled={isSubmitting}
-                      variant="destructive"
-                      className="flex-1"
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      رفض الطلب
-                    </Button>
-                  </>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedRequest(null)}
-                  className="text-white border-zinc-700 hover:bg-zinc-800"
-                >
-                  إغلاق
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* مودال تفاصيل الإيرادات */}
+      <RevenueDetailsModal
+        isOpen={showRevenueDetails}
+        onClose={() => setShowRevenueDetails(false)}
+        adRequests={adRequests}
+        totalRevenue={stats?.total_revenue || 0}
+      />
     </div>
   );
 };
