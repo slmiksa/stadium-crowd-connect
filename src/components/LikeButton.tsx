@@ -127,6 +127,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({
     e.stopPropagation();
     
     if (!user) {
+      console.log('User not logged in');
       return;
     }
 
@@ -166,6 +167,8 @@ const LikeButton: React.FC<LikeButtonProps> = ({
           }
         }
       } else if (commentId) {
+        console.log('Processing comment like for comment:', commentId, 'user:', user.id);
+        
         if (isLiked) {
           // Remove like from comment
           const { error } = await supabase
@@ -178,6 +181,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({
             console.error('Error removing comment like:', error);
             return;
           }
+          console.log('Successfully removed comment like');
         } else {
           // Add like to comment
           const { error } = await supabase
@@ -191,6 +195,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({
             console.error('Error adding comment like:', error);
             return;
           }
+          console.log('Successfully added comment like');
         }
       }
 
@@ -209,12 +214,12 @@ const LikeButton: React.FC<LikeButtonProps> = ({
   return (
     <button
       onClick={handleLike}
-      disabled={isLoading}
+      disabled={isLoading || !user}
       className={`flex items-center space-x-2 space-x-reverse transition-all duration-200 group ${
         isLiked 
           ? 'text-red-500 hover:text-red-600' 
           : 'text-gray-500 hover:text-red-400'
-      } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
+      } ${isLoading || !user ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
     >
       <Heart 
         size={config.icon} 

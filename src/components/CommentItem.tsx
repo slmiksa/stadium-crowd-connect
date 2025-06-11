@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Reply, MoreVertical, Clock, X, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -192,13 +193,16 @@ const CommentItem: React.FC<CommentItemProps> = ({
                   size="sm"
                 />
                 
-                <button
-                  onClick={() => onReply(comment.id, comment.profiles?.username || 'مستخدم مجهول')}
-                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-400 transition-colors group/btn"
-                >
-                  <Reply size={12} className="group-hover/btn:scale-110 transition-transform" />
-                  <span>رد</span>
-                </button>
+                {/* إظهار زر الرد فقط للتعليقات الرئيسية (ليس للردود) */}
+                {!isReply && (
+                  <button
+                    onClick={() => onReply(comment.id, comment.profiles?.username || 'مستخدم مجهول')}
+                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-400 transition-colors group/btn"
+                  >
+                    <Reply size={12} className="group-hover/btn:scale-110 transition-transform" />
+                    <span>رد</span>
+                  </button>
+                )}
               </div>
             </div>
             

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +39,7 @@ export const useNotifications = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [processedNotificationIds, setProcessedNotificationIds] = useState<Set<string>>(new Set());
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -60,8 +60,14 @@ export const useNotifications = () => {
 
       console.log('Fetched notifications:', data);
 
+      // تصفية التنبيهات المكررة بناءً على النوع والبيانات
+      const uniqueNotifications = (data || []).filter((notif, index, array) => {
+        const key = `${notif.type}-${JSON.stringify(notif.data)}-${notif.user_id}`;
+        return array.findIndex(n => `${n.type}-${JSON.stringify(n.data)}-${n.user_id}` === key) === index;
+      });
+
       // تحديث تنبيهات غرف الدردشة في قاعدة البيانات
-      const chatRoomNotifications = (data || []).filter(notif => 
+      const chatRoomNotifications = uniqueNotifications.filter(notif => 
         notif.type === 'chat_room' && !notif.is_read
       );
 
@@ -79,7 +85,7 @@ export const useNotifications = () => {
 
       // جلب تفاصيل المنشورات والتعليقات للتنبيهات
       const enrichedNotifications = await Promise.all(
-        (data || []).map(async (notif) => {
+        uniqueNotifications.map(async (notif) => {
           const notificationData = (notif.data as NotificationData) || {};
           
           const enrichedNotif: Notification = {
@@ -220,7 +226,7 @@ export const useNotifications = () => {
     if (user) {
       fetchNotifications();
       
-      // Subscribe to real-time notifications
+      // Subscribe to real-time notifications مع منع التكرار
       const channel = supabase
         .channel('notifications-realtime')
         .on(
@@ -231,9 +237,17 @@ export const useNotifications = () => {
             table: 'notifications',
             filter: `user_id=eq.${user.id}`
           },
-          () => {
-            console.log('New notification received, refreshing...');
-            fetchNotifications();
+          (payload) => {
+            console.log('New notification received:', payload);
+            const newNotificationId = payload.new?.id;
+            
+            // منع معالجة نفس التنبيه أكثر من مرة
+            if (newNotificationId && !processedNotificationIds.has(newNotificationId)) {
+              setProcessedNotificationIds(prev => new Set([...prev, newNotificationId]));
+              setTimeout(() => {
+                fetchNotifications();
+              }, 500); // تأخير قصير لتجنب التحديثات المتعددة
+            }
           }
         )
         .subscribe();
