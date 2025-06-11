@@ -37,7 +37,7 @@ interface AdRequest {
   profiles?: {
     username: string;
     avatar_url: string;
-  };
+  } | null;
 }
 
 interface AdRequestStats {
@@ -87,7 +87,14 @@ const AdRequestsManagement = () => {
       if (requestsError) {
         console.error('Error fetching ad requests:', requestsError);
       } else {
-        setAdRequests(requestsData || []);
+        // Handle the case where profiles might be null or have errors
+        const processedRequests = (requestsData || []).map(request => ({
+          ...request,
+          profiles: request.profiles && typeof request.profiles === 'object' && 'username' in request.profiles 
+            ? request.profiles 
+            : null
+        }));
+        setAdRequests(processedRequests);
       }
 
     } catch (error) {
