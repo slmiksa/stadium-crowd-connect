@@ -284,6 +284,8 @@ const Messages = () => {
       userId = notification.data.creator_id;
     } else if (notification.type === 'room_invitation' && notification.data?.inviter_id) {
       userId = notification.data.inviter_id;
+    } else if (notification.type === 'follower_comment' && notification.data?.commenter_id) {
+      userId = notification.data.commenter_id;
     }
     
     if (userId) {
@@ -398,8 +400,8 @@ const Messages = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3 flex-1">
                     {/* Notification Icon */}
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${notification.type === 'follow' ? 'bg-green-500' : notification.type === 'comment' ? 'bg-blue-500' : notification.type === 'like' ? 'bg-red-500' : notification.type === 'message' ? 'bg-purple-500' : notification.type === 'post' ? 'bg-yellow-500' : 'bg-gray-500'}`}>
-                      {notification.type === 'follow' ? <Users size={20} className="text-white" /> : notification.type === 'comment' ? <MessageSquare size={20} className="text-white" /> : <Bell size={20} className="text-white" />}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${notification.type === 'follow' ? 'bg-green-500' : notification.type === 'comment' || notification.type === 'follower_comment' ? 'bg-blue-500' : notification.type === 'like' ? 'bg-red-500' : notification.type === 'message' ? 'bg-purple-500' : notification.type === 'post' ? 'bg-yellow-500' : 'bg-gray-500'}`}>
+                      {notification.type === 'follow' ? <Users size={20} className="text-white" /> : (notification.type === 'comment' || notification.type === 'follower_comment') ? <MessageSquare size={20} className="text-white" /> : <Bell size={20} className="text-white" />}
                     </div>
                     
                     {/* Notification Content */}
@@ -428,6 +430,16 @@ const Messages = () => {
                       
                       {/* Action buttons for comment and like notifications */}
                       {(notification.type === 'comment' || notification.type === 'like') && <div className="flex gap-2 mt-2">
+                          <button onClick={e => handlePostNavigation(notification, e)} className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full transition-colors">
+                            المنشور
+                          </button>
+                          <button onClick={e => handleProfileNavigation(notification, e)} className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-full transition-colors">
+                            البروفايل
+                          </button>
+                        </div>}
+                      
+                      {/* Action buttons for follower comment notifications */}
+                      {notification.type === 'follower_comment' && <div className="flex gap-2 mt-2">
                           <button onClick={e => handlePostNavigation(notification, e)} className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full transition-colors">
                             المنشور
                           </button>
@@ -508,3 +520,5 @@ const Messages = () => {
 };
 
 export default Messages;
+
+}
