@@ -89,16 +89,21 @@ const AdRequestsManagement = () => {
       } else {
         // Handle the case where profiles might be null or have errors
         const processedRequests = (requestsData || []).map(request => {
-          // More explicit checking to satisfy TypeScript
+          // Check if profiles is a valid object with username and avatar_url properties
           const hasValidProfile = request.profiles && 
-                                 request.profiles !== null && 
                                  typeof request.profiles === 'object' && 
                                  !Array.isArray(request.profiles) &&
-                                 typeof (request.profiles as any).username === 'string';
+                                 !('error' in request.profiles) &&
+                                 'username' in request.profiles &&
+                                 'avatar_url' in request.profiles &&
+                                 typeof request.profiles.username === 'string';
           
           return {
             ...request,
-            profiles: hasValidProfile ? request.profiles as { username: string; avatar_url: string } : null
+            profiles: hasValidProfile ? {
+              username: request.profiles.username,
+              avatar_url: request.profiles.avatar_url
+            } : null
           };
         });
         setAdRequests(processedRequests);
