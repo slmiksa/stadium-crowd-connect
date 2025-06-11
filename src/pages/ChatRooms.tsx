@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import RoomPasswordModal from '@/components/RoomPasswordModal';
-
 interface ChatRoomWithDetails {
   id: string;
   name: string;
@@ -28,12 +26,19 @@ interface ChatRoomWithDetails {
     user_id: string;
   }>;
 }
-
 const ChatRooms = () => {
-  const { t, isRTL } = useLanguage();
-  const { user, isInitialized } = useAuth();
+  const {
+    t,
+    isRTL
+  } = useLanguage();
+  const {
+    user,
+    isInitialized
+  } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [rooms, setRooms] = useState<ChatRoomWithDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +52,6 @@ const ChatRooms = () => {
     room: null,
     isLoading: false
   });
-
   useEffect(() => {
     if (isInitialized && user) {
       fetchRooms();
@@ -55,26 +59,25 @@ const ChatRooms = () => {
       setIsLoading(false);
     }
   }, [user, isInitialized]);
-
   const fetchRooms = async () => {
     if (!user) {
       setIsLoading(false);
       return;
     }
-
     try {
-      const { data, error } = await supabase
-        .from('chat_rooms')
-        .select(`
+      const {
+        data,
+        error
+      } = await supabase.from('chat_rooms').select(`
           *,
           profiles:owner_id (
             id,
             username,
             avatar_url
           )
-        `)
-        .order('created_at', { ascending: false });
-
+        `).order('created_at', {
+        ascending: false
+      });
       if (error) {
         console.error('Error fetching rooms:', error);
         toast({
@@ -86,22 +89,19 @@ const ChatRooms = () => {
       }
 
       // Get actual member counts for each room
-      const roomsWithCorrectCounts = await Promise.all(
-        (data || []).map(async (room) => {
-          const { count: actualMembersCount } = await supabase
-            .from('room_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('room_id', room.id)
-            .eq('is_banned', false);
-
-          return {
-            ...room,
-            members_count: actualMembersCount || 0,
-            room_members: [] // This is not used in the current UI
-          };
-        })
-      );
-
+      const roomsWithCorrectCounts = await Promise.all((data || []).map(async room => {
+        const {
+          count: actualMembersCount
+        } = await supabase.from('room_members').select('*', {
+          count: 'exact',
+          head: true
+        }).eq('room_id', room.id).eq('is_banned', false);
+        return {
+          ...room,
+          members_count: actualMembersCount || 0,
+          room_members: [] // This is not used in the current UI
+        };
+      }));
       setRooms(roomsWithCorrectCounts);
     } catch (error) {
       console.error('Error:', error);
@@ -114,24 +114,18 @@ const ChatRooms = () => {
       setIsLoading(false);
     }
   };
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchRooms();
     setIsRefreshing(false);
   };
-
   const checkRoomAccess = async (room: ChatRoomWithDetails) => {
     if (!user) return;
 
     // Check if user is already a member
-    const { data: existingMember } = await supabase
-      .from('room_members')
-      .select('id')
-      .eq('room_id', room.id)
-      .eq('user_id', user.id)
-      .single();
-
+    const {
+      data: existingMember
+    } = await supabase.from('room_members').select('id').eq('room_id', room.id).eq('user_id', user.id).single();
     if (existingMember) {
       // User is already a member, go directly to room
       navigate(`/chat-room/${room.id}`);
@@ -150,20 +144,17 @@ const ChatRooms = () => {
       await joinRoom(room.id);
     }
   };
-
   const joinRoom = async (roomId: string) => {
     if (!user) return;
-
     try {
       // Add user as member
-      const { error } = await supabase
-        .from('room_members')
-        .insert({
-          room_id: roomId,
-          user_id: user.id,
-          role: 'member'
-        });
-
+      const {
+        error
+      } = await supabase.from('room_members').insert({
+        room_id: roomId,
+        user_id: user.id,
+        role: 'member'
+      });
       if (error) {
         console.error('Error joining room:', error);
         toast({
@@ -173,7 +164,6 @@ const ChatRooms = () => {
         });
         return;
       }
-
       toast({
         title: "تم الانضمام بنجاح",
         description: "مرحباً بك في الغرفة"
@@ -190,12 +180,12 @@ const ChatRooms = () => {
       });
     }
   };
-
   const handlePasswordSubmit = async (password: string) => {
     if (!passwordModal.room || !user) return;
-
-    setPasswordModal(prev => ({ ...prev, isLoading: true }));
-
+    setPasswordModal(prev => ({
+      ...prev,
+      isLoading: true
+    }));
     try {
       // Check if password is correct
       if (passwordModal.room.password !== password) {
@@ -204,59 +194,54 @@ const ChatRooms = () => {
           description: "يرجى إدخال كلمة السر الصحيحة",
           variant: "destructive"
         });
-        setPasswordModal(prev => ({ ...prev, isLoading: false }));
+        setPasswordModal(prev => ({
+          ...prev,
+          isLoading: false
+        }));
         return;
       }
 
       // Password is correct, join the room
       await joinRoom(passwordModal.room.id);
-      setPasswordModal({ isOpen: false, room: null, isLoading: false });
+      setPasswordModal({
+        isOpen: false,
+        room: null,
+        isLoading: false
+      });
     } catch (error) {
       console.error('Error:', error);
-      setPasswordModal(prev => ({ ...prev, isLoading: false }));
+      setPasswordModal(prev => ({
+        ...prev,
+        isLoading: false
+      }));
     }
   };
-
-  const filteredRooms = rooms.filter(room =>
-    room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
+  const filteredRooms = rooms.filter(room => room.name.toLowerCase().includes(searchQuery.toLowerCase()) || room.description?.toLowerCase().includes(searchQuery.toLowerCase()));
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    
     if (diffMins < 60) return `${diffMins}م`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}س`;
     return `${Math.floor(diffMins / 1440)}ي`;
   };
-
   if (!isInitialized || isLoading) {
-    return (
-      <Layout>
+    return <Layout>
         <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
           <div className="p-6 flex items-center justify-center min-h-64">
             <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
           </div>
         </div>
-      </Layout>
-    );
+      </Layout>;
   }
-
-  return (
-    <Layout>
+  return <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 overflow-y-auto">
         <div className="p-6 pb-32">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-white">غرف الدردشة</h1>
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="p-3 bg-gray-800/50 backdrop-blur-sm rounded-xl hover:bg-gray-700/50 transition-all duration-200 disabled:opacity-50 border border-gray-700/50"
-            >
+            <h1 className="text-3xl font-bold text-white">غرف الدردشة والنقاشات</h1>
+            <button onClick={handleRefresh} disabled={isRefreshing} className="p-3 bg-gray-800/50 backdrop-blur-sm rounded-xl hover:bg-gray-700/50 transition-all duration-200 disabled:opacity-50 border border-gray-700/50">
               <RefreshCw size={20} className={`text-gray-300 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
@@ -266,39 +251,20 @@ const ChatRooms = () => {
             <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
               <Search size={20} className="text-gray-400" />
             </div>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="البحث في الغرف..."
-              className="w-full pr-12 pl-6 py-4 bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500/50 focus:bg-gray-800/70 transition-all duration-200"
-            />
+            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="البحث في الغرف..." className="w-full pr-12 pl-6 py-4 bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500/50 focus:bg-gray-800/70 transition-all duration-200" />
           </div>
 
           {/* Rooms List */}
           <div className="space-y-4 mb-8">
-            {filteredRooms.length === 0 ? (
-              <div className="text-center py-16">
+            {filteredRooms.length === 0 ? <div className="text-center py-16">
                 <div className="bg-gray-800/30 backdrop-blur-sm rounded-3xl p-12 border border-gray-700/30">
                   <Users size={64} className="mx-auto text-gray-600 mb-6" />
                   <p className="text-xl text-gray-400">
-                    {searchQuery 
-                      ? 'لم يتم العثور على غرف'
-                      : 'البرمجة هي المستقبل'
-                    }
+                    {searchQuery ? 'لم يتم العثور على غرف' : 'البرمجة هي المستقبل'}
                   </p>
-                  {!searchQuery && (
-                    <p className="text-gray-500 mt-2">نتشرف بكم جميعاً</p>
-                  )}
+                  {!searchQuery && <p className="text-gray-500 mt-2">نتشرف بكم جميعاً</p>}
                 </div>
-              </div>
-            ) : (
-              filteredRooms.map((room) => (
-                <div 
-                  key={room.id} 
-                  onClick={() => checkRoomAccess(room)}
-                  className="group bg-gray-800/40 backdrop-blur-sm rounded-3xl p-6 hover:bg-gray-800/60 transition-all duration-300 cursor-pointer border border-gray-700/30 hover:border-gray-600/50 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1"
-                >
+              </div> : filteredRooms.map(room => <div key={room.id} onClick={() => checkRoomAccess(room)} className="group bg-gray-800/40 backdrop-blur-sm rounded-3xl p-6 hover:bg-gray-800/60 transition-all duration-300 cursor-pointer border border-gray-700/30 hover:border-gray-600/50 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1">
                   <div className="flex items-center justify-between">
                     {/* Room Info */}
                     <div className="flex-1 min-w-0">
@@ -306,16 +272,12 @@ const ChatRooms = () => {
                         <h3 className="font-bold text-xl text-white group-hover:text-blue-300 transition-colors">
                           {room.name}
                         </h3>
-                        {room.is_private && (
-                          <Lock size={18} className="text-amber-400 flex-shrink-0" />
-                        )}
+                        {room.is_private && <Lock size={18} className="text-amber-400 flex-shrink-0" />}
                       </div>
                       
-                      {room.description && (
-                        <p className="text-gray-400 group-hover:text-gray-300 mb-4 leading-relaxed">
+                      {room.description && <p className="text-gray-400 group-hover:text-gray-300 mb-4 leading-relaxed">
                           {room.description}
-                        </p>
-                      )}
+                        </p>}
                       
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-6 text-sm text-gray-500">
@@ -335,46 +297,29 @@ const ChatRooms = () => {
 
                     {/* Room Avatar */}
                     <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden mr-6 group-hover:scale-110 transition-transform duration-300">
-                      {room.avatar_url ? (
-                        <img 
-                          src={room.avatar_url} 
-                          alt={room.name}
-                          className="w-full h-full object-cover rounded-2xl"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-blue-500/80 to-purple-600/80 rounded-2xl flex items-center justify-center">
+                      {room.avatar_url ? <img src={room.avatar_url} alt={room.name} className="w-full h-full object-cover rounded-2xl" /> : <div className="w-full h-full bg-gradient-to-br from-blue-500/80 to-purple-600/80 rounded-2xl flex items-center justify-center">
                           <span className="text-xl font-bold text-white">
                             {room.name.charAt(0).toUpperCase()}
                           </span>
-                        </div>
-                      )}
+                        </div>}
                     </div>
                   </div>
-                </div>
-              ))
-            )}
+                </div>)}
           </div>
 
           {/* Floating Action Button */}
-          <button 
-            onClick={() => navigate('/create-chat-room')}
-            className="fixed bottom-28 left-6 w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-2xl hover:shadow-blue-500/25 hover:scale-110 transition-all duration-300 border border-blue-400/30"
-          >
+          <button onClick={() => navigate('/create-chat-room')} className="fixed bottom-28 left-6 w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-2xl hover:shadow-blue-500/25 hover:scale-110 transition-all duration-300 border border-blue-400/30">
             <Plus size={28} className="text-white" />
           </button>
         </div>
       </div>
 
       {/* Password Modal */}
-      <RoomPasswordModal
-        isOpen={passwordModal.isOpen}
-        onClose={() => setPasswordModal({ isOpen: false, room: null, isLoading: false })}
-        roomName={passwordModal.room?.name || ''}
-        onPasswordSubmit={handlePasswordSubmit}
-        isLoading={passwordModal.isLoading}
-      />
-    </Layout>
-  );
+      <RoomPasswordModal isOpen={passwordModal.isOpen} onClose={() => setPasswordModal({
+      isOpen: false,
+      room: null,
+      isLoading: false
+    })} roomName={passwordModal.room?.name || ''} onPasswordSubmit={handlePasswordSubmit} isLoading={passwordModal.isLoading} />
+    </Layout>;
 };
-
 export default ChatRooms;
