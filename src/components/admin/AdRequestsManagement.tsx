@@ -90,7 +90,10 @@ const AdRequestsManagement = () => {
         // Handle the case where profiles might be null or have errors
         const processedRequests = (requestsData || []).map(request => ({
           ...request,
-          profiles: request.profiles && typeof request.profiles === 'object' && 'username' in request.profiles 
+          profiles: request.profiles && 
+                   request.profiles !== null && 
+                   typeof request.profiles === 'object' && 
+                   'username' in request.profiles 
             ? request.profiles 
             : null
         }));
