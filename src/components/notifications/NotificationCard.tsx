@@ -302,7 +302,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
               </div>
             )}
 
-            {/* Comment notifications - show both profile and post buttons */}
+            {/* Comment and follower_comment notifications - show both profile and post buttons */}
             {(notification.type === 'comment' || notification.type === 'follower_comment') && (
               <div className="flex flex-col gap-2 w-full">
                 <Button
