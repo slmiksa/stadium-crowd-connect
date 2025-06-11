@@ -702,7 +702,7 @@ const Matches = () => {
               </div>
               
               <div className="text-center flex-1">
-                <h1 className={`font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2 ${isMobile ? 'text-xl' : 'text-4xl'}`}>تابع المباريات مباشر وشاهد الأخبار</h1>
+                <h1 className={`font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2 ${isMobile ? 'text-xl' : 'text-4xl'}`}>مباريات مباشرة - أخبار</h1>
                 <p className={`text-gray-400 ${isMobile ? 'text-sm' : 'text-base'}`}>
                   تابع أحدث المباريات والنتائج والأخبار الرياضية
                 </p>
