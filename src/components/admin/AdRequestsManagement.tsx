@@ -88,15 +88,19 @@ const AdRequestsManagement = () => {
         console.error('Error fetching ad requests:', requestsError);
       } else {
         // Handle the case where profiles might be null or have errors
-        const processedRequests = (requestsData || []).map(request => ({
-          ...request,
-          profiles: request.profiles && 
-                   request.profiles !== null && 
-                   typeof request.profiles === 'object' && 
-                   'username' in request.profiles 
-            ? request.profiles 
-            : null
-        }));
+        const processedRequests = (requestsData || []).map(request => {
+          // More explicit checking to satisfy TypeScript
+          const hasValidProfile = request.profiles && 
+                                 request.profiles !== null && 
+                                 typeof request.profiles === 'object' && 
+                                 !Array.isArray(request.profiles) &&
+                                 typeof (request.profiles as any).username === 'string';
+          
+          return {
+            ...request,
+            profiles: hasValidProfile ? request.profiles as { username: string; avatar_url: string } : null
+          };
+        });
         setAdRequests(processedRequests);
       }
 
