@@ -10,7 +10,6 @@ import HashtagPost from '@/components/HashtagPost';
 import InlineAd from '@/components/InlineAd';
 import AdPopup from '@/components/AdPopup';
 import Layout from '@/components/Layout';
-
 interface HashtagTrend {
   hashtag: string;
   posts_count: number;
@@ -32,7 +31,6 @@ interface Post {
     verification_status?: string;
   };
 }
-
 const Hashtags = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('trending');
@@ -46,36 +44,35 @@ const Hashtags = () => {
 
   // View states for showing limited/all items
   const [showAllRecentHashtags, setShowAllRecentHashtags] = useState(false);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     fetchTrendingHashtags();
     fetchRecentHashtags();
     fetchAllPosts();
   }, []);
-
   const fetchTrendingHashtags = async () => {
     try {
       // الحصول على الهاشتاقات التي لديها 35+ منشور في آخر 24 ساعة
       const oneDayAgo = new Date();
       oneDayAgo.setHours(oneDayAgo.getHours() - 24);
-
       console.log('Fetching trending hashtags with 35+ posts in last 24 hours');
 
       // جلب المنشورات من آخر 24 ساعة وحساب الهاشتاقات
-      const { data: recentPosts, error: postsError } = await supabase
-        .from('hashtag_posts')
-        .select('hashtags, created_at')
-        .gte('created_at', oneDayAgo.toISOString());
-
+      const {
+        data: recentPosts,
+        error: postsError
+      } = await supabase.from('hashtag_posts').select('hashtags, created_at').gte('created_at', oneDayAgo.toISOString());
       if (postsError) {
         console.error('Error fetching recent posts:', postsError);
         return;
       }
 
       // حساب عدد المنشورات لكل هاشتاق في آخر 24 ساعة
-      const hashtagCounts: { [key: string]: number } = {};
-      
+      const hashtagCounts: {
+        [key: string]: number;
+      } = {};
       recentPosts?.forEach(post => {
         post.hashtags?.forEach((hashtag: string) => {
           hashtagCounts[hashtag] = (hashtagCounts[hashtag] || 0) + 1;
@@ -83,19 +80,13 @@ const Hashtags = () => {
       });
 
       // فلترة الهاشتاقات التي تحتوي على 35+ منشور
-      const trendingData = Object.entries(hashtagCounts)
-        .filter(([hashtag, count]) => count >= 35)
-        .map(([hashtag, count]) => ({
-          hashtag,
-          posts_count: count,
-          trend_score: count // يمكن تطوير هذا لاحقاً
-        }))
-        .sort((a, b) => b.posts_count - a.posts_count)
-        .slice(0, 10);
-
+      const trendingData = Object.entries(hashtagCounts).filter(([hashtag, count]) => count >= 35).map(([hashtag, count]) => ({
+        hashtag,
+        posts_count: count,
+        trend_score: count // يمكن تطوير هذا لاحقاً
+      })).sort((a, b) => b.posts_count - a.posts_count).slice(0, 10);
       console.log('Trending hashtags found:', trendingData);
       setTrendingHashtags(trendingData);
-      
       if (trendingData.length > 0) {
         await fetchTrendingPosts(trendingData.map(h => h.hashtag));
       } else {
@@ -105,10 +96,12 @@ const Hashtags = () => {
       console.error('Error:', error);
     }
   };
-
   const fetchRecentHashtags = async () => {
     try {
-      const { data, error } = await supabase.from('hashtag_trends').select('hashtag, posts_count, trend_score').order('updated_at', {
+      const {
+        data,
+        error
+      } = await supabase.from('hashtag_trends').select('hashtag, posts_count, trend_score').order('updated_at', {
         ascending: false
       }).limit(15);
       if (error) {
@@ -121,11 +114,13 @@ const Hashtags = () => {
       console.error('Error:', error);
     }
   };
-
   const fetchTrendingPosts = async (hashtags: string[]) => {
     if (hashtags.length === 0) return;
     try {
-      const { data, error } = await supabase.from('hashtag_posts').select(`
+      const {
+        data,
+        error
+      } = await supabase.from('hashtag_posts').select(`
           id,
           content,
           image_url,
@@ -152,10 +147,12 @@ const Hashtags = () => {
       console.error('Error:', error);
     }
   };
-
   const fetchRecentPosts = async () => {
     try {
-      const { data, error } = await supabase.from('hashtag_posts').select(`
+      const {
+        data,
+        error
+      } = await supabase.from('hashtag_posts').select(`
           id,
           content,
           image_url,
@@ -182,11 +179,13 @@ const Hashtags = () => {
       console.error('Error:', error);
     }
   };
-
   const fetchAllPosts = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase.from('hashtag_posts').select(`
+      const {
+        data,
+        error
+      } = await supabase.from('hashtag_posts').select(`
           id,
           content,
           image_url,
@@ -220,7 +219,6 @@ const Hashtags = () => {
       setIsLoading(false);
     }
   };
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -239,7 +237,6 @@ const Hashtags = () => {
       setIsRefreshing(false);
     }
   };
-
   const handleHashtagClick = (hashtag: string) => {
     navigate(`/hashtag/${hashtag}`);
   };
@@ -248,9 +245,7 @@ const Hashtags = () => {
   const getDisplayedRecentHashtags = () => {
     return showAllRecentHashtags ? recentHashtags.slice(0, 50) : recentHashtags.slice(0, 5);
   };
-
-  return (
-    <Layout>
+  return <Layout>
       <div className="min-h-screen bg-zinc-900">
         <AdPopup />
         
@@ -299,8 +294,7 @@ const Hashtags = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="p-4 space-y-6">
               <TabsContent value="trending" className="space-y-6 mt-0">
-                {trendingHashtags.length > 0 && (
-                  <Card className="bg-zinc-900 border-zinc-800">
+                {trendingHashtags.length > 0 && <Card className="bg-zinc-900 border-zinc-800">
                     <CardHeader>
                       <CardTitle className="text-white flex items-center">
                         <TrendingUp className="h-5 w-5 mr-2 text-orange-400" />
@@ -312,12 +306,7 @@ const Hashtags = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {trendingHashtags.map(hashtag => (
-                          <div 
-                            key={hashtag.hashtag} 
-                            onClick={() => handleHashtagClick(hashtag.hashtag)} 
-                            className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer"
-                          >
+                        {trendingHashtags.map(hashtag => <div key={hashtag.hashtag} onClick={() => handleHashtagClick(hashtag.hashtag)} className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer">
                             <div className="flex items-center space-x-2 space-x-reverse">
                               <Hash className="h-4 w-4 text-orange-400" />
                               <span className="text-white text-sm font-medium truncate">
@@ -328,27 +317,22 @@ const Hashtags = () => {
                               <span>{hashtag.posts_count} منشور</span>
                               <span className="text-orange-400">🔥</span>
                             </div>
-                          </div>
-                        ))}
+                          </div>)}
                       </div>
                     </CardContent>
-                  </Card>
-                )}
+                  </Card>}
 
-                {trendingHashtags.length === 0 && (
-                  <Card className="bg-zinc-900 border-zinc-800">
+                {trendingHashtags.length === 0 && <Card className="bg-zinc-900 border-zinc-800">
                     <CardContent className="text-center py-8">
                       <TrendingUp size={48} className="mx-auto text-zinc-600 mb-4" />
                       <p className="text-zinc-400">لا توجد هاشتاقات ترند حالياً</p>
-                      <p className="text-zinc-500 text-sm mt-2">الهاشتاقات التي تحصل على 35+ منشور في آخر 24 ساعة تظهر هنا</p>
+                      <p className="text-zinc-500 text-sm mt-2">الهاشتاقات التي تحصل على تفاعل في آخر 24 ساعة تظهر هنا</p>
                     </CardContent>
-                  </Card>
-                )}
+                  </Card>}
                 
                 <InlineAd location="trending" className="my-6" />
                 
-                {trendingPosts.length > 0 && (
-                  <Card className="bg-zinc-900 border-zinc-800">
+                {trendingPosts.length > 0 && <Card className="bg-zinc-900 border-zinc-800">
                     <CardHeader>
                       <CardTitle className="text-white flex items-center">
                         <TrendingUp className="h-5 w-5 mr-2 text-orange-400" />
@@ -359,20 +343,16 @@ const Hashtags = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {trendingPosts.map((post, index) => (
-                        <React.Fragment key={post.id}>
+                      {trendingPosts.map((post, index) => <React.Fragment key={post.id}>
                           <HashtagPost post={post} />
                           {(index + 1) % 3 === 0 && <InlineAd location="trending-posts" />}
-                        </React.Fragment>
-                      ))}
+                        </React.Fragment>)}
                     </CardContent>
-                  </Card>
-                )}
+                  </Card>}
               </TabsContent>
 
               <TabsContent value="recent" className="space-y-6 mt-0">
-                {recentHashtags.length > 0 && (
-                  <Card className="bg-zinc-900 border-zinc-800">
+                {recentHashtags.length > 0 && <Card className="bg-zinc-900 border-zinc-800">
                     <CardHeader>
                       <CardTitle className="text-white flex items-center justify-between">
                         <div className="flex items-center">
@@ -389,8 +369,7 @@ const Hashtags = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                        {getDisplayedRecentHashtags().map(hashtag => (
-                          <div key={hashtag.hashtag} onClick={() => handleHashtagClick(hashtag.hashtag)} className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer">
+                        {getDisplayedRecentHashtags().map(hashtag => <div key={hashtag.hashtag} onClick={() => handleHashtagClick(hashtag.hashtag)} className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer">
                             <div className="flex items-center space-x-2 space-x-reverse">
                               <Hash className="h-4 w-4 text-blue-400" />
                               <span className="text-white text-sm font-medium truncate">
@@ -400,17 +379,14 @@ const Hashtags = () => {
                             <div className="text-xs text-zinc-400 mt-1">
                               {hashtag.posts_count} منشور
                             </div>
-                          </div>
-                        ))}
+                          </div>)}
                       </div>
                     </CardContent>
-                  </Card>
-                )}
+                  </Card>}
                 
                 <InlineAd location="recent" className="my-6" />
                 
-                {recentPosts.length > 0 && (
-                  <Card className="bg-zinc-900 border-zinc-800">
+                {recentPosts.length > 0 && <Card className="bg-zinc-900 border-zinc-800">
                     <CardHeader>
                       <CardTitle className="text-white flex items-center">
                         <Clock className="h-5 w-5 mr-2 text-blue-400" />
@@ -421,22 +397,18 @@ const Hashtags = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {recentPosts.map((post, index) => (
-                        <React.Fragment key={post.id}>
+                      {recentPosts.map((post, index) => <React.Fragment key={post.id}>
                           <HashtagPost post={post} />
                           {(index + 1) % 4 === 0 && <InlineAd location="recent-posts" />}
-                        </React.Fragment>
-                      ))}
+                        </React.Fragment>)}
                     </CardContent>
-                  </Card>
-                )}
+                  </Card>}
               </TabsContent>
 
               <TabsContent value="all" className="space-y-6 mt-0">
                 <InlineAd location="all-posts" className="my-6" />
                 
-                {allPosts.length > 0 ? (
-                  <Card className="bg-zinc-900 border-zinc-800">
+                {allPosts.length > 0 ? <Card className="bg-zinc-900 border-zinc-800">
                     <CardHeader>
                       <CardTitle className="text-white flex items-center">
                         <Hash className="h-5 w-5 mr-2 text-green-400" />
@@ -447,29 +419,22 @@ const Hashtags = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {allPosts.map((post, index) => (
-                        <React.Fragment key={post.id}>
+                      {allPosts.map((post, index) => <React.Fragment key={post.id}>
                           <HashtagPost post={post} />
                           {(index + 1) % 5 === 0 && <InlineAd location="all-posts-list" />}
-                        </React.Fragment>
-                      ))}
+                        </React.Fragment>)}
                     </CardContent>
-                  </Card>
-                ) : (
-                  <Card className="bg-zinc-900 border-zinc-800">
+                  </Card> : <Card className="bg-zinc-900 border-zinc-800">
                     <CardContent className="text-center py-8">
                       <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
                       <p className="text-zinc-400">لا توجد منشورات بعد</p>
                     </CardContent>
-                  </Card>
-                )}
+                  </Card>}
               </TabsContent>
             </div>
           </Tabs>
         </div>
       </div>
-    </Layout>
-  );
+    </Layout>;
 };
-
 export default Hashtags;
