@@ -21,11 +21,13 @@ interface NotificationData {
   avatar_url?: string;
   invitation_id?: string;
   inviter_id?: string;
+  sharer_id?: string;
+  share_type?: string;
 }
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation';
+  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation' | 'post_share';
   title: string;
   message: string;
   is_read: boolean;
@@ -60,13 +62,11 @@ export const useNotifications = () => {
 
       console.log('Fetched notifications:', data);
 
-      // تصفية التنبيهات المكررة بناءً على النوع والبيانات
       const uniqueNotifications = (data || []).filter((notif, index, array) => {
         const key = `${notif.type}-${JSON.stringify(notif.data)}-${notif.user_id}`;
         return array.findIndex(n => `${n.type}-${JSON.stringify(n.data)}-${n.user_id}` === key) === index;
       });
 
-      // تحديث تنبيهات غرف الدردشة في قاعدة البيانات
       const chatRoomNotifications = uniqueNotifications.filter(notif => 
         notif.type === 'chat_room' && !notif.is_read
       );
@@ -83,14 +83,13 @@ export const useNotifications = () => {
         }
       }
 
-      // جلب تفاصيل المنشورات والتعليقات للتنبيهات
       const enrichedNotifications = await Promise.all(
         uniqueNotifications.map(async (notif) => {
           const notificationData = (notif.data as NotificationData) || {};
           
           const enrichedNotif: Notification = {
             id: notif.id,
-            type: notif.type as 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation',
+            type: notif.type as 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation' | 'post_share',
             title: notif.title,
             message: notif.type === 'room_invitation' ? 'تم دعوتكم لغرفة دردشة خاصة - للدخول من خلال بروفايلكم الخاص' : notif.message,
             is_read: notif.type === 'chat_room' ? true : (notif.is_read ?? false),
@@ -98,17 +97,14 @@ export const useNotifications = () => {
             data: notificationData
           };
 
-          // إذا كان التنبيه عن تعليق، جلب تفاصيل المنشور والتعليق
           if ((notif.type === 'comment' || notif.type === 'follower_comment') && notificationData.post_id && notificationData.comment_id) {
             try {
-              // جلب تفاصيل المنشور
               const { data: postData } = await supabase
                 .from('hashtag_posts')
                 .select('content')
                 .eq('id', notificationData.post_id)
                 .single();
 
-              // جلب تفاصيل التعليق
               const { data: commentData } = await supabase
                 .from('hashtag_comments')
                 .select('content')
@@ -122,8 +118,7 @@ export const useNotifications = () => {
             }
           }
 
-          // إذا كان التنبيه عن إعجاب أو منشور جديد، جلب تفاصيل المنشور
-          if ((notif.type === 'like' || notif.type === 'post') && notificationData.post_id) {
+          if ((notif.type === 'like' || notif.type === 'post' || notif.type === 'post_share') && notificationData.post_id) {
             try {
               const { data: postData } = await supabase
                 .from('hashtag_posts')
@@ -190,7 +185,6 @@ export const useNotifications = () => {
 
   const acceptRoomInvitation = async (invitationId: string, roomId: string) => {
     try {
-      // Update invitation status
       const { error: invitationError } = await supabase
         .from('room_invitations')
         .update({ status: 'accepted' })
@@ -201,7 +195,6 @@ export const useNotifications = () => {
         return false;
       }
 
-      // Add user to room members
       const { error: memberError } = await supabase
         .from('room_members')
         .insert({
@@ -226,7 +219,6 @@ export const useNotifications = () => {
     if (user) {
       fetchNotifications();
       
-      // Subscribe to real-time notifications مع منع التكرار
       const channel = supabase
         .channel('notifications-realtime')
         .on(
@@ -241,12 +233,11 @@ export const useNotifications = () => {
             console.log('New notification received:', payload);
             const newNotificationId = payload.new?.id;
             
-            // منع معالجة نفس التنبيه أكثر من مرة
             if (newNotificationId && !processedNotificationIds.has(newNotificationId)) {
               setProcessedNotificationIds(prev => new Set([...prev, newNotificationId]));
               setTimeout(() => {
                 fetchNotifications();
-              }, 500); // تأخير قصير لتجنب التحديثات المتعددة
+              }, 500);
             }
           }
         )

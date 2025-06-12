@@ -21,11 +21,13 @@ interface NotificationData {
   invitation_id?: string;
   inviter_id?: string;
   room_password?: string;
+  sharer_id?: string;
+  share_type?: string;
 }
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation';
+  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation' | 'post_share';
   title: string;
   message: string;
   is_read: boolean;
@@ -61,6 +63,8 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
       userId = notification.data?.inviter_id;
     } else if (notification.type === 'message') {
       userId = notification.data?.sender_id;
+    } else if (notification.type === 'post_share') {
+      userId = notification.data?.sharer_id;
     }
 
     if (userId) {
@@ -120,7 +124,7 @@ export const useNotificationHandlers = (markAsRead: (id: string) => void) => {
       await markAsRead(notification.id);
     }
 
-    if (notification.type === 'comment' || notification.type === 'like' || notification.type === 'post' || notification.type === 'follower_comment') {
+    if (notification.type === 'comment' || notification.type === 'like' || notification.type === 'post' || notification.type === 'follower_comment' || notification.type === 'post_share') {
       if (notification.data?.post_id) {
         console.log('Navigating to post:', notification.data.post_id);
         navigate(`/post-details/${notification.data.post_id}`);

@@ -381,6 +381,7 @@ export type Database = {
           id: string
           image_url: string | null
           likes_count: number | null
+          shares_count: number | null
           updated_at: string | null
           user_id: string
         }
@@ -392,6 +393,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           likes_count?: number | null
+          shares_count?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -403,6 +405,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           likes_count?: number | null
+          shares_count?: number | null
           updated_at?: string | null
           user_id?: string
         }
@@ -483,6 +486,38 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_shares: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          shared_to: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          shared_to: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          shared_to?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_shares_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "hashtag_posts"
             referencedColumns: ["id"]
           },
         ]

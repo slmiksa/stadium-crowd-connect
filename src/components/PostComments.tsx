@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,7 +48,6 @@ const PostComments: React.FC<PostCommentsProps> = ({
     if (isOpen) {
       fetchComments();
       
-      // إعداد الاشتراك في التحديثات الفورية للتعليقات
       const commentsChannel = supabase
         .channel(`post-comments-${postId}`)
         .on(
@@ -59,7 +59,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
           },
           (payload) => {
             console.log('Real-time comment update:', payload);
-            fetchComments(); // إعادة جلب التعليقات عند أي تغيير
+            fetchComments();
           }
         )
         .subscribe();
@@ -130,27 +130,6 @@ const PostComments: React.FC<PostCommentsProps> = ({
     }
   };
 
-  const uploadMedia = async (file: File, type: string) => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `comment-media/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('hashtag-images')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      console.error('Error uploading media:', uploadError);
-      return null;
-    }
-
-    const { data } = supabase.storage
-      .from('hashtag-images')
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
-  };
-
   const updateCommentsCount = async () => {
     try {
       const { data: allComments, error } = await supabase
@@ -182,24 +161,21 @@ const PostComments: React.FC<PostCommentsProps> = ({
     console.log('=== EXTRACTING HASHTAGS ===');
     console.log('Input text:', text);
     
-    // إزالة الأسطر الفارغة والمسافات الزائدة
     const cleanText = text.replace(/\s+/g, ' ').trim();
     console.log('Clean text:', cleanText);
     
-    // البحث عن الهاشتاقات بنمط محسن يدعم العربية والإنجليزية
     const hashtagRegex = /#([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\w\d_]+)/g;
     const matches = [];
     let match;
     
     while ((match = hashtagRegex.exec(cleanText)) !== null) {
-      matches.push(match[0]); // الهاشتاق كاملاً مع #
+      matches.push(match[0]);
     }
     
     console.log('Regex matches:', matches);
     
-    // استخراج النص بدون رمز #
     const hashtags = matches.map(tag => {
-      const cleanTag = tag.slice(1); // إزالة رمز #
+      const cleanTag = tag.slice(1);
       console.log('Processing hashtag:', tag, '-> clean:', cleanTag);
       return cleanTag;
     });
@@ -232,17 +208,36 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
       if (mediaFile && mediaType) {
         console.log('Uploading media...');
+        
+        // إنشاء bucket إذا لم يكن موجوداً
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const bucketExists = buckets?.some(bucket => bucket.name === 'hashtag-images');
+        
+        if (!bucketExists) {
+          const { error: bucketError } = await supabase.storage.createBucket('hashtag-images', {
+            public: true,
+            allowedMimeTypes: ['image/*', 'video/*']
+          });
+          
+          if (bucketError) {
+            console.error('Error creating bucket:', bucketError);
+          }
+        }
+
         const fileExt = mediaFile.name.split('.').pop();
-        const fileName = `comment-${Date.now()}.${fileExt}`;
+        const fileName = `comment-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `comment-media/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('hashtag-images')
-          .upload(filePath, mediaFile);
+          .upload(filePath, mediaFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
         if (uploadError) {
           console.error('Error uploading media:', uploadError);
-          throw new Error('فشل في رفع الملف');
+          throw new Error('فشل في رفع الملف: ' + uploadError.message);
         }
 
         const { data } = supabase.storage
@@ -253,34 +248,33 @@ const PostComments: React.FC<PostCommentsProps> = ({
         console.log('Media uploaded successfully:', mediaUrl);
       }
 
-      // استخراج الهاشتاقات من النص
       const hashtags = extractHashtags(content);
       console.log('=== HASHTAGS FOR DATABASE ===');
       console.log('Extracted hashtags array:', hashtags);
 
-      // إعداد بيانات التعليق
       const commentData: any = {
         post_id: postId,
         user_id: user.id,
         content: content.trim(),
-        hashtags: hashtags // مصفوفة الهاشتاقات
+        hashtags: hashtags
       };
 
-      // إضافة parent_id إذا كان رد على تعليق
       if (replyTo) {
         commentData.parent_id = replyTo.id;
       }
 
-      // إضافة حقول الوسائط
       if (mediaUrl && mediaType) {
         commentData.media_url = mediaUrl;
         commentData.media_type = mediaType;
+        // للتوافق مع النظام القديم
+        if (mediaType.startsWith('image/')) {
+          commentData.image_url = mediaUrl;
+        }
       }
 
       console.log('=== FINAL COMMENT DATA ===');
       console.log('Data to insert:', JSON.stringify(commentData, null, 2));
 
-      // إدراج التعليق في قاعدة البيانات
       const { data: insertData, error: insertError } = await supabase
         .from('hashtag_comments')
         .insert(commentData)
@@ -296,13 +290,11 @@ const PostComments: React.FC<PostCommentsProps> = ({
       console.log('=== INSERT SUCCESS ===');
       console.log('Inserted data:', insertData);
 
-      // التحقق من الحفظ
       if (insertData) {
         console.log('=== VERIFICATION ===');
         console.log('Saved comment ID:', insertData.id);
         console.log('Saved hashtags:', insertData.hashtags);
 
-        // إضافة التعليق الجديد للقائمة مع profile
         const newComment: Comment = {
           ...insertData,
           profiles: {
@@ -316,15 +308,12 @@ const PostComments: React.FC<PostCommentsProps> = ({
         onCommentAdded();
       }
 
-      // مسح حالة الرد
       setReplyTo(null);
-      
-      // تحديث عداد التعليقات
       await updateCommentsCount();
       
       console.log('=== COMMENT SUBMISSION COMPLETED ===');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('=== SUBMISSION FAILED ===');
       console.error('Error:', error);
       alert(error.message || 'حدث خطأ أثناء إضافة التعليق');
@@ -376,7 +365,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
           </button>
         </div>
 
-        {/* Comment Input - Now at the top */}
+        {/* Comment Input */}
         <div className="bg-gray-800/98 backdrop-blur-lg border-b border-gray-700/50 flex-shrink-0">
           <div className="p-4">
             <CommentInput
@@ -389,7 +378,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
           </div>
         </div>
 
-        {/* Comments List - Now takes remaining space */}
+        {/* Comments List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
           {isLoading ? (
             <div className="flex justify-center py-12">

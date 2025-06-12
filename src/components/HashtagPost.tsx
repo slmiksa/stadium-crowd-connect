@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, MoreVertical, Share2 } from 'lucide-react';
@@ -15,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import VerificationBadge from './VerificationBadge';
 import ReportButton from './ReportButton';
 import LikeButton from './LikeButton';
+import PostShareModal from './PostShareModal';
 
 interface HashtagPostProps {
   post: {
@@ -25,6 +27,7 @@ interface HashtagPostProps {
     created_at: string;
     likes_count: number;
     comments_count: number;
+    shares_count?: number;
     user_id: string;
     profiles?: {
       id: string;
@@ -42,10 +45,10 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, showComments = true, on
   const { user } = useAuth();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const handleUserClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // استخدام user_id من المنشور إذا لم تكن profiles متوفرة
     const userId = post.profiles?.id || post.user_id;
     if (userId) {
       if (userId === user?.id) {
@@ -102,13 +105,15 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, showComments = true, on
     }
   };
 
-  const handleShare = async () => {
+  const handleQuickShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const shareUrl = `${window.location.origin}/post-details/${post.id}`;
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'شاهد هذا المنشور',
+          title: `منشور من ${post.profiles?.username || 'مستخدم مجهول'}`,
+          text: post.content.slice(0, 100) + (post.content.length > 100 ? '...' : ''),
           url: shareUrl,
         });
       } catch (error) {
@@ -145,133 +150,153 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, showComments = true, on
   };
 
   return (
-    <div 
-      className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors"
-      onClick={handlePostClick}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div 
-          className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-zinc-800 rounded-lg p-1 -m-1 transition-colors"
-          onClick={handleUserClick}
-        >
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={post.profiles?.avatar_url} />
-            <AvatarFallback className="bg-purple-600 text-white">
-              {post.profiles?.username?.charAt(0)?.toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex items-center space-x-2 space-x-reverse">
-            <span className="font-medium text-white">
-              {post.profiles?.username || 'مستخدم مجهول'}
-            </span>
-            <VerificationBadge verificationStatus={post.profiles?.verification_status} />
-            <span className="text-zinc-400 text-sm">
-              {formatTimeAgo(post.created_at)}
-            </span>
+    <>
+      <div 
+        className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors"
+        onClick={handlePostClick}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          <div 
+            className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-zinc-800 rounded-lg p-1 -m-1 transition-colors"
+            onClick={handleUserClick}
+          >
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={post.profiles?.avatar_url} />
+              <AvatarFallback className="bg-purple-600 text-white">
+                {post.profiles?.username?.charAt(0)?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <span className="font-medium text-white">
+                {post.profiles?.username || 'مستخدم مجهول'}
+              </span>
+              <VerificationBadge verificationStatus={post.profiles?.verification_status} />
+              <span className="text-zinc-400 text-sm">
+                {formatTimeAgo(post.created_at)}
+              </span>
+            </div>
           </div>
-        </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-zinc-400 hover:text-white"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-zinc-400 hover:text-white"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              className="bg-zinc-800 border-zinc-700"
               onClick={(e) => e.stopPropagation()}
             >
-              <MoreVertical size={16} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            align="end" 
-            className="bg-zinc-800 border-zinc-700"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {user && user.id === post.user_id && (
-              <DropdownMenuItem 
-                onClick={handleDeletePost}
-                disabled={isDeleting}
-                className="text-red-400 hover:text-red-300"
-              >
-                {isDeleting ? 'جاري الحذف...' : 'حذف المنشور'}
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={handleShare}>
-              مشاركة المنشور
-            </DropdownMenuItem>
-            {user && user.id !== post.user_id && (
-              <ReportButton 
-                type="post"
-                targetId={post.id}
-              />
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* Content */}
-      <div className="mb-3">
-        <p className="text-white whitespace-pre-wrap break-words mb-2">
-          {post.content.split(/(\s+)/).map((word, index) => {
-            if (word.startsWith('#')) {
-              return (
-                <span
-                  key={index}
-                  className="text-purple-400 cursor-pointer hover:text-purple-300 transition-colors"
-                  onClick={(e) => handleHashtagClick(word.slice(1), e)}
+              {user && user.id === post.user_id && (
+                <DropdownMenuItem 
+                  onClick={handleDeletePost}
+                  disabled={isDeleting}
+                  className="text-red-400 hover:text-red-300"
                 >
-                  {word}
-                </span>
-              );
-            }
-            return word;
-          })}
-        </p>
+                  {isDeleting ? 'جاري الحذف...' : 'حذف المنشور'}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={(e) => {
+                e.stopPropagation();
+                setShowShareModal(true);
+              }}>
+                مشاركة متقدمة
+              </DropdownMenuItem>
+              {user && user.id !== post.user_id && (
+                <ReportButton 
+                  type="post"
+                  targetId={post.id}
+                />
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-        {post.image_url && (
-          <div className="rounded-lg overflow-hidden">
-            <img
-              src={post.image_url}
-              alt="Post image"
-              className="w-full max-h-96 object-cover"
-              loading="lazy"
-            />
-          </div>
-        )}
-      </div>
+        {/* Content */}
+        <div className="mb-3">
+          <p className="text-white whitespace-pre-wrap break-words mb-2">
+            {post.content.split(/(\s+)/).map((word, index) => {
+              if (word.startsWith('#')) {
+                return (
+                  <span
+                    key={index}
+                    className="text-purple-400 cursor-pointer hover:text-purple-300 transition-colors"
+                    onClick={(e) => handleHashtagClick(word.slice(1), e)}
+                  >
+                    {word}
+                  </span>
+                );
+              }
+              return word;
+            })}
+          </p>
 
-      {/* Actions */}
-      <div className="flex items-center justify-between text-zinc-400">
-        <div className="flex items-center space-x-6 space-x-reverse">
-          <LikeButton 
-            postId={post.id}
-            initialLikesCount={post.likes_count}
-            onLikeChange={onPostUpdate}
-          />
-          
-          {showComments && (
-            <button
-              onClick={handleCommentsClick}
-              className="flex items-center space-x-2 space-x-reverse hover:text-blue-400 transition-colors"
-            >
-              <MessageCircle size={18} />
-              <span>{post.comments_count}</span>
-            </button>
+          {post.image_url && (
+            <div className="rounded-lg overflow-hidden">
+              <img
+                src={post.image_url}
+                alt="Post image"
+                className="w-full max-h-96 object-cover"
+                loading="lazy"
+              />
+            </div>
           )}
         </div>
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleShare();
-          }}
-          className="hover:text-green-400 transition-colors"
-        >
-          <Share2 size={18} />
-        </button>
+        {/* Actions */}
+        <div className="flex items-center justify-between text-zinc-400">
+          <div className="flex items-center space-x-6 space-x-reverse">
+            <LikeButton 
+              postId={post.id}
+              initialLikesCount={post.likes_count}
+              onLikeChange={onPostUpdate}
+            />
+            
+            {showComments && (
+              <button
+                onClick={handleCommentsClick}
+                className="flex items-center space-x-2 space-x-reverse hover:text-blue-400 transition-colors"
+              >
+                <MessageCircle size={18} />
+                <span>{post.comments_count}</span>
+              </button>
+            )}
+
+            {/* عداد المشاركات */}
+            {post.shares_count !== undefined && post.shares_count > 0 && (
+              <div className="flex items-center space-x-2 space-x-reverse text-green-400">
+                <Share2 size={18} />
+                <span>{post.shares_count}</span>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={handleQuickShare}
+            className="hover:text-green-400 transition-colors"
+            title="مشاركة سريعة"
+          >
+            <Share2 size={18} />
+          </button>
+        </div>
       </div>
-    </div>
+
+      {/* Share Modal */}
+      <PostShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        postId={post.id}
+        postContent={post.content}
+        postAuthor={post.profiles?.username || 'مستخدم مجهول'}
+      />
+    </>
   );
 };
 
