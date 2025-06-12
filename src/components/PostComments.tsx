@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -305,37 +304,12 @@ const PostComments: React.FC<PostCommentsProps> = ({
       console.log('=== INSERT SUCCESS ===');
       console.log('Inserted data:', insertData);
 
-      if (insertData) {
-        console.log('=== VERIFICATION ===');
-        console.log('Saved comment ID:', insertData.id);
-        console.log('Saved hashtags:', insertData.hashtags);
-        console.log('Saved media info:', {
-          media_url: insertData.media_url,
-          media_type: insertData.media_type,
-          image_url: insertData.image_url
-        });
-
-        const newComment: Comment = {
-          ...insertData,
-          profiles: {
-            id: user.id,
-            username: user.email?.split('@')[0] || 'مستخدم',
-            avatar_url: null
-          }
-        };
-
-        console.log('=== NEW COMMENT TO ADD ===');
-        console.log('Comment with profile and media:', newComment);
-
-        // إضافة التعليق الجديد مباشرة للقائمة
-        setComments(prevComments => [newComment, ...prevComments]);
-        onCommentAdded();
-      }
-
       setReplyTo(null);
       
-      // إعادة جلب التعليقات للتأكد من التحديث
+      // إعادة جلب التعليقات فقط - لا نضيف التعليق يدوياً
       await fetchComments();
+      await updateCommentsCount();
+      onCommentAdded();
       
       console.log('=== COMMENT SUBMISSION COMPLETED ===');
       
