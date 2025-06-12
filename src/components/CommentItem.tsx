@@ -36,6 +36,13 @@ const CommentItem: React.FC<CommentItemProps> = ({
   onReply,
   onProfileClick
 }) => {
+  console.log('=== COMMENT ITEM RENDER START ===');
+  console.log('Comment ID:', comment.id);
+  console.log('Full comment object:', comment);
+  console.log('Media URL:', comment.media_url);
+  console.log('Image URL:', comment.image_url);
+  console.log('Media Type:', comment.media_type);
+
   const formatTime = (dateString: string) => {
     try {
       return formatDistanceToNow(new Date(dateString), { 
@@ -70,26 +77,24 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   const renderMedia = () => {
-    // إعطاء الأولوية لـ media_url ثم image_url كاحتياطي
+    console.log('=== RENDER MEDIA FUNCTION START ===');
+    
+    // تجربة media_url أولاً، ثم image_url كاحتياطي
     const mediaUrl = comment.media_url || comment.image_url;
     const mediaType = comment.media_type;
 
-    console.log('=== RENDERING MEDIA FOR COMMENT ===');
-    console.log('Comment ID:', comment.id);
-    console.log('media_url:', comment.media_url);
-    console.log('image_url:', comment.image_url);
-    console.log('media_type:', comment.media_type);
-    console.log('Final mediaUrl:', mediaUrl);
-    console.log('Final mediaType:', mediaType);
+    console.log('Final media URL to use:', mediaUrl);
+    console.log('Final media type to use:', mediaType);
 
+    // إذا لم توجد وسائط على الإطلاق
     if (!mediaUrl) {
-      console.log('No media URL found, skipping media render');
+      console.log('No media URL found, returning null');
       return null;
     }
 
     // إذا كان نوع الوسائط صورة أو لم يكن محدد (للتوافق مع النظام القديم)
-    if (mediaType?.startsWith('image/') || (!mediaType && mediaUrl)) {
-      console.log('Rendering image:', mediaUrl);
+    if (!mediaType || mediaType.startsWith('image/')) {
+      console.log('Rendering image with URL:', mediaUrl);
       return (
         <div className="mt-3">
           <img
@@ -97,16 +102,21 @@ const CommentItem: React.FC<CommentItemProps> = ({
             alt="صورة التعليق"
             className="max-w-full h-auto rounded-lg border border-gray-600/30"
             style={{ maxHeight: '300px' }}
-            onLoad={() => console.log('Image loaded successfully:', mediaUrl)}
-            onError={(e) => console.error('Image failed to load:', mediaUrl, e)}
+            onLoad={() => {
+              console.log('✅ Image loaded successfully:', mediaUrl);
+            }}
+            onError={(e) => {
+              console.error('❌ Image failed to load:', mediaUrl);
+              console.error('Error event:', e);
+            }}
           />
         </div>
       );
     }
 
     // إذا كان نوع الوسائط فيديو
-    if (mediaType?.startsWith('video/')) {
-      console.log('Rendering video:', mediaUrl);
+    if (mediaType.startsWith('video/')) {
+      console.log('Rendering video with URL:', mediaUrl);
       return (
         <div className="mt-3">
           <video
@@ -114,8 +124,13 @@ const CommentItem: React.FC<CommentItemProps> = ({
             controls
             className="max-w-full h-auto rounded-lg border border-gray-600/30"
             style={{ maxHeight: '300px' }}
-            onLoadedData={() => console.log('Video loaded successfully:', mediaUrl)}
-            onError={(e) => console.error('Video failed to load:', mediaUrl, e)}
+            onLoadedData={() => {
+              console.log('✅ Video loaded successfully:', mediaUrl);
+            }}
+            onError={(e) => {
+              console.error('❌ Video failed to load:', mediaUrl);
+              console.error('Error event:', e);
+            }}
           >
             متصفحك لا يدعم تشغيل الفيديو
           </video>
@@ -123,12 +138,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
       );
     }
 
-    console.log('Unknown media type or format, skipping render');
+    console.log('Unknown media type, returning null');
     return null;
   };
-
-  console.log('=== COMMENT ITEM RENDER ===');
-  console.log('Comment data:', comment);
 
   return (
     <div className="space-y-4">

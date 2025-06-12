@@ -88,8 +88,20 @@ const PostComments: React.FC<PostCommentsProps> = ({
         return;
       }
 
-      console.log('=== RAW COMMENTS DATA ===');
-      console.log('Comments data:', commentsData);
+      console.log('=== RAW COMMENTS DATA FROM DATABASE ===');
+      console.log('Comments count:', commentsData?.length || 0);
+      if (commentsData && commentsData.length > 0) {
+        commentsData.forEach((comment, index) => {
+          console.log(`Comment ${index + 1}:`, {
+            id: comment.id,
+            content: comment.content?.substring(0, 50) + '...',
+            media_url: comment.media_url,
+            image_url: comment.image_url,
+            media_type: comment.media_type,
+            user_id: comment.user_id
+          });
+        });
+      }
 
       if (commentsData && commentsData.length > 0) {
         const userIds = [...new Set(commentsData.map(comment => comment.user_id))];
@@ -119,21 +131,21 @@ const PostComments: React.FC<PostCommentsProps> = ({
             }
           };
           
-          console.log('=== COMMENT WITH PROFILE ===');
+          console.log('=== FINAL COMMENT WITH PROFILE ===');
           console.log('Comment ID:', comment.id);
-          console.log('Media data in comment:', {
-            media_url: comment.media_url,
-            media_type: comment.media_type,
-            image_url: comment.image_url
-          });
+          console.log('Has media_url:', !!comment.media_url);
+          console.log('Has image_url:', !!comment.image_url);
+          console.log('Media type:', comment.media_type);
+          console.log('Complete comment object:', commentWithProfile);
           
           return commentWithProfile;
         });
 
-        console.log('=== FINAL COMMENTS WITH PROFILES ===');
-        console.log('Comments with profiles:', commentsWithProfiles);
+        console.log('=== SETTING COMMENTS STATE ===');
+        console.log('Total comments to set:', commentsWithProfiles.length);
         setComments(commentsWithProfiles);
       } else {
+        console.log('No comments found, setting empty array');
         setComments([]);
       }
     } catch (error) {
@@ -211,7 +223,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
     console.log('=== STARTING COMMENT SUBMISSION ===');
     console.log('Comment content:', content);
-    console.log('Has media:', !!mediaFile);
+    console.log('Has media file:', !!mediaFile);
     console.log('Media type:', mediaType);
     console.log('Reply to:', replyTo);
     
@@ -259,7 +271,8 @@ const PostComments: React.FC<PostCommentsProps> = ({
           .getPublicUrl(filePath);
 
         mediaUrl = data.publicUrl;
-        console.log('Media uploaded successfully:', mediaUrl);
+        console.log('=== MEDIA UPLOAD SUCCESS ===');
+        console.log('Uploaded media URL:', mediaUrl);
       }
 
       const hashtags = extractHashtags(content);
@@ -286,7 +299,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         }
       }
 
-      console.log('=== FINAL COMMENT DATA ===');
+      console.log('=== FINAL COMMENT DATA TO INSERT ===');
       console.log('Data to insert:', JSON.stringify(commentData, null, 2));
 
       const { data: insertData, error: insertError } = await supabase
@@ -302,10 +315,16 @@ const PostComments: React.FC<PostCommentsProps> = ({
       }
 
       console.log('=== INSERT SUCCESS ===');
-      console.log('Inserted data:', insertData);
+      console.log('Inserted comment data:', insertData);
+      console.log('Inserted media info:', {
+        media_url: insertData.media_url,
+        media_type: insertData.media_type,
+        image_url: insertData.image_url
+      });
 
       setReplyTo(null);
       
+      console.log('=== REFETCHING COMMENTS AFTER INSERT ===');
       // إعادة جلب التعليقات فقط - لا نضيف التعليق يدوياً
       await fetchComments();
       await updateCommentsCount();
