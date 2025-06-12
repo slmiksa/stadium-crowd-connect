@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Heart, MessageCircle, User, Bell, FileText, Users, MessageSquare, Mail } from 'lucide-react';
+import { Heart, MessageCircle, User, Bell, FileText, Users, MessageSquare, Mail, Share2 } from 'lucide-react';
 
 export const getNotificationIcon = (type: string) => {
   switch (type) {
@@ -20,6 +20,8 @@ export const getNotificationIcon = (type: string) => {
       return <MessageSquare size={20} className="text-orange-400" />;
     case 'room_invitation':
       return <Mail size={20} className="text-pink-400" />;
+    case 'post_share':
+      return <Share2 size={20} className="text-orange-400" />;
     default:
       return <Bell size={20} className="text-gray-400" />;
   }

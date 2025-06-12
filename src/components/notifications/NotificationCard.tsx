@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Bell, MessageSquare, Users, Heart, UserPlus, Plus, Key, LogIn, User } from 'lucide-react';
+import { Bell, MessageSquare, Users, Heart, UserPlus, Plus, Key, LogIn, User, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -26,11 +25,13 @@ interface NotificationData {
   invitation_id?: string;
   inviter_id?: string;
   room_password?: string;
+  sharer_id?: string;
+  share_type?: string;
 }
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation';
+  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation' | 'post_share';
   title: string;
   message: string;
   is_read: boolean;
@@ -79,6 +80,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
         return <Users size={18} className="text-cyan-400" />;
       case 'room_invitation':
         return <Users size={18} className="text-pink-400" />;
+      case 'post_share':
+        return <Share2 size={18} className="text-orange-400" />;
       default:
         return <Bell size={18} className="text-gray-400" />;
     }
@@ -101,6 +104,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
         return 'bg-cyan-500/20 border-cyan-500/30';
       case 'room_invitation':
         return 'bg-pink-500/20 border-pink-500/30';
+      case 'post_share':
+        return 'bg-orange-500/20 border-orange-500/30';
       default:
         return 'bg-gray-500/20 border-gray-500/30';
     }
@@ -172,7 +177,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
           notification.type === 'message' ? 'bg-purple-500/20' :
           notification.type === 'post' ? 'bg-yellow-500/20' :
           notification.type === 'chat_room' ? 'bg-cyan-500/20' :
-          notification.type === 'room_invitation' ? 'bg-pink-500/20' : 'bg-gray-500/20'
+          notification.type === 'room_invitation' ? 'bg-pink-500/20' :
+          notification.type === 'post_share' ? 'bg-orange-500/20' : 'bg-gray-500/20'
         }`}>
           {getNotificationIcon()}
         </div>
@@ -209,7 +215,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             </div>
           )}
 
-          {(notification.type === 'like' || notification.type === 'post') && notification.post_content && (
+          {(notification.type === 'like' || notification.type === 'post' || notification.type === 'post_share') && notification.post_content && (
             <div className="bg-gray-700/50 rounded-lg p-3 mb-3">
               <p className="text-xs text-gray-400 mb-1">المنشور:</p>
               <p className="text-sm text-gray-300 line-clamp-2">{notification.post_content}</p>
@@ -261,6 +267,36 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Post share notifications */}
+          {notification.type === 'post_share' && (
+            <div className="flex flex-col gap-2 w-full">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  const sharerId = notification.data?.sharer_id;
+                  if (sharerId) {
+                    handleProfileNavigation(sharerId, e);
+                  }
+                }}
+                className="bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30 hover:text-green-300 text-xs px-3 py-1 h-auto w-full"
+              >
+                زيارة بروفايل من شارك
+              </Button>
+              
+              {notification.data?.post_id && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => onPostClick(notification, e)}
+                  className="bg-orange-600/20 border-orange-500/30 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 text-xs px-3 py-1 h-auto w-full"
+                >
+                  الذهاب للمنشور المشارك
+                </Button>
+              )}
             </div>
           )}
 

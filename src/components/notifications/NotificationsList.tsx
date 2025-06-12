@@ -22,11 +22,13 @@ interface NotificationData {
   invitation_id?: string;
   inviter_id?: string;
   room_password?: string;
+  sharer_id?: string;
+  share_type?: string;
 }
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation';
+  type: 'like' | 'comment' | 'follow' | 'message' | 'post' | 'follower_comment' | 'chat_room' | 'room_invitation' | 'post_share';
   title: string;
   message: string;
   is_read: boolean;
