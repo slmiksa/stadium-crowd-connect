@@ -292,6 +292,8 @@ export type Database = {
           hashtags: string[] | null
           id: string
           image_url: string | null
+          media_type: string | null
+          media_url: string | null
           parent_id: string | null
           post_id: string
           updated_at: string
@@ -303,6 +305,8 @@ export type Database = {
           hashtags?: string[] | null
           id?: string
           image_url?: string | null
+          media_type?: string | null
+          media_url?: string | null
           parent_id?: string | null
           post_id: string
           updated_at?: string
@@ -314,6 +318,8 @@ export type Database = {
           hashtags?: string[] | null
           id?: string
           image_url?: string | null
+          media_type?: string | null
+          media_url?: string | null
           parent_id?: string | null
           post_id?: string
           updated_at?: string

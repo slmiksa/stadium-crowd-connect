@@ -254,7 +254,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
       const commentData: any = {
         post_id: postId,
         user_id: user.id,
-        content: content.trim(),
+        content: content.trim() || '',
         hashtags: hashtags
       };
 
@@ -265,7 +265,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
       if (mediaUrl && mediaType) {
         commentData.media_url = mediaUrl;
         commentData.media_type = mediaType;
-        // للتوافق مع النظام القديم
+        // للتوافق مع النظام القديم - فقط للصور
         if (mediaType.startsWith('image/')) {
           commentData.image_url = mediaUrl;
         }

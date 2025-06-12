@@ -104,6 +104,21 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
   };
 
   const uploadMedia = async (file: File, type: string) => {
+    // إنشاء bucket إذا لم يكن موجوداً
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some(bucket => bucket.name === 'hashtag-images');
+    
+    if (!bucketExists) {
+      const { error: bucketError } = await supabase.storage.createBucket('hashtag-images', {
+        public: true,
+        allowedMimeTypes: ['image/*', 'video/*']
+      });
+      
+      if (bucketError) {
+        console.error('Error creating bucket:', bucketError);
+      }
+    }
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
     const filePath = `comment-media/${fileName}`;
@@ -184,6 +199,10 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
       if (mediaUrl && mediaType) {
         commentData.media_url = mediaUrl;
         commentData.media_type = mediaType;
+        // للتوافق مع النظام القديم - فقط للصور
+        if (mediaType.startsWith('image/')) {
+          commentData.image_url = mediaUrl;
+        }
       }
 
       console.log('Comment data to insert:', commentData);
