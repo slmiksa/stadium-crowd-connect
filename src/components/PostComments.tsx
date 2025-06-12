@@ -74,7 +74,8 @@ const PostComments: React.FC<PostCommentsProps> = ({
     try {
       setIsLoading(true);
       
-      console.log('Fetching comments for post:', postId);
+      console.log('=== FETCHING COMMENTS ===');
+      console.log('Post ID:', postId);
       
       const { data: commentsData, error: commentsError } = await supabase
         .from('hashtag_comments')
@@ -88,6 +89,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         return;
       }
 
+      console.log('=== RAW COMMENTS DATA ===');
       console.log('Comments data:', commentsData);
 
       if (commentsData && commentsData.length > 0) {
@@ -108,15 +110,28 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
         console.log('Profiles data:', profilesData);
 
-        const commentsWithProfiles = commentsData.map(comment => ({
-          ...comment,
-          profiles: profilesData?.find(profile => profile.id === comment.user_id) || {
-            id: comment.user_id,
-            username: 'مستخدم مجهول',
-            avatar_url: null
-          }
-        }));
+        const commentsWithProfiles = commentsData.map(comment => {
+          const commentWithProfile = {
+            ...comment,
+            profiles: profilesData?.find(profile => profile.id === comment.user_id) || {
+              id: comment.user_id,
+              username: 'مستخدم مجهول',
+              avatar_url: null
+            }
+          };
+          
+          console.log('=== COMMENT WITH PROFILE ===');
+          console.log('Comment ID:', comment.id);
+          console.log('Media data in comment:', {
+            media_url: comment.media_url,
+            media_type: comment.media_type,
+            image_url: comment.image_url
+          });
+          
+          return commentWithProfile;
+        });
 
+        console.log('=== FINAL COMMENTS WITH PROFILES ===');
         console.log('Comments with profiles:', commentsWithProfiles);
         setComments(commentsWithProfiles);
       } else {
@@ -207,7 +222,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
       let mediaUrl = null;
 
       if (mediaFile && mediaType) {
-        console.log('Uploading media...');
+        console.log('=== UPLOADING MEDIA ===');
         
         // إنشاء bucket إذا لم يكن موجوداً
         const { data: buckets } = await supabase.storage.listBuckets();
@@ -310,14 +325,17 @@ const PostComments: React.FC<PostCommentsProps> = ({
         };
 
         console.log('=== NEW COMMENT TO ADD ===');
-        console.log('Comment with profile:', newComment);
+        console.log('Comment with profile and media:', newComment);
 
+        // إضافة التعليق الجديد مباشرة للقائمة
         setComments(prevComments => [newComment, ...prevComments]);
         onCommentAdded();
       }
 
       setReplyTo(null);
-      await updateCommentsCount();
+      
+      // إعادة جلب التعليقات للتأكد من التحديث
+      await fetchComments();
       
       console.log('=== COMMENT SUBMISSION COMPLETED ===');
       

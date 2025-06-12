@@ -70,12 +70,26 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   const renderMedia = () => {
+    // إعطاء الأولوية لـ media_url ثم image_url كاحتياطي
     const mediaUrl = comment.media_url || comment.image_url;
     const mediaType = comment.media_type;
 
-    if (!mediaUrl) return null;
+    console.log('=== RENDERING MEDIA FOR COMMENT ===');
+    console.log('Comment ID:', comment.id);
+    console.log('media_url:', comment.media_url);
+    console.log('image_url:', comment.image_url);
+    console.log('media_type:', comment.media_type);
+    console.log('Final mediaUrl:', mediaUrl);
+    console.log('Final mediaType:', mediaType);
 
+    if (!mediaUrl) {
+      console.log('No media URL found, skipping media render');
+      return null;
+    }
+
+    // إذا كان نوع الوسائط صورة أو لم يكن محدد (للتوافق مع النظام القديم)
     if (mediaType?.startsWith('image/') || (!mediaType && mediaUrl)) {
+      console.log('Rendering image:', mediaUrl);
       return (
         <div className="mt-3">
           <img
@@ -83,12 +97,16 @@ const CommentItem: React.FC<CommentItemProps> = ({
             alt="صورة التعليق"
             className="max-w-full h-auto rounded-lg border border-gray-600/30"
             style={{ maxHeight: '300px' }}
+            onLoad={() => console.log('Image loaded successfully:', mediaUrl)}
+            onError={(e) => console.error('Image failed to load:', mediaUrl, e)}
           />
         </div>
       );
     }
 
+    // إذا كان نوع الوسائط فيديو
     if (mediaType?.startsWith('video/')) {
+      console.log('Rendering video:', mediaUrl);
       return (
         <div className="mt-3">
           <video
@@ -96,6 +114,8 @@ const CommentItem: React.FC<CommentItemProps> = ({
             controls
             className="max-w-full h-auto rounded-lg border border-gray-600/30"
             style={{ maxHeight: '300px' }}
+            onLoadedData={() => console.log('Video loaded successfully:', mediaUrl)}
+            onError={(e) => console.error('Video failed to load:', mediaUrl, e)}
           >
             متصفحك لا يدعم تشغيل الفيديو
           </video>
@@ -103,8 +123,12 @@ const CommentItem: React.FC<CommentItemProps> = ({
       );
     }
 
+    console.log('Unknown media type or format, skipping render');
     return null;
   };
+
+  console.log('=== COMMENT ITEM RENDER ===');
+  console.log('Comment data:', comment);
 
   return (
     <div className="space-y-4">
