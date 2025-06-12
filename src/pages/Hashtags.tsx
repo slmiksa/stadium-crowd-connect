@@ -1,440 +1,426 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Hash, TrendingUp, Clock, Users, RefreshCw, Plus } from 'lucide-react';
-import HashtagPost from '@/components/HashtagPost';
-import InlineAd from '@/components/InlineAd';
-import AdPopup from '@/components/AdPopup';
+import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-interface HashtagTrend {
-  hashtag: string;
-  posts_count: number;
-  trend_score: number;
-}
-interface Post {
+import HashtagPost from '@/components/HashtagPost';
+import HashtagTabs from '@/components/HashtagTabs';
+import { Search, Hash, TrendingUp, Plus, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+
+interface HashtagPostWithProfile {
   id: string;
   content: string;
-  image_url: string | null;
-  created_at: string;
   hashtags: string[];
+  likes_count: number;
+  comments_count: number;
+  shares_count?: number;
+  created_at: string;
+  image_url?: string;
   user_id: string;
-  likes_count: number | null;
-  comments_count: number | null;
+  type: 'post';
   profiles: {
     id: string;
     username: string;
     avatar_url?: string;
     verification_status?: string;
   };
+  hashtag_likes: Array<{
+    user_id: string;
+  }>;
 }
+
+interface TrendingHashtag {
+  hashtag: string;
+  post_count: number;
+}
+
 const Hashtags = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('trending');
-  const [trendingHashtags, setTrendingHashtags] = useState<HashtagTrend[]>([]);
-  const [recentHashtags, setRecentHashtags] = useState<HashtagTrend[]>([]);
-  const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
-  const [recentPosts, setRecentPosts] = useState<Post[]>([]);
-  const [allPosts, setAllPosts] = useState<Post[]>([]);
+  const { toast } = useToast();
+  
+  const [popularPosts, setPopularPosts] = useState<HashtagPostWithProfile[]>([]);
+  const [trendingHashtags, setTrendingHashtags] = useState<TrendingHashtag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchResults, setSearchResults] = useState<{
+    posts: HashtagPostWithProfile[];
+    hashtags: TrendingHashtag[];
+  }>({ posts: [], hashtags: [] });
+  const [isSearching, setIsSearching] = useState(false);
 
-  // View states for showing limited/all items
-  const [showAllRecentHashtags, setShowAllRecentHashtags] = useState(false);
-  const {
-    toast
-  } = useToast();
-  useEffect(() => {
-    fetchTrendingHashtags();
-    fetchRecentHashtags();
-    fetchAllPosts();
-  }, []);
-  const fetchTrendingHashtags = async () => {
+  // جلب المنشورات الشائعة
+  const fetchPopularPosts = useCallback(async () => {
     try {
-      // الحصول على الهاشتاقات التي لديها 35+ منشور في آخر 24 ساعة
-      const oneDayAgo = new Date();
-      oneDayAgo.setHours(oneDayAgo.getHours() - 24);
-      console.log('Fetching trending hashtags with 35+ posts in last 24 hours');
+      const { data: postsData, error: postsError } = await supabase
+        .from('hashtag_posts')
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            username,
+            avatar_url,
+            verification_status
+          ),
+          hashtag_likes (
+            user_id
+          )
+        `)
+        .order('likes_count', { ascending: false })
+        .limit(10);
 
-      // جلب المنشورات من آخر 24 ساعة وحساب الهاشتاقات
-      const {
-        data: recentPosts,
-        error: postsError
-      } = await supabase.from('hashtag_posts').select('hashtags, created_at').gte('created_at', oneDayAgo.toISOString());
       if (postsError) {
-        console.error('Error fetching recent posts:', postsError);
+        console.error('Error fetching popular posts:', postsError);
         return;
       }
 
-      // حساب عدد المنشورات لكل هاشتاق في آخر 24 ساعة
-      const hashtagCounts: {
-        [key: string]: number;
-      } = {};
-      recentPosts?.forEach(post => {
-        post.hashtags?.forEach((hashtag: string) => {
-          hashtagCounts[hashtag] = (hashtagCounts[hashtag] || 0) + 1;
-        });
-      });
+      if (postsData) {
+        // جلب عدد التعليقات لكل منشور
+        const postIds = postsData.map(post => post.id);
+        const { data: commentsData } = await supabase
+          .from('hashtag_comments')
+          .select('post_id')
+          .in('post_id', postIds);
 
-      // فلترة الهاشتاقات التي تحتوي على 35+ منشور
-      const trendingData = Object.entries(hashtagCounts).filter(([hashtag, count]) => count >= 35).map(([hashtag, count]) => ({
-        hashtag,
-        posts_count: count,
-        trend_score: count // يمكن تطوير هذا لاحقاً
-      })).sort((a, b) => b.posts_count - a.posts_count).slice(0, 10);
-      console.log('Trending hashtags found:', trendingData);
+        const commentsCounts = postIds.reduce((acc, postId) => {
+          acc[postId] = commentsData?.filter(comment => comment.post_id === postId).length || 0;
+          return acc;
+        }, {} as Record<string, number>);
+
+        postsData.forEach(post => {
+          post.comments_count = commentsCounts[post.id] || 0;
+        });
+
+        const postsWithType = postsData.map(post => ({ ...post, type: 'post' as const }));
+        setPopularPosts(postsWithType);
+      }
+    } catch (error) {
+      console.error('Error in fetchPopularPosts:', error);
+    }
+  }, []);
+
+  // جلب الهاشتاقات الترند
+  const fetchTrendingHashtags = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('hashtag_trends')
+        .select('hashtag, posts_count')
+        .gte('posts_count', 35)
+        .order('posts_count', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error fetching trending hashtags:', error);
+        return;
+      }
+
+      const trendingData = (data || []).map(item => ({
+        hashtag: item.hashtag,
+        post_count: item.posts_count
+      }));
+
       setTrendingHashtags(trendingData);
-      if (trendingData.length > 0) {
-        await fetchTrendingPosts(trendingData.map(h => h.hashtag));
-      } else {
-        setTrendingPosts([]);
-      }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in fetchTrendingHashtags:', error);
     }
-  };
-  const fetchRecentHashtags = async () => {
-    try {
-      const {
-        data,
-        error
-      } = await supabase.from('hashtag_trends').select('hashtag, posts_count, trend_score').order('updated_at', {
-        ascending: false
-      }).limit(15);
-      if (error) {
-        console.error('Error fetching recent hashtags:', error);
-        return;
-      }
-      setRecentHashtags(data || []);
-      await fetchRecentPosts();
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-  const fetchTrendingPosts = async (hashtags: string[]) => {
-    if (hashtags.length === 0) return;
-    try {
-      const {
-        data,
-        error
-      } = await supabase.from('hashtag_posts').select(`
-          id,
-          content,
-          image_url,
-          created_at,
-          hashtags,
-          user_id,
-          likes_count,
-          comments_count,
-          profiles!hashtag_posts_user_id_fkey (
-            id,
-            username,
-            avatar_url,
-            verification_status
-          )
-        `).overlaps('hashtags', hashtags).order('likes_count', {
-        ascending: false
-      });
-      if (error) {
-        console.error('Error fetching trending posts:', error);
-        return;
-      }
-      setTrendingPosts(data || []);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-  const fetchRecentPosts = async () => {
-    try {
-      const {
-        data,
-        error
-      } = await supabase.from('hashtag_posts').select(`
-          id,
-          content,
-          image_url,
-          created_at,
-          hashtags,
-          user_id,
-          likes_count,
-          comments_count,
-          profiles!hashtag_posts_user_id_fkey (
-            id,
-            username,
-            avatar_url,
-            verification_status
-          )
-        `).order('created_at', {
-        ascending: false
-      });
-      if (error) {
-        console.error('Error fetching recent posts:', error);
-        return;
-      }
-      setRecentPosts(data || []);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-  const fetchAllPosts = async () => {
-    try {
+  }, []);
+
+  // تحميل البيانات الأولية
+  useEffect(() => {
+    const loadData = async () => {
       setIsLoading(true);
-      const {
-        data,
-        error
-      } = await supabase.from('hashtag_posts').select(`
-          id,
-          content,
-          image_url,
-          created_at,
-          hashtags,
-          user_id,
-          likes_count,
-          comments_count,
-          profiles!hashtag_posts_user_id_fkey (
+      await Promise.all([
+        fetchPopularPosts(),
+        fetchTrendingHashtags()
+      ]);
+      setIsLoading(false);
+    };
+
+    loadData();
+  }, [fetchPopularPosts, fetchTrendingHashtags]);
+
+  // البحث
+  const performSearch = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults({ posts: [], hashtags: [] });
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const searchTerm = query.toLowerCase().trim();
+
+      // البحث في المنشورات
+      const { data: postsData, error: postsError } = await supabase
+        .from('hashtag_posts')
+        .select(`
+          *,
+          profiles:user_id (
             id,
             username,
             avatar_url,
             verification_status
+          ),
+          hashtag_likes (
+            user_id
           )
-        `).order('created_at', {
-        ascending: false
-      });
-      if (error) {
-        console.error('Error fetching all posts:', error);
-        toast({
-          title: 'خطأ',
-          description: 'فشل في جلب المنشورات',
-          variant: 'destructive'
-        });
-        return;
+        `)
+        .or(
+          `content.ilike.%${searchTerm}%,hashtags.cs.{${searchTerm.startsWith('#') ? searchTerm.slice(1) : searchTerm}}`
+        )
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      // البحث في الهاشتاقات
+      const { data: hashtagsData, error: hashtagsError } = await supabase
+        .from('hashtag_trends')
+        .select('hashtag, posts_count')
+        .ilike('hashtag', `%${searchTerm.startsWith('#') ? searchTerm.slice(1) : searchTerm}%`)
+        .order('posts_count', { ascending: false })
+        .limit(10);
+
+      if (postsError) {
+        console.error('Error searching posts:', postsError);
       }
-      setAllPosts(data || []);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await Promise.all([fetchTrendingHashtags(), fetchRecentHashtags(), fetchAllPosts()]);
-      toast({
-        title: 'تم التحديث',
-        description: 'تم تحديث البيانات بنجاح'
+
+      if (hashtagsError) {
+        console.error('Error searching hashtags:', hashtagsError);
+      }
+
+      // معالجة نتائج المنشورات
+      let processedPosts: HashtagPostWithProfile[] = [];
+      if (postsData) {
+        const postIds = postsData.map(post => post.id);
+        const { data: commentsData } = await supabase
+          .from('hashtag_comments')
+          .select('post_id')
+          .in('post_id', postIds);
+
+        const commentsCounts = postIds.reduce((acc, postId) => {
+          acc[postId] = commentsData?.filter(comment => comment.post_id === postId).length || 0;
+          return acc;
+        }, {} as Record<string, number>);
+
+        postsData.forEach(post => {
+          post.comments_count = commentsCounts[post.id] || 0;
+        });
+
+        processedPosts = postsData.map(post => ({ ...post, type: 'post' as const }));
+      }
+
+      // معالجة نتائج الهاشتاقات
+      const processedHashtags = (hashtagsData || []).map(item => ({
+        hashtag: item.hashtag,
+        post_count: item.posts_count
+      }));
+
+      setSearchResults({
+        posts: processedPosts,
+        hashtags: processedHashtags
       });
+
     } catch (error) {
+      console.error('Error in search:', error);
       toast({
-        title: 'خطأ',
-        description: 'فشل في تحديث البيانات',
-        variant: 'destructive'
+        title: 'خطأ في البحث',
+        description: 'حدث خطأ أثناء البحث، يرجى المحاولة مرة أخرى',
+        variant: 'destructive',
       });
     } finally {
-      setIsRefreshing(false);
+      setIsSearching(false);
     }
-  };
-  const handleHashtagClick = (hashtag: string) => {
-    navigate(`/hashtag/${hashtag}`);
+  }, [toast]);
+
+  // تأخير البحث
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        performSearch(searchQuery);
+      } else {
+        setSearchResults({ posts: [], hashtags: [] });
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, performSearch]);
+
+  const handlePostLikeChange = useCallback(() => {
+    // إعادة جلب البيانات عند تغيير الإعجابات
+    fetchPopularPosts();
+  }, [fetchPopularPosts]);
+
+  const renderPost = (post: HashtagPostWithProfile) => (
+    <HashtagPost 
+      key={post.id}
+      post={post}
+      onPostUpdate={handlePostLikeChange}
+      showComments={true}
+    />
+  );
+
+  const renderTrendingHashtag = (hashtagData: TrendingHashtag, index: number) => (
+    <div
+      key={hashtagData.hashtag}
+      onClick={() => navigate(`/hashtag/${encodeURIComponent(hashtagData.hashtag)}`)}
+      className="group relative overflow-hidden bg-gradient-to-br from-gray-800/60 to-gray-900/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/30 hover:border-blue-500/30 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4 space-x-reverse">
+          <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl flex items-center justify-center border border-purple-500/20">
+            <Hash size={24} className="text-purple-400" />
+          </div>
+          <div>
+            <h3 className="text-white font-bold text-lg group-hover:text-blue-400 transition-colors">
+              #{hashtagData.hashtag}
+            </h3>
+            <p className="text-gray-400 text-sm">
+              {hashtagData.post_count} منشور
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2 space-x-reverse">
+          <span className="text-2xl font-bold text-blue-400">#{index + 1}</span>
+          <TrendingUp size={20} className="text-orange-400" />
+        </div>
+      </div>
+    </div>
+  );
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setShowSearch(false);
+    setSearchResults({ posts: [], hashtags: [] });
   };
 
-  // Helper functions to get limited items
-  const getDisplayedRecentHashtags = () => {
-    return showAllRecentHashtags ? recentHashtags.slice(0, 50) : recentHashtags.slice(0, 5);
-  };
-  return <Layout>
-      <div className="min-h-screen bg-zinc-900">
-        <AdPopup />
-        
-        {/* Fixed Header with Tabs at the very top - moved higher */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-zinc-900 border-b border-zinc-800">
-          <div className="w-full">
-            {/* Header - reduced padding */}
-            <div className="flex items-center justify-between p-3">
-              <div>
-                <h1 className="text-xl font-bold text-white mb-1">الهاشتاقات</h1>
-                <p className="text-sm text-zinc-400">اكتشف أحدث المواضيع والهاشتاقات الرائجة</p>
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <Button onClick={() => navigate('/create-hashtag-post')} size="sm" className="bg-blue-600 hover:bg-blue-700 text-gray-50">
-                  <Plus className="h-4 w-4 mr-2" />
-                  منشور جديد
-                </Button>
-                <Button onClick={handleRefresh} disabled={isRefreshing} variant="outline" size="sm" className="border-zinc-700">
-                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-            </div>
-            
-            {/* Tabs moved to the top */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-zinc-900 rounded-none border-t border-zinc-800 h-12">
-                <TabsTrigger value="trending" className="data-[state=active]:bg-blue-600 rounded-none">
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  ترند
-                </TabsTrigger>
-                <TabsTrigger value="recent" className="data-[state=active]:bg-blue-600 rounded-none">
-                  <Clock className="h-4 w-4 mr-2" />
-                  حديثة
-                </TabsTrigger>
-                <TabsTrigger value="all" className="data-[state=active]:bg-blue-600 rounded-none">
-                  <Hash className="h-4 w-4 mr-2" />
-                  جميع المنشورات
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="p-4 flex items-center justify-center min-h-64">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-gray-400">جاري التحميل...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="max-w-6xl mx-auto p-3 md:p-6 pb-20 md:pb-32 overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4 md:mb-6 sticky top-0 bg-zinc-950 py-2 z-10">
+          <div className="flex items-center space-x-3 space-x-reverse">
+            <Hash size={24} className="text-blue-400" />
+            <h1 className="text-xl md:text-2xl font-bold text-white">الهاشتاقات</h1>
+          </div>
+          <div className="flex items-center space-x-2 space-x-reverse">
+            <Button
+              onClick={() => setShowSearch(!showSearch)}
+              className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              <Search size={18} />
+            </Button>
+            <Button
+              onClick={() => navigate('/create-hashtag-post')}
+              className="p-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+            >
+              <Plus size={18} />
+            </Button>
           </div>
         </div>
 
-        {/* Content - adjusted top margin to account for smaller header */}
-        <div className="w-full pt-28">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="p-4 space-y-6">
-              <TabsContent value="trending" className="space-y-6 mt-0">
-                {trendingHashtags.length > 0 && <Card className="bg-zinc-900 border-zinc-800">
-                    <CardHeader>
-                      <CardTitle className="text-white flex items-center">
-                        <TrendingUp className="h-5 w-5 mr-2 text-orange-400" />
-                        الهاشتاقات الرائجة (35+ منشور في آخر 24 ساعة)
-                      </CardTitle>
-                      <CardDescription className="text-zinc-400">
-                        أكثر الهاشتاقات نشاطاً ومتابعة
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {trendingHashtags.map(hashtag => <div key={hashtag.hashtag} onClick={() => handleHashtagClick(hashtag.hashtag)} className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer">
-                            <div className="flex items-center space-x-2 space-x-reverse">
-                              <Hash className="h-4 w-4 text-orange-400" />
-                              <span className="text-white text-sm font-medium truncate">
-                                {hashtag.hashtag}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between mt-2 text-xs text-zinc-400">
-                              <span>{hashtag.posts_count} منشور</span>
-                              <span className="text-orange-400">🔥</span>
-                            </div>
-                          </div>)}
-                      </div>
-                    </CardContent>
-                  </Card>}
-
-                {trendingHashtags.length === 0 && <Card className="bg-zinc-900 border-zinc-800">
-                    <CardContent className="text-center py-8">
-                      <TrendingUp size={48} className="mx-auto text-zinc-600 mb-4" />
-                      <p className="text-zinc-400">لا توجد هاشتاقات ترند حالياً</p>
-                      <p className="text-zinc-500 text-sm mt-2">الهاشتاقات التي تحصل على تفاعل في آخر 24 ساعة تظهر هنا</p>
-                    </CardContent>
-                  </Card>}
-                
-                <InlineAd location="trending" className="my-6" />
-                
-                {trendingPosts.length > 0 && <Card className="bg-zinc-900 border-zinc-800">
-                    <CardHeader>
-                      <CardTitle className="text-white flex items-center">
-                        <TrendingUp className="h-5 w-5 mr-2 text-orange-400" />
-                        منشورات ترند
-                      </CardTitle>
-                      <CardDescription className="text-zinc-400">
-                        أحدث المنشورات من الهاشتاقات الأكثر رواجاً
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {trendingPosts.map((post, index) => <React.Fragment key={post.id}>
-                          <HashtagPost post={post} />
-                          {(index + 1) % 3 === 0 && <InlineAd location="trending-posts" />}
-                        </React.Fragment>)}
-                    </CardContent>
-                  </Card>}
-              </TabsContent>
-
-              <TabsContent value="recent" className="space-y-6 mt-0">
-                {recentHashtags.length > 0 && <Card className="bg-zinc-900 border-zinc-800">
-                    <CardHeader>
-                      <CardTitle className="text-white flex items-center justify-between">
-                        <div className="flex items-center">
-                          <Clock className="h-5 w-5 mr-2 text-blue-400" />
-                          الهاشتاقات الحديثة
-                        </div>
-                        {recentHashtags.length > 5 && <Button variant="ghost" size="sm" onClick={() => setShowAllRecentHashtags(!showAllRecentHashtags)} className="text-blue-400 hover:text-blue-300">
-                            {showAllRecentHashtags ? 'إظهار أقل' : 'مشاهدة الكل'}
-                          </Button>}
-                      </CardTitle>
-                      <CardDescription className="text-zinc-400">
-                        آخر الهاشتاقات المحدثة
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                        {getDisplayedRecentHashtags().map(hashtag => <div key={hashtag.hashtag} onClick={() => handleHashtagClick(hashtag.hashtag)} className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer">
-                            <div className="flex items-center space-x-2 space-x-reverse">
-                              <Hash className="h-4 w-4 text-blue-400" />
-                              <span className="text-white text-sm font-medium truncate">
-                                {hashtag.hashtag}
-                              </span>
-                            </div>
-                            <div className="text-xs text-zinc-400 mt-1">
-                              {hashtag.posts_count} منشور
-                            </div>
-                          </div>)}
-                      </div>
-                    </CardContent>
-                  </Card>}
-                
-                <InlineAd location="recent" className="my-6" />
-                
-                {recentPosts.length > 0 && <Card className="bg-zinc-900 border-zinc-800">
-                    <CardHeader>
-                      <CardTitle className="text-white flex items-center">
-                        <Clock className="h-5 w-5 mr-2 text-blue-400" />
-                        آخر المنشورات
-                      </CardTitle>
-                      <CardDescription className="text-zinc-400">
-                        أحدث المنشورات من جميع الهاشتاقات
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {recentPosts.map((post, index) => <React.Fragment key={post.id}>
-                          <HashtagPost post={post} />
-                          {(index + 1) % 4 === 0 && <InlineAd location="recent-posts" />}
-                        </React.Fragment>)}
-                    </CardContent>
-                  </Card>}
-              </TabsContent>
-
-              <TabsContent value="all" className="space-y-6 mt-0">
-                <InlineAd location="all-posts" className="my-6" />
-                
-                {allPosts.length > 0 ? <Card className="bg-zinc-900 border-zinc-800">
-                    <CardHeader>
-                      <CardTitle className="text-white flex items-center">
-                        <Hash className="h-5 w-5 mr-2 text-green-400" />
-                        جميع المنشورات
-                      </CardTitle>
-                      <CardDescription className="text-zinc-400">
-                        جميع المنشورات مرتبة حسب التاريخ
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {allPosts.map((post, index) => <React.Fragment key={post.id}>
-                          <HashtagPost post={post} />
-                          {(index + 1) % 5 === 0 && <InlineAd location="all-posts-list" />}
-                        </React.Fragment>)}
-                    </CardContent>
-                  </Card> : <Card className="bg-zinc-900 border-zinc-800">
-                    <CardContent className="text-center py-8">
-                      <Hash size={48} className="mx-auto text-zinc-600 mb-4" />
-                      <p className="text-zinc-400">لا توجد منشورات بعد</p>
-                    </CardContent>
-                  </Card>}
-              </TabsContent>
+        {/* Search Bar */}
+        {showSearch && (
+          <div className="mb-6 bg-zinc-800 rounded-lg p-4 border border-zinc-700">
+            <div className="relative">
+              <Search size={20} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ابحث عن منشور أو هاشتاق..."
+                className="bg-zinc-900 border-zinc-600 text-white pr-10 pl-10"
+              />
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-white"
+                >
+                  <X size={18} />
+                </button>
+              )}
             </div>
-          </Tabs>
-        </div>
+            {isSearching && (
+              <div className="flex items-center justify-center mt-4">
+                <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                <span className="mr-2 text-zinc-400">جاري البحث...</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Search Results */}
+        {showSearch && searchQuery && !isSearching && (
+          <div className="mb-6 space-y-6">
+            <h2 className="text-lg font-bold text-white">نتائج البحث عن "{searchQuery}"</h2>
+            
+            {/* Hashtags Results */}
+            {searchResults.hashtags.length > 0 && (
+              <div>
+                <h3 className="text-md font-medium text-zinc-300 mb-3 flex items-center space-x-2 space-x-reverse">
+                  <Hash size={18} />
+                  <span>الهاشتاقات ({searchResults.hashtags.length})</span>
+                </h3>
+                <div className="grid gap-3">
+                  {searchResults.hashtags.map((hashtag, index) => 
+                    renderTrendingHashtag(hashtag, index)
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Posts Results */}
+            {searchResults.posts.length > 0 && (
+              <div>
+                <h3 className="text-md font-medium text-zinc-300 mb-3">
+                  المنشورات ({searchResults.posts.length})
+                </h3>
+                <div className="space-y-4">
+                  {searchResults.posts.map(renderPost)}
+                </div>
+              </div>
+            )}
+
+            {/* No Results */}
+            {searchResults.posts.length === 0 && searchResults.hashtags.length === 0 && (
+              <div className="text-center py-8">
+                <Search size={48} className="mx-auto text-zinc-600 mb-4" />
+                <p className="text-zinc-400">لا توجد نتائج للبحث عن "{searchQuery}"</p>
+                <p className="text-zinc-500 text-sm">جرب كلمات مختلفة أو تأكد من الإملاء</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Main Content - Hide when showing search results */}
+        {!showSearch || !searchQuery ? (
+          <HashtagTabs
+            popularPosts={popularPosts}
+            trendingHashtags={trendingHashtags}
+            onPostLikeChange={handlePostLikeChange}
+            renderPost={renderPost}
+            renderTrendingHashtag={renderTrendingHashtag}
+          />
+        ) : null}
       </div>
-    </Layout>;
+    </Layout>
+  );
 };
+
 export default Hashtags;
