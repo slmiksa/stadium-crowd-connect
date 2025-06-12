@@ -1,261 +1,176 @@
 
-import React, { useState } from 'react';
-import { Reply, MoreVertical, Clock, X, Play } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import LikeButton from './LikeButton';
-import VerificationBadge from './VerificationBadge';
+import React from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { formatDistanceToNow } from 'date-fns';
+import { ar } from 'date-fns/locale';
+import { MessageCircle, Heart, Play } from 'lucide-react';
 
-interface CommentItemProps {
-  comment: {
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  image_url?: string;
+  media_url?: string;
+  media_type?: string;
+  parent_id?: string;
+  hashtags?: string[];
+  profiles: {
     id: string;
-    content: string;
-    created_at: string;
-    user_id: string;
-    image_url?: string;
-    media_url?: string;
-    media_type?: string;
-    parent_id?: string;
-    profiles: {
-      id: string;
-      username: string;
-      avatar_url?: string;
-      verification_status?: string;
-    };
+    username: string;
+    avatar_url?: string;
   };
-  replies?: CommentItemProps['comment'][];
-  onReply: (commentId: string, username: string) => void;
-  onProfileClick?: (userId: string) => void;
-  level?: number;
 }
 
-const CommentItem: React.FC<CommentItemProps> = ({ 
-  comment, 
-  replies = [], 
-  onReply,
-  onProfileClick,
-  level = 0 
-}) => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [showReplies, setShowReplies] = useState(true);
-  const [showMediaModal, setShowMediaModal] = useState(false);
+interface CommentItemProps {
+  comment: Comment;
+  replies?: Comment[];
+  onReply: (commentId: string, username: string) => void;
+  onProfileClick: (userId: string) => void;
+}
 
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 60) return `${diffMins} دقيقة`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)} ساعة`;
-    return `${Math.floor(diffMins / 1440)} يوم`;
+const CommentItem: React.FC<CommentItemProps> = ({
+  comment,
+  replies = [],
+  onReply,
+  onProfileClick
+}) => {
+  const formatTime = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { 
+        addSuffix: true, 
+        locale: ar 
+      });
+    } catch (error) {
+      return 'منذ وقت قريب';
+    }
   };
 
-  const renderContentWithHashtags = (content: string) => {
+  const renderHashtags = (content: string) => {
+    if (!content) return content;
+    
     const hashtagRegex = /#[\u0600-\u06FF\w]+/g;
     const parts = content.split(hashtagRegex);
     const hashtags = content.match(hashtagRegex) || [];
     
     const result = [];
     for (let i = 0; i < parts.length; i++) {
-      result.push(<span key={`text-${i}`}>{parts[i]}</span>);
+      result.push(parts[i]);
       if (hashtags[i]) {
-        const hashtag = hashtags[i].slice(1);
         result.push(
-          <span
-            key={`hashtag-${i}`}
-            className="text-blue-400 cursor-pointer hover:text-blue-300 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/hashtag/${hashtag}`);
-            }}
-          >
+          <span key={i} className="text-blue-400 font-medium">
             {hashtags[i]}
           </span>
         );
       }
     }
+    
     return result;
   };
 
-  const getAvatarGradient = () => {
-    const gradients = [
-      'from-blue-500 to-cyan-500',
-      'from-purple-500 to-pink-500',
-      'from-green-500 to-emerald-500',
-      'from-orange-500 to-yellow-500',
-      'from-red-500 to-rose-500',
-      'from-indigo-500 to-blue-500'
-    ];
-    const index = (comment.user_id?.charCodeAt(0) || 0) % gradients.length;
-    return gradients[index];
-  };
+  const renderMedia = () => {
+    const mediaUrl = comment.media_url || comment.image_url;
+    const mediaType = comment.media_type;
 
-  const handleProfileClick = () => {
-    if (comment.user_id === user?.id) {
-      navigate('/profile');
-    } else {
-      navigate(`/user-profile/${comment.user_id}`);
+    if (!mediaUrl) return null;
+
+    if (mediaType?.startsWith('image/') || (!mediaType && mediaUrl)) {
+      return (
+        <div className="mt-3">
+          <img
+            src={mediaUrl}
+            alt="صورة التعليق"
+            className="max-w-full h-auto rounded-lg border border-gray-600/30"
+            style={{ maxHeight: '300px' }}
+          />
+        </div>
+      );
     }
+
+    if (mediaType?.startsWith('video/')) {
+      return (
+        <div className="mt-3">
+          <video
+            src={mediaUrl}
+            controls
+            className="max-w-full h-auto rounded-lg border border-gray-600/30"
+            style={{ maxHeight: '300px' }}
+          >
+            متصفحك لا يدعم تشغيل الفيديو
+          </video>
+        </div>
+      );
+    }
+
+    return null;
   };
-
-  const maxLevel = 3;
-  const shouldNest = level < maxLevel;
-  const marginClass = shouldNest ? `mr-${Math.min(level * 3, 9)}` : '';
-
-  const mediaUrl = comment.media_url || comment.image_url;
-  const mediaType = comment.media_type || (comment.image_url ? 'image' : null);
-
-  const isReply = comment.parent_id !== null;
-  const cardBgColor = isReply ? 'bg-blue-900/20' : 'bg-gray-800/60';
-  const borderColor = isReply ? 'border-blue-700/30' : 'border-gray-700/30';
 
   return (
-    <>
-      <div className={`${marginClass}`}>
-        <div className="flex space-x-3 space-x-reverse group">
-          <button
-            onClick={handleProfileClick}
-            className="flex-shrink-0"
-          >
-            {comment.profiles?.avatar_url ? (
-              <img
-                src={comment.profiles.avatar_url}
-                alt={comment.profiles.username}
-                className="w-8 h-8 rounded-full object-cover shadow-md hover:scale-105 transition-transform duration-200"
-              />
-            ) : (
-              <div className={`w-8 h-8 bg-gradient-to-br ${getAvatarGradient()} rounded-full flex items-center justify-center flex-shrink-0 shadow-md hover:scale-105 transition-transform duration-200`}>
-                <span className="text-xs font-bold text-white">
-                  {comment.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-                </span>
-              </div>
-            )}
-          </button>
-          <div className="flex-1">
-            <div className={`${cardBgColor} backdrop-blur-sm rounded-lg p-3 border ${borderColor} group-hover:bg-opacity-80 transition-all duration-200`}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleProfileClick}
-                    className="text-xs font-semibold text-white hover:text-blue-400 transition-colors"
-                  >
-                    {comment.profiles?.username || 'مستخدم مجهول'}
-                  </button>
-                  <VerificationBadge 
-                    verificationStatus={comment.profiles?.verification_status || null} 
-                    size={14} 
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center text-gray-500 text-xs">
-                    <Clock size={10} className="ml-1" />
-                    {formatTimestamp(comment.created_at)}
-                  </div>
-                  <button className="text-gray-500 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                    <MoreVertical size={12} />
-                  </button>
-                </div>
-              </div>
-              
-              {comment.content && (
-                <div className="text-xs text-gray-300 whitespace-pre-wrap mb-2 leading-relaxed">
-                  {renderContentWithHashtags(comment.content)}
-                </div>
-              )}
-              
-              {mediaUrl && (
-                <div className="mb-2 rounded-lg overflow-hidden">
-                  {mediaType === 'video' ? (
-                    <div className="relative">
-                      <video 
-                        src={mediaUrl} 
-                        className="max-w-full h-auto rounded-lg cursor-pointer"
-                        controls
-                        preload="metadata"
-                      />
-                    </div>
-                  ) : (
-                    <img 
-                      src={mediaUrl} 
-                      alt="Comment attachment" 
-                      className="max-w-full h-auto rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
-                      onClick={() => setShowMediaModal(true)}
-                    />
-                  )}
-                </div>
-              )}
-              
-              <div className="flex items-center gap-4 pt-2 border-t border-gray-700/30">
-                <LikeButton
-                  commentId={comment.id}
-                  size="sm"
-                />
-                
-                {/* إظهار زر الرد فقط للتعليقات الرئيسية (ليس للردود) */}
-                {!isReply && (
-                  <button
-                    onClick={() => onReply(comment.id, comment.profiles?.username || 'مستخدم مجهول')}
-                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-400 transition-colors group/btn"
-                  >
-                    <Reply size={12} className="group-hover/btn:scale-110 transition-transform" />
-                    <span>رد</span>
-                  </button>
-                )}
-              </div>
+    <div className="space-y-4">
+      {/* Main Comment */}
+      <div className="flex space-x-3 space-x-reverse">
+        <Avatar 
+          className="w-10 h-10 cursor-pointer"
+          onClick={() => onProfileClick(comment.profiles.id)}
+        >
+          <AvatarImage src={comment.profiles.avatar_url} />
+          <AvatarFallback className="bg-purple-600 text-white">
+            {comment.profiles.username?.charAt(0)?.toUpperCase() || 'U'}
+          </AvatarFallback>
+        </Avatar>
+
+        <div className="flex-1 min-w-0">
+          <div className="bg-gray-800/50 rounded-2xl px-4 py-3">
+            <div className="flex items-center space-x-2 space-x-reverse mb-1">
+              <span 
+                className="font-medium text-white text-sm cursor-pointer hover:underline"
+                onClick={() => onProfileClick(comment.profiles.id)}
+              >
+                {comment.profiles.username}
+              </span>
+              <span className="text-gray-400 text-xs">
+                {formatTime(comment.created_at)}
+              </span>
             </div>
             
-            {replies.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {replies.slice(0, showReplies ? replies.length : 2).map((reply) => (
-                  <CommentItem
-                    key={reply.id}
-                    comment={reply}
-                    onReply={onReply}
-                    onProfileClick={onProfileClick}
-                    level={level + 1}
-                  />
-                ))}
-                {replies.length > 2 && !showReplies && (
-                  <button
-                    onClick={() => setShowReplies(true)}
-                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors mr-11"
-                  >
-                    عرض {replies.length - 2} ردود أخرى
-                  </button>
-                )}
-              </div>
+            {comment.content && (
+              <p className="text-gray-200 text-sm leading-relaxed">
+                {renderHashtags(comment.content)}
+              </p>
             )}
+            
+            {renderMedia()}
+          </div>
+
+          <div className="flex items-center space-x-4 space-x-reverse mt-2 px-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onReply(comment.id, comment.profiles.username)}
+              className="text-gray-400 hover:text-blue-400 text-xs h-auto p-1"
+            >
+              <MessageCircle size={14} className="ml-1" />
+              رد
+            </Button>
           </div>
         </div>
       </div>
 
-      {showMediaModal && mediaUrl && mediaType === 'image' && (
-        <div 
-          className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowMediaModal(false);
-            }
-          }}
-        >
-          <div className="relative max-w-full max-h-full">
-            <button
-              onClick={() => setShowMediaModal(false)}
-              className="absolute top-4 right-4 p-2 bg-gray-800/80 hover:bg-gray-700 rounded-full text-white transition-colors z-10"
-            >
-              <X size={20} />
-            </button>
-            <img 
-              src={mediaUrl} 
-              alt="Comment attachment" 
-              className="max-w-full max-h-[90vh] rounded-xl shadow-2xl"
+      {/* Replies */}
+      {replies.length > 0 && (
+        <div className="mr-8 space-y-3">
+          {replies.map((reply) => (
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              onReply={onReply}
+              onProfileClick={onProfileClick}
             />
-          </div>
+          ))}
         </div>
       )}
-    </>
+    </div>
   );
 };
 

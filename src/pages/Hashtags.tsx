@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import HashtagPost from '@/components/HashtagPost';
 import HashtagTabs from '@/components/HashtagTabs';
-import { Search, Hash, TrendingUp, Plus, X } from 'lucide-react';
+import { Search, Hash, TrendingUp, Plus, X, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -47,6 +46,7 @@ const Hashtags = () => {
   const [popularPosts, setPopularPosts] = useState<HashtagPostWithProfile[]>([]);
   const [trendingHashtags, setTrendingHashtags] = useState<TrendingHashtag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [searchResults, setSearchResults] = useState<{
@@ -144,6 +144,21 @@ const Hashtags = () => {
 
     loadData();
   }, [fetchPopularPosts, fetchTrendingHashtags]);
+
+  // إضافة وظيفة التحديث
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      fetchPopularPosts(),
+      fetchTrendingHashtags()
+    ]);
+    setIsRefreshing(false);
+    
+    toast({
+      title: 'تم التحديث',
+      description: 'تم تحديث المحتوى بنجاح',
+    });
+  };
 
   // البحث
   const performSearch = useCallback(async (query: string) => {
@@ -321,6 +336,13 @@ const Hashtags = () => {
             <h1 className="text-xl md:text-2xl font-bold text-white">الهاشتاقات</h1>
           </div>
           <div className="flex items-center space-x-2 space-x-reverse">
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="p-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+            >
+              <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
+            </Button>
             <Button
               onClick={() => setShowSearch(!showSearch)}
               className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
