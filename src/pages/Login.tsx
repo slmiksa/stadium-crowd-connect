@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,17 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, LogIn, UserPlus, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
 const Login = () => {
   const navigate = useNavigate();
-  const {
-    t,
-    isRTL
-  } = useLanguage();
-  const {
-    toast
-  } = useToast();
+  const { t, isRTL } = useLanguage();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -26,20 +23,19 @@ const Login = () => {
     confirmPassword: '',
     username: ''
   });
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const {
-        data,
-        error
-      } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password
       });
@@ -59,13 +55,81 @@ const Login = () => {
       setIsLoading(false);
     }
   };
-  return <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: isRTL ? 'خطأ' : 'Error',
+        description: isRTL ? 'كلمات المرور غير متطابقة' : 'Passwords do not match',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            username: formData.username,
+          },
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: isRTL ? 'تم إنشاء الحساب بنجاح' : 'Account created successfully',
+        description: isRTL ? 'يرجى التحقق من بريدك الإلكتروني' : 'Please check your email for verification'
+      });
+    } catch (error: any) {
+      toast({
+        title: isRTL ? 'خطأ في إنشاء الحساب' : 'Registration error',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        title: isRTL ? 'خطأ في تسجيل الدخول' : 'Login error',
+        description: error.message,
+        variant: 'destructive'
+      });
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-zinc-900 rounded-lg p-8 border border-zinc-800">
           {/* App Logo */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
-              <img alt="TIFUE Logo" className="w-32 h-32 object-contain" src="/lovable-uploads/ad1928bd-582a-46ab-abbe-762126dc7ea7.png" />
+              <img 
+                alt="TIFUE Logo" 
+                className="w-32 h-32 object-contain" 
+                src="/lovable-uploads/ad1928bd-582a-46ab-abbe-762126dc7ea7.png" 
+              />
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">
               {isRTL ? 'مرحباً بك' : 'Welcome'}
@@ -73,6 +137,32 @@ const Login = () => {
             <p className="text-zinc-400">
               {isRTL ? 'سجل دخولك للمتابعة' : 'Sign in to continue'}
             </p>
+          </div>
+
+          {/* Google Sign-In Button */}
+          <div className="mb-6">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full bg-white text-black hover:bg-gray-100 border-gray-300"
+              onClick={handleGoogleSignIn}
+              disabled={isLoading}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              {isRTL ? 'تسجيل الدخول عبر Google' : 'Sign in with Google'}
+            </Button>
+          </div>
+
+          {/* Divider */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-zinc-700" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-zinc-900 px-2 text-zinc-400">
+                {isRTL ? 'أو' : 'Or'}
+              </span>
+            </div>
           </div>
 
           {/* Tabs */}
@@ -85,44 +175,102 @@ const Login = () => {
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
                   <Label htmlFor="email">{t('email')}</Label>
-                  <Input type="email" name="email" id="email" value={formData.email} onChange={handleInputChange} placeholder={t('emailPlaceholder')} required />
+                  <Input 
+                    type="email" 
+                    name="email" 
+                    id="email" 
+                    value={formData.email} 
+                    onChange={handleInputChange} 
+                    placeholder={t('emailPlaceholder')} 
+                    required 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="password">{t('password')}</Label>
                   <div className="relative">
-                    <Input type={showPassword ? 'text' : 'password'} name="password" id="password" value={formData.password} onChange={handleInputChange} placeholder={t('passwordPlaceholder')} required className="pr-10" />
-                    <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2" onClick={() => setShowPassword(!showPassword)}>
+                    <Input 
+                      type={showPassword ? 'text' : 'password'} 
+                      name="password" 
+                      id="password" 
+                      value={formData.password} 
+                      onChange={handleInputChange} 
+                      placeholder={t('passwordPlaceholder')} 
+                      required 
+                      className="pr-10" 
+                    />
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute right-1 top-1/2 -translate-y-1/2" 
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       <span className="sr-only">Toggle password</span>
                     </Button>
                   </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? <>
+                  {isLoading ? (
+                    <>
                       <LogIn className="mr-2 h-4 w-4 animate-spin" />
                       {t('loggingIn')}
-                    </> : <>
+                    </>
+                  ) : (
+                    <>
                       <LogIn className="mr-2 h-4 w-4" />
                       {t('login')}
-                    </>}
+                    </>
+                  )}
                 </Button>
               </form>
             </TabsContent>
             <TabsContent value="register">
-              <form className="space-y-4">
+              <form onSubmit={handleRegister} className="space-y-4">
                 <div>
                   <Label htmlFor="username">{t('username')}</Label>
-                  <Input type="text" name="username" id="username" value={formData.username} onChange={handleInputChange} placeholder={t('usernamePlaceholder')} required />
+                  <Input 
+                    type="text" 
+                    name="username" 
+                    id="username" 
+                    value={formData.username} 
+                    onChange={handleInputChange} 
+                    placeholder={t('usernamePlaceholder')} 
+                    required 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="email">{t('email')}</Label>
-                  <Input type="email" name="email" id="register-email" value={formData.email} onChange={handleInputChange} placeholder={t('emailPlaceholder')} required />
+                  <Input 
+                    type="email" 
+                    name="email" 
+                    id="register-email" 
+                    value={formData.email} 
+                    onChange={handleInputChange} 
+                    placeholder={t('emailPlaceholder')} 
+                    required 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="password">{t('password')}</Label>
                   <div className="relative">
-                    <Input type={showPassword ? 'text' : 'password'} name="password" id="register-password" value={formData.password} onChange={handleInputChange} placeholder={t('passwordPlaceholder')} required className="pr-10" />
-                    <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2" onClick={() => setShowPassword(!showPassword)}>
+                    <Input 
+                      type={showPassword ? 'text' : 'password'} 
+                      name="password" 
+                      id="register-password" 
+                      value={formData.password} 
+                      onChange={handleInputChange} 
+                      placeholder={t('passwordPlaceholder')} 
+                      required 
+                      className="pr-10" 
+                    />
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute right-1 top-1/2 -translate-y-1/2" 
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       <span className="sr-only">Toggle password</span>
                     </Button>
@@ -131,27 +279,48 @@ const Login = () => {
                 <div>
                   <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
                   <div className="relative">
-                    <Input type={showPassword ? 'text' : 'password'} name="confirmPassword" id="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} placeholder={t('confirmPasswordPlaceholder')} required className="pr-10" />
-                    <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2" onClick={() => setShowPassword(!showPassword)}>
+                    <Input 
+                      type={showPassword ? 'text' : 'password'} 
+                      name="confirmPassword" 
+                      id="confirmPassword" 
+                      value={formData.confirmPassword} 
+                      onChange={handleInputChange} 
+                      placeholder={t('confirmPasswordPlaceholder')} 
+                      required 
+                      className="pr-10" 
+                    />
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute right-1 top-1/2 -translate-y-1/2" 
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       <span className="sr-only">Toggle password</span>
                     </Button>
                   </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? <>
+                  {isLoading ? (
+                    <>
                       <UserPlus className="mr-2 h-4 w-4 animate-spin" />
                       {t('registering')}
-                    </> : <>
+                    </>
+                  ) : (
+                    <>
                       <UserPlus className="mr-2 h-4 w-4" />
                       {t('register')}
-                    </>}
+                    </>
+                  )}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Login;
