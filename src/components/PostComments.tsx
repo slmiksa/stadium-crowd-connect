@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -293,6 +294,11 @@ const PostComments: React.FC<PostCommentsProps> = ({
         console.log('=== VERIFICATION ===');
         console.log('Saved comment ID:', insertData.id);
         console.log('Saved hashtags:', insertData.hashtags);
+        console.log('Saved media info:', {
+          media_url: insertData.media_url,
+          media_type: insertData.media_type,
+          image_url: insertData.image_url
+        });
 
         const newComment: Comment = {
           ...insertData,
@@ -302,6 +308,9 @@ const PostComments: React.FC<PostCommentsProps> = ({
             avatar_url: null
           }
         };
+
+        console.log('=== NEW COMMENT TO ADD ===');
+        console.log('Comment with profile:', newComment);
 
         setComments(prevComments => [newComment, ...prevComments]);
         onCommentAdded();

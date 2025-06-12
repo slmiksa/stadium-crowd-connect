@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -210,7 +211,8 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
       const { data: insertData, error: insertError } = await supabase
         .from('hashtag_comments')
         .insert(commentData)
-        .select();
+        .select()
+        .single();
 
       if (insertError) {
         console.error('Error inserting comment:', insertError);
@@ -224,6 +226,25 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
       }
 
       console.log('Comment inserted successfully:', insertData);
+
+      if (insertData) {
+        console.log('Adding new comment to UI with media info:', {
+          media_url: insertData.media_url,
+          media_type: insertData.media_type,
+          image_url: insertData.image_url
+        });
+
+        const newComment: Comment = {
+          ...insertData,
+          profiles: {
+            id: user.id,
+            username: user.email?.split('@')[0] || 'مستخدم',
+            avatar_url: null
+          }
+        };
+
+        setComments(prevComments => [newComment, ...prevComments]);
+      }
 
       setReplyTo(null);
       
