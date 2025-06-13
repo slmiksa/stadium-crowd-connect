@@ -6,17 +6,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// قائمة محسنة للبطولات المهمة فقط
+// قائمة محسنة للبطولات المهمة فقط مع التركيز على كأس العالم للأندية
 const isImportantCompetition = (leagueName: string): boolean => {
   const nameLower = leagueName.toLowerCase();
   
-  // كأس العالم للأندية - أولوية عليا مع أسماء أكثر شمولاً
+  // كأس العالم للأندية - أولوية عليا مع أسماء شاملة جداً
   const clubWorldCupNames = [
-    'fifa club world cup', 'club world cup', 'cwc',
+    'fifa club world cup', 'club world cup', 'cwc', 'club wc',
     'copa mundial de clubes', 'coupe du monde des clubs',
     'mundial de clubes', 'world club cup', 'intercontinental cup',
-    'fifa intercontinental cup', 'club wc'
+    'fifa intercontinental cup', 'intercontinental', 'fifa cwc',
+    'clubs world cup', 'world cup clubs', 'club world',
+    'fifa club', 'world club championship', 'club championship',
+    // أسماء عربية ممكنة
+    'كأس العالم للأندية', 'كاس العالم للاندية', 'كأس العالم للنوادي',
+    // أسماء أخرى محتملة
+    'intercontinental', 'toyota cup', 'fifa club world championship'
   ];
+  
+  // فحص خاص لكأس العالم للأندية أولاً
+  const isClubWorldCup = clubWorldCupNames.some(name => nameLower.includes(name));
+  if (isClubWorldCup) {
+    console.log(`✅ تم العثور على كأس العالم للأندية: ${leagueName}`);
+    return true;
+  }
   
   // كأس العالم وتصفياته
   const worldCupNames = [
@@ -58,9 +71,8 @@ const isImportantCompetition = (leagueName: string): boolean => {
     'copa america', 'conmebol copa america'
   ];
 
-  // فحص البطولات المهمة
-  const allImportantCompetitions = [
-    ...clubWorldCupNames,
+  // فحص باقي البطولات المهمة
+  const allOtherCompetitions = [
     ...worldCupNames,
     ...saudiCompetitions,
     ...europeanLeagues,
@@ -68,7 +80,14 @@ const isImportantCompetition = (leagueName: string): boolean => {
     ...continentalCompetitions
   ];
 
-  return allImportantCompetitions.some(comp => nameLower.includes(comp));
+  const isOtherImportant = allOtherCompetitions.some(comp => nameLower.includes(comp));
+  if (isOtherImportant) {
+    console.log(`✅ بطولة مهمة: ${leagueName}`);
+    return true;
+  }
+
+  console.log(`❌ تم تجاهل البطولة: ${leagueName}`);
+  return false;
 };
 
 // ترجمات محسنة ومصححة للفرق
@@ -303,9 +322,29 @@ serve(async (req) => {
             allMatches = data.response || []
             console.log('المباريات المباشرة الخام:', allMatches.length)
             
-            // تسجيل أسماء البطولات للمراجعة
+            // تسجيل أسماء البطولات للمراجعة مع البحث عن كأس العالم للأندية
             const leagues = [...new Set(allMatches.map(m => m.league.name))]
             console.log('البطولات المتاحة حالياً:', leagues)
+            
+            // البحث عن كأس العالم للأندية بشكل خاص
+            const clubWorldCupMatches = allMatches.filter(m => {
+              const leagueName = m.league.name.toLowerCase();
+              return leagueName.includes('club world cup') || 
+                     leagueName.includes('fifa club world') ||
+                     leagueName.includes('intercontinental') ||
+                     leagueName.includes('mundial de clubes') ||
+                     leagueName.includes('club wc') ||
+                     leagueName.includes('cwc');
+            });
+            
+            if (clubWorldCupMatches.length > 0) {
+              console.log(`🏆 تم العثور على ${clubWorldCupMatches.length} مباراة من كأس العالم للأندية!`);
+              clubWorldCupMatches.forEach(match => {
+                console.log(`🏆 ${match.teams.home.name} vs ${match.teams.away.name} - ${match.league.name}`);
+              });
+            } else {
+              console.log('❌ لم يتم العثور على مباريات كأس العالم للأندية في المباريات المباشرة');
+            }
           }
         } else {
           console.error('خطأ في استجابة API المباشر:', response.status)
@@ -344,17 +383,15 @@ serve(async (req) => {
         }
       } 
       else if (status === 'upcoming') {
-        // تحديد التاريخ بناءً على الطلب
+        // تحديد التاريخ بناءً على الطلب مع التركيز على اليوم وغداً
         let searchDate: string
         if (date === new Date().toISOString().split('T')[0]) {
-          // مباريات اليوم
           searchDate = date
-          console.log(`جلب مباريات اليوم: ${searchDate}`)
+          console.log(`🔍 جلب مباريات اليوم (${searchDate}) - البحث عن كأس العالم للأندية`)
         } else {
-          // مباريات الغد
           const tomorrow = new Date(Date.now() + 86400000)
           searchDate = tomorrow.toISOString().split('T')[0]
-          console.log(`جلب المباريات القادمة لغدا: ${searchDate}`)
+          console.log(`🔍 جلب المباريات القادمة لغدا (${searchDate}) - البحث عن كأس العالم للأندية`)
         }
         
         const apiUrl = `https://v3.football.api-sports.io/fixtures?date=${searchDate}&status=NS`
@@ -374,9 +411,31 @@ serve(async (req) => {
               allMatches = data.response
               console.log(`تم العثور على ${data.response.length} مباراة في ${searchDate}`)
               
-              // تسجيل أسماء البطولات للمراجعة
+              // تسجيل أسماء البطولات مع البحث المحدد عن كأس العالم للأندية
               const leagues = [...new Set(allMatches.map(m => m.league.name))]
-              console.log('البطولات في مباريات اليوم/غدا:', leagues)
+              console.log('البطولات المتاحة:', leagues)
+              
+              // البحث المحدد عن كأس العالم للأندية
+              const clubWorldCupMatches = allMatches.filter(m => {
+                const leagueName = m.league.name.toLowerCase();
+                return leagueName.includes('club world cup') || 
+                       leagueName.includes('fifa club world') ||
+                       leagueName.includes('intercontinental') ||
+                       leagueName.includes('mundial de clubes') ||
+                       leagueName.includes('club wc') ||
+                       leagueName.includes('cwc') ||
+                       leagueName.includes('fifa club');
+              });
+              
+              if (clubWorldCupMatches.length > 0) {
+                console.log(`🏆🏆 تم العثور على ${clubWorldCupMatches.length} مباراة من كأس العالم للأندية في ${searchDate}!`);
+                clubWorldCupMatches.forEach(match => {
+                  console.log(`🏆 ${match.teams.home.name} vs ${match.teams.away.name} - ${match.league.name} - ${match.fixture.date}`);
+                });
+              } else {
+                console.log(`❌ لم يتم العثور على مباريات كأس العالم للأندية في ${searchDate}`);
+                console.log('البطولات المتاحة كاملة:', leagues);
+              }
             }
           }
         } catch (error) {
@@ -389,19 +448,27 @@ serve(async (req) => {
 
     console.log(`إجمالي المباريات المجلبة: ${allMatches.length}`)
 
-    // تصفية البطولات المهمة فقط
+    // تصفية البطولات المهمة فقط مع إعطاء أولوية خاصة لكأس العالم للأندية
     const filteredMatches = allMatches.filter((fixture: any) => {
       const leagueName = fixture.league.name
       const isImportant = isImportantCompetition(leagueName)
-      if (!isImportant) {
-        console.log(`تم تجاهل البطولة غير المهمة: ${leagueName}`)
-      } else {
-        console.log(`تم قبول البطولة المهمة: ${leagueName}`)
-      }
       return isImportant
     })
 
     console.log(`المباريات بعد التصفية: ${filteredMatches.length}`)
+    
+    // تسجيل المباريات المفلترة مع التركيز على كأس العالم للأندية
+    const clubWorldCupFiltered = filteredMatches.filter(m => {
+      const leagueName = m.league.name.toLowerCase();
+      return leagueName.includes('club world cup') || 
+             leagueName.includes('fifa club world') ||
+             leagueName.includes('intercontinental') ||
+             leagueName.includes('mundial de clubes');
+    });
+    
+    if (clubWorldCupFiltered.length > 0) {
+      console.log(`🎉 المباريات النهائية تحتوي على ${clubWorldCupFiltered.length} مباراة من كأس العالم للأندية`);
+    }
 
     // إذا لم نحصل على مباريات مهمة، نرجع قائمة فارغة
     if (filteredMatches.length === 0) {

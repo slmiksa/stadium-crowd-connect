@@ -85,24 +85,30 @@ const Matches = () => {
     news: ''
   });
 
-  // قائمة محسنة للبطولات المهمة فقط
+  // قائمة محسنة للبطولات المهمة مع التركيز على كأس العالم للأندية
   const isImportantCompetition = (competition: string): boolean => {
     const competitionLower = competition.toLowerCase();
     
-    // كأس العالم للأندية - أولوية عليا مع أسماء أكثر شمولاً
+    // كأس العالم للأندية - أولوية قصوى مع أسماء شاملة جداً
     const clubWorldCupNames = [
-      'fifa club world cup', 'club world cup', 'cwc',
+      'fifa club world cup', 'club world cup', 'cwc', 'club wc',
       'copa mundial de clubes', 'coupe du monde des clubs',
       'mundial de clubes', 'world club cup', 'intercontinental cup',
-      'fifa intercontinental cup', 'club wc'
+      'fifa intercontinental cup', 'intercontinental', 'fifa cwc',
+      'clubs world cup', 'world cup clubs', 'club world',
+      'fifa club', 'world club championship', 'club championship',
+      // أسماء عربية ممكنة
+      'كأس العالم للأندية', 'كاس العالم للاندية', 'كأس العالم للنوادي',
+      // أسماء أخرى محتملة
+      'toyota cup', 'fifa club world championship'
     ];
     
-    // كأس العالم وتصفياته
-    const worldCupNames = [
-      'fifa world cup', 'world cup', 'wc', 
-      'world cup qualification', 'fifa world cup qualification', 'world cup qualifiers',
-      'wc qualification'
-    ];
+    // فحص كأس العالم للأندية أولاً
+    const isClubWorldCup = clubWorldCupNames.some(name => competitionLower.includes(name));
+    if (isClubWorldCup) {
+      console.log(`🏆 تم العثور على كأس العالم للأندية: ${competition}`);
+      return true;
+    }
     
     // البطولات السعودية
     const saudiCompetitions = [
@@ -110,7 +116,7 @@ const Matches = () => {
       'king cup', 'saudi super cup'
     ];
     
-    // الدوريات الأوروبية الكبرى
+    // الدوريات الأوروبية
     const europeanLeagues = [
       'premier league', 'english premier league', 'epl',
       'la liga', 'laliga', 'spanish la liga',
@@ -140,7 +146,6 @@ const Matches = () => {
     // فحص البطولات المهمة
     const allImportantCompetitions = [
       ...clubWorldCupNames,
-      ...worldCupNames,
       ...saudiCompetitions,
       ...europeanLeagues,
       ...europeanCups,
@@ -150,17 +155,24 @@ const Matches = () => {
     return allImportantCompetitions.some(comp => competitionLower.includes(comp));
   };
 
-  // تصنيف البطولات
+  // تصنيف البطولات مع إعطاء كأس العالم للأندية أولوية قصوى
   const getCompetitionCategory = (competition: string): CompetitionCategory => {
     const competitionLower = competition.toLowerCase();
     
-    // كأس العالم والأندية - أولوية قصوى مع أسماء أكثر شمولاً
-    if (competitionLower.includes('club world cup') || 
-        competitionLower.includes('fifa club world cup') ||
-        competitionLower.includes('intercontinental cup') ||
-        competitionLower.includes('mundial de clubes') ||
-        competitionLower.includes('world club cup') ||
-        competitionLower.includes('world cup')) return 'worldcup';
+    // كأس العالم للأندية - أولوية قصوى مع أسماء شاملة
+    const clubWorldCupNames = [
+      'club world cup', 'fifa club world cup', 'intercontinental cup',
+      'mundial de clubes', 'world club cup', 'fifa intercontinental',
+      'intercontinental', 'cwc', 'club wc', 'fifa club'
+    ];
+    
+    if (clubWorldCupNames.some(name => competitionLower.includes(name))) {
+      console.log(`🏆 كأس العالم للأندية: ${competition}`);
+      return 'worldcup';
+    }
+    
+    // كأس العالم العادي
+    if (competitionLower.includes('world cup') && !competitionLower.includes('club')) return 'worldcup';
     
     // البطولات السعودية
     if (competitionLower.includes('saudi')) return 'saudi';
@@ -176,19 +188,24 @@ const Matches = () => {
     return 'all';
   };
 
-  // ترتيب البطولات حسب الأولوية
+  // ترتيب البطولات حسب الأولوية مع إعطاء كأس العالم للأندية الأولوية المطلقة
   const getCompetitionPriority = (competition: string): number => {
     const competitionLower = competition.toLowerCase();
     
-    // كأس العالم للأندية - أولوية قصوى مع أسماء أكثر شمولاً
-    if (competitionLower.includes('club world cup') || 
-        competitionLower.includes('fifa club world cup') ||
-        competitionLower.includes('intercontinental cup') ||
-        competitionLower.includes('mundial de clubes') ||
-        competitionLower.includes('world club cup')) return 1;
+    // كأس العالم للأندية - أولوية مطلقة
+    const clubWorldCupNames = [
+      'club world cup', 'fifa club world cup', 'intercontinental cup',
+      'mundial de clubes', 'world club cup', 'fifa intercontinental',
+      'intercontinental', 'cwc', 'club wc', 'fifa club'
+    ];
     
-    // كأس العالم
-    if (competitionLower.includes('fifa world cup') && !competitionLower.includes('qualification')) return 2;
+    if (clubWorldCupNames.some(name => competitionLower.includes(name))) {
+      console.log(`🏆 أولوية مطلقة لكأس العالم للأندية: ${competition}`);
+      return 0; // أعلى أولوية
+    }
+    
+    // كأس العالم العادي
+    if (competitionLower.includes('fifa world cup') && !competitionLower.includes('qualification') && !competitionLower.includes('club')) return 2;
     
     // البطولات السعودية
     if (competitionLower.includes('saudi pro league') || competitionLower.includes('roshn saudi league')) return 5;
@@ -301,7 +318,7 @@ const Matches = () => {
 
   const fetchMatchData = async (status: 'live' | 'today' | 'tomorrow' | 'yesterday') => {
     try {
-      console.log(`=== جلب مباريات ${status} ===`);
+      console.log(`=== جلب مباريات ${status} مع البحث عن كأس العالم للأندية ===`);
       
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 20000)
@@ -347,6 +364,27 @@ const Matches = () => {
 
       if (data?.success && data?.matches) {
         console.log(`تم جلب ${data.matches.length} مباراة للحالة ${status}`);
+        
+        // البحث عن كأس العالم للأندية في النتائج
+        const clubWorldCupMatches = data.matches.filter((match: any) => {
+          const competition = match.competition.toLowerCase();
+          return competition.includes('club world cup') || 
+                 competition.includes('fifa club world') ||
+                 competition.includes('intercontinental') ||
+                 competition.includes('mundial de clubes') ||
+                 competition.includes('cwc') ||
+                 competition.includes('fifa club');
+        });
+        
+        if (clubWorldCupMatches.length > 0) {
+          console.log(`🎉 تم العثور على ${clubWorldCupMatches.length} مباراة من كأس العالم للأندية في ${status}!`);
+          clubWorldCupMatches.forEach((match: any) => {
+            console.log(`🏆 ${match.homeTeam} vs ${match.awayTeam} - ${match.competition}`);
+          });
+        } else {
+          console.log(`❌ لم يتم العثور على مباريات كأس العالم للأندية في ${status}`);
+        }
+        
         setAllMatches(prev => ({
           ...prev,
           [status]: data.matches
