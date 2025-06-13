@@ -15,6 +15,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import LiveMatchWidget from '@/components/LiveMatchWidget';
+import { uploadChatMedia, validateFile } from '@/utils/storageUtils';
 
 interface Message {
   id: string;
@@ -315,36 +316,32 @@ const ChatRoom = () => {
     
     try {
       let mediaUrl = null;
+      let voiceUrl = null;
       let finalMediaType = mediaType;
       
       if (mediaFile) {
-        console.log('=== STARTING MEDIA UPLOAD ===');
-        const fileExt = mediaFile.name.split('.').pop();
-        const fileName = `chat-media/${user.id}/${Date.now()}.${fileExt}`;
-
-        console.log('Uploading to path:', fileName);
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('hashtag-images')
-          .upload(fileName, mediaFile);
-
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw new Error('فشل في رفع الملف: ' + uploadError.message);
+        // التحقق من صحة الملف
+        const validation = validateFile(mediaFile);
+        if (!validation.isValid) {
+          throw new Error(validation.error);
         }
 
-        console.log('Upload successful:', uploadData);
-
-        const { data: urlData } = supabase.storage
-          .from('hashtag-images')
-          .getPublicUrl(fileName);
-
-        mediaUrl = urlData.publicUrl;
-        console.log('Media URL generated:', mediaUrl);
-
-        // Set correct media type for voice messages
-        if (mediaType === 'voice') {
-          finalMediaType = 'audio/webm';
+        console.log('=== STARTING MEDIA UPLOAD ===');
+        
+        try {
+          const uploadResult = await uploadChatMedia(mediaFile, user.id, 'room');
+          
+          if (mediaType === 'voice') {
+            voiceUrl = uploadResult.url;
+            finalMediaType = 'audio/webm';
+          } else {
+            mediaUrl = uploadResult.url;
+          }
+          
+          console.log('Media uploaded successfully:', uploadResult.url);
+        } catch (uploadError) {
+          console.error('Upload failed:', uploadError);
+          throw new Error(`فشل في رفع الملف: ${uploadError.message}`);
         }
       }
 
@@ -360,14 +357,14 @@ const ChatRoom = () => {
       };
 
       // Handle different media types
+      if (voiceUrl) {
+        messageData.voice_url = voiceUrl;
+        messageData.voice_duration = 0;
+      }
+      
       if (mediaUrl) {
-        if (mediaType === 'voice') {
-          messageData.voice_url = mediaUrl;
-          messageData.voice_duration = 0; // You can calculate this if needed
-        } else {
-          messageData.media_url = mediaUrl;
-          messageData.media_type = finalMediaType;
-        }
+        messageData.media_url = mediaUrl;
+        messageData.media_type = finalMediaType;
       }
 
       console.log('=== INSERTING MESSAGE ===');
@@ -381,16 +378,25 @@ const ChatRoom = () => {
 
       if (insertError) {
         console.error('Insert error:', insertError);
-        throw new Error('فشل في إرسال الرسالة: ' + insertError.message);
+        throw new Error(`فشل في إرسال الرسالة: ${insertError.message}`);
       }
 
       console.log('Message inserted successfully:', insertData);
       setQuotedMessage(null);
       await fetchMessages();
       
+      toast({
+        title: "تم الإرسال",
+        description: "تم إرسال الرسالة بنجاح"
+      });
+      
     } catch (error) {
       console.error('Error in sendMessage:', error);
-      alert(error.message || 'فشل في إرسال الرسالة');
+      toast({
+        title: "خطأ في الإرسال",
+        description: error.message || 'فشل في إرسال الرسالة',
+        variant: "destructive"
+      });
     } finally {
       setIsSending(false);
     }

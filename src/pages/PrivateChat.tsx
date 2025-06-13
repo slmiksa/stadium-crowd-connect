@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import VerificationBadge from '@/components/VerificationBadge';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { uploadChatMedia, validateFile } from '@/utils/storageUtils';
 
 interface Message {
   id: string;
@@ -48,6 +50,7 @@ const PrivateChat = () => {
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [imageModal, setImageModal] = useState<string | null>(null);
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
+  const { toast } = useToast();
 
   useEffect(() => {
     if (userId && user) {
@@ -151,26 +154,28 @@ const PrivateChat = () => {
       let finalMediaType = mediaType;
       
       if (mediaFile) {
-        const fileExt = mediaFile.name.split('.').pop() || 'unknown';
-        const fileName = `private-chat/${user.id}/${Date.now()}.${fileExt}`;
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('hashtag-images')
-          .upload(fileName, mediaFile);
-
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw new Error('فشل في رفع الملف');
+        // التحقق من صحة الملف
+        const validation = validateFile(mediaFile);
+        if (!validation.isValid) {
+          throw new Error(validation.error);
         }
 
-        const { data: urlData } = supabase.storage
-          .from('hashtag-images')
-          .getPublicUrl(fileName);
-
-        if (mediaType === 'voice') {
-          voiceUrl = urlData.publicUrl;
-        } else {
-          mediaUrl = urlData.publicUrl;
+        console.log('=== STARTING MEDIA UPLOAD ===');
+        
+        try {
+          const uploadResult = await uploadChatMedia(mediaFile, user.id, 'private');
+          
+          if (mediaType === 'voice') {
+            voiceUrl = uploadResult.url;
+            finalMediaType = 'audio/webm';
+          } else {
+            mediaUrl = uploadResult.url;
+          }
+          
+          console.log('Media uploaded successfully:', uploadResult.url);
+        } catch (uploadError) {
+          console.error('Upload failed:', uploadError);
+          throw new Error(`فشل في رفع الملف: ${uploadError.message}`);
         }
       }
 
@@ -197,12 +202,23 @@ const PrivateChat = () => {
 
       if (error) {
         console.error('Error sending message:', error);
-        return;
+        throw new Error(`فشل في إرسال الرسالة: ${error.message}`);
       }
 
       await fetchMessages();
+      
+      toast({
+        title: "تم الإرسال",
+        description: "تم إرسال الرسالة بنجاح"
+      });
+      
     } catch (error) {
       console.error('Error:', error);
+      toast({
+        title: "خطأ في الإرسال",
+        description: error.message || 'فشل في إرسال الرسالة',
+        variant: "destructive"
+      });
     } finally {
       setIsSending(false);
     }
