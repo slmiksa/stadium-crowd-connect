@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +40,7 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState<{ id: string; username: string } | null>(null);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<{
     username: string;
     avatar_url?: string;
@@ -257,13 +259,20 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
 
       // إضافة التعليق الجديد مع بيانات المستخدم الصحيحة
       if (insertData) {
+        // Fetch fresh user profile to ensure correct username
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('username, avatar_url, verification_status')
+          .eq('id', user.id)
+          .single();
+
         const newComment: Comment = {
           ...insertData,
           profiles: {
             id: user.id,
-            username: currentUserProfile?.username || 'مستخدم',
-            avatar_url: currentUserProfile?.avatar_url || null,
-            verification_status: currentUserProfile?.verification_status || 'none'
+            username: profileData?.username || currentUserProfile?.username || 'مستخدم',
+            avatar_url: profileData?.avatar_url || currentUserProfile?.avatar_url || null,
+            verification_status: profileData?.verification_status || currentUserProfile?.verification_status || 'none'
           }
         };
 
@@ -271,6 +280,7 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
       }
 
       setReplyTo(null);
+      setActiveReplyId(null);
       onCommentAdded();
       
     } catch (error) {
@@ -294,10 +304,12 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
 
   const handleReply = (commentId: string, username: string) => {
     setReplyTo({ id: commentId, username });
+    setActiveReplyId(commentId);
   };
 
   const handleCancelReply = () => {
     setReplyTo(null);
+    setActiveReplyId(null);
   };
 
   const handleProfileClick = (userId: string) => {
@@ -322,15 +334,18 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
 
   return (
     <div className="mt-3 border-t border-gray-700/30 pt-3">
-      <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/40 mb-4">
-        <CommentInput
-          onSubmit={handleSubmitComment}
-          isSubmitting={isSubmitting}
-          placeholder="اكتب تعليقاً..."
-          replyTo={replyTo}
-          onCancelReply={handleCancelReply}
-        />
-      </div>
+      {/* Main Comment Input - only show when not replying to a specific comment */}
+      {!activeReplyId && (
+        <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/40 mb-4">
+          <CommentInput
+            onSubmit={handleSubmitComment}
+            isSubmitting={isSubmitting}
+            placeholder="اكتب تعليقاً..."
+            replyTo={replyTo}
+            onCancelReply={handleCancelReply}
+          />
+        </div>
+      )}
 
       <div className="space-y-3">
         {isLoading ? (
@@ -355,6 +370,10 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
               replies={comment.replies}
               onReply={handleReply}
               onProfileClick={handleProfileClick}
+              onSubmitReply={handleSubmitComment}
+              isSubmittingReply={isSubmitting}
+              activeReplyId={activeReplyId}
+              onCancelReply={handleCancelReply}
             />
           ))
         )}

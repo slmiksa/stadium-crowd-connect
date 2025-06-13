@@ -6,6 +6,7 @@ import { ar } from 'date-fns/locale';
 import { MessageCircle, Heart, Play } from 'lucide-react';
 import VerificationBadge from './VerificationBadge';
 import LikeButton from './LikeButton';
+import CommentInput from './CommentInput';
 
 interface Comment {
   id: string;
@@ -30,13 +31,21 @@ interface CommentItemProps {
   replies?: Comment[];
   onReply: (commentId: string, username: string) => void;
   onProfileClick: (userId: string) => void;
+  onSubmitReply?: (content: string, mediaFile?: File, mediaType?: string) => Promise<void>;
+  isSubmittingReply?: boolean;
+  activeReplyId?: string | null;
+  onCancelReply?: () => void;
 }
 
 const CommentItem: React.FC<CommentItemProps> = ({
   comment,
   replies = [],
   onReply,
-  onProfileClick
+  onProfileClick,
+  onSubmitReply,
+  isSubmittingReply = false,
+  activeReplyId,
+  onCancelReply
 }) => {
   console.log('=== COMMENT ITEM RENDER START ===');
   console.log('Comment ID:', comment.id);
@@ -229,6 +238,19 @@ const CommentItem: React.FC<CommentItemProps> = ({
               size="sm"
             />
           </div>
+
+          {/* Reply Input - Show only for main comments when this comment is being replied to */}
+          {!isReply && activeReplyId === comment.id && onSubmitReply && (
+            <div className="mt-3 mr-2">
+              <CommentInput
+                onSubmit={onSubmitReply}
+                isSubmitting={isSubmittingReply}
+                placeholder={`رد على ${comment.profiles.username}...`}
+                replyTo={{ id: comment.id, username: comment.profiles.username }}
+                onCancelReply={onCancelReply}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -241,6 +263,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
               comment={reply}
               onReply={onReply}
               onProfileClick={onProfileClick}
+              // Don't pass reply props to nested replies
             />
           ))}
         </div>
