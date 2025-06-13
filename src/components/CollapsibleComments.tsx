@@ -39,10 +39,39 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState<{ id: string; username: string } | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<{
+    username: string;
+    avatar_url?: string;
+    verification_status?: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchComments();
-  }, [postId]);
+    if (user) {
+      fetchCurrentUserProfile();
+    }
+  }, [postId, user]);
+
+  const fetchCurrentUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, avatar_url, verification_status')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching current user profile:', error);
+        return;
+      }
+
+      setCurrentUserProfile(data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   const fetchComments = async () => {
     try {
@@ -106,7 +135,6 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
   };
 
   const uploadMedia = async (file: File, type: string) => {
-    // إنشاء bucket إذا لم يكن موجوداً
     const { data: buckets } = await supabase.storage.listBuckets();
     const bucketExists = buckets?.some(bucket => bucket.name === 'hashtag-images');
     
@@ -201,7 +229,6 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
       if (mediaUrl && mediaType) {
         commentData.media_url = mediaUrl;
         commentData.media_type = mediaType;
-        // للتوافق مع النظام القديم - فقط للصور
         if (mediaType.startsWith('image/')) {
           commentData.image_url = mediaUrl;
         }
@@ -228,10 +255,22 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
 
       console.log('Comment inserted successfully:', insertData);
 
+      // إضافة التعليق الجديد مع بيانات المستخدم الصحيحة
+      if (insertData) {
+        const newComment: Comment = {
+          ...insertData,
+          profiles: {
+            id: user.id,
+            username: currentUserProfile?.username || 'مستخدم',
+            avatar_url: currentUserProfile?.avatar_url || null,
+            verification_status: currentUserProfile?.verification_status || 'none'
+          }
+        };
+
+        setComments(prevComments => [newComment, ...prevComments]);
+      }
+
       setReplyTo(null);
-      
-      // إعادة جلب التعليقات فقط - لا نضيف التعليق يدوياً
-      await fetchComments();
       onCommentAdded();
       
     } catch (error) {
@@ -283,7 +322,6 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
 
   return (
     <div className="mt-3 border-t border-gray-700/30 pt-3">
-      {/* Comment Input - Moved to top */}
       <div className="bg-gray-800/40 rounded-lg p-3 border border-gray-700/40 mb-4">
         <CommentInput
           onSubmit={handleSubmitComment}
@@ -294,7 +332,6 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
         />
       </div>
 
-      {/* Comments List */}
       <div className="space-y-3">
         {isLoading ? (
           <div className="flex justify-center py-6">

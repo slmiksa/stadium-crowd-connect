@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +21,7 @@ interface Comment {
     id: string;
     username: string;
     avatar_url?: string;
+    verification_status?: string;
   };
 }
 
@@ -46,13 +46,42 @@ const Comments = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState<{ id: string; username: string } | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<{
+    username: string;
+    avatar_url?: string;
+    verification_status?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (postId) {
       fetchPost();
       fetchComments();
     }
-  }, [postId]);
+    if (user) {
+      fetchCurrentUserProfile();
+    }
+  }, [postId, user]);
+
+  const fetchCurrentUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, avatar_url, verification_status')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching current user profile:', error);
+        return;
+      }
+
+      setCurrentUserProfile(data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   const fetchPost = async () => {
     try {
@@ -88,7 +117,7 @@ const Comments = () => {
         .from('hashtag_comments')
         .select('*')
         .eq('post_id', postId)
-        .order('created_at', { ascending: false }); // الأحدث أولاً
+        .order('created_at', { ascending: false });
 
       if (commentsError) {
         console.error('Error fetching comments:', commentsError);
@@ -133,7 +162,6 @@ const Comments = () => {
   };
 
   const uploadMedia = async (file: File, type: string) => {
-    // إنشاء bucket إذا لم يكن موجوداً
     const { data: buckets } = await supabase.storage.listBuckets();
     const bucketExists = buckets?.some(bucket => bucket.name === 'hashtag-images');
     
@@ -211,7 +239,6 @@ const Comments = () => {
       if (mediaUrl && mediaType) {
         commentData.media_url = mediaUrl;
         commentData.media_type = mediaType;
-        // للتوافق مع النظام القديم - فقط للصور
         if (mediaType.startsWith('image/')) {
           commentData.image_url = mediaUrl;
         }
@@ -233,12 +260,12 @@ const Comments = () => {
           ...insertData,
           profiles: {
             id: user.id,
-            username: user.email?.split('@')[0] || 'مستخدم',
-            avatar_url: null
+            username: currentUserProfile?.username || 'مستخدم',
+            avatar_url: currentUserProfile?.avatar_url || null,
+            verification_status: currentUserProfile?.verification_status || 'none'
           }
         };
 
-        // إضافة التعليق الجديد في أول المصفوفة (الأعلى)
         setComments(prevComments => [newComment, ...prevComments]);
       }
 
@@ -291,7 +318,6 @@ const Comments = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gray-900">
-        {/* Header */}
         <div className="bg-gray-800/80 backdrop-blur-sm border-b border-gray-700/50 sticky top-0 z-10">
           <div className="flex items-center p-4">
             <button
@@ -310,7 +336,6 @@ const Comments = () => {
         </div>
 
         <div className="max-w-2xl mx-auto">
-          {/* Comment Input */}
           <div className="bg-gray-800/50 border-b border-gray-700/50 p-4">
             <CommentInput
               onSubmit={handleSubmitComment}
@@ -321,7 +346,6 @@ const Comments = () => {
             />
           </div>
 
-          {/* Comments List */}
           <div className="p-4 space-y-4 pb-20">
             {organizedComments.length === 0 ? (
               <div className="text-center py-12">
