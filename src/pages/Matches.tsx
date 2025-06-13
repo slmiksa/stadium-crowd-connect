@@ -85,52 +85,54 @@ const Matches = () => {
     news: ''
   });
 
-  // تصنيف البطولات المحسن - التركيز على البطولات المهمة فقط
+  // تصنيف البطولات المحسن - أولوية لكأس العالم للأندية
   const getCompetitionCategory = (competition: string): CompetitionCategory => {
+    const competitionLower = competition.toLowerCase();
+    
+    // كأس العالم والأندية - أولوية قصوى
+    const worldcupCompetitions = [
+      'fifa club world cup', 'club world cup', 'cwc',
+      'world cup', 'fifa world cup',
+      'world cup qualification', 'fifa world cup qualification', 'world cup qualifiers',
+      'wc qualification'
+    ];
+    
     // البطولات السعودية
     const saudiCompetitions = [
-      'Saudi Pro League', 'Saudi Professional League', 'King Cup', 'Saudi Super Cup'
+      'saudi pro league', 'saudi professional league', 'king cup', 'saudi super cup',
+      'roshn saudi league'
     ];
     
     // البطولات الأوروبية المهمة
     const europeanCompetitions = [
-      'Premier League', 'English Premier League', 'EPL',
-      'La Liga', 'LaLiga', 'Spanish La Liga',
-      'Bundesliga', 'German Bundesliga',
-      'Serie A', 'Italian Serie A',
-      'Ligue 1', 'French Ligue 1',
-      'FA Cup', 'Copa del Rey', 'DFB Pokal', 'DFB-Pokal', 'Coppa Italia', 'Coupe de France'
+      'premier league', 'english premier league', 'epl',
+      'la liga', 'laliga', 'spanish la liga',
+      'bundesliga', 'german bundesliga',
+      'serie a', 'italian serie a',
+      'ligue 1', 'french ligue 1',
+      'fa cup', 'copa del rey', 'dfb pokal', 'dfb-pokal', 'coppa italia', 'coupe de france'
     ];
     
     // البطولات القارية المهمة
     const continentalCompetitions = [
-      'Champions League', 'UEFA Champions League',
-      'Europa League', 'UEFA Europa League',
-      'Conference League', 'UEFA Conference League',
-      'AFC Champions League', 'AFC Champions League Elite', 'Asian Champions League',
-      'UEFA Nations League', 'European Championship', 'UEFA European Championship',
-      'Euro 2024', 'UEFA Euro',
-      'Asian Cup', 'AFC Asian Cup',
-      'Copa America', 'CONMEBOL Copa America'
-    ];
-    
-    // كأس العالم والأندية
-    const worldcupCompetitions = [
-      'World Cup', 'FIFA World Cup',
-      'FIFA Club World Cup', 'Club World Cup',
-      'World Cup Qualification', 'FIFA World Cup Qualification', 'World Cup Qualifiers',
-      'WC Qualification'
+      'champions league', 'uefa champions league',
+      'europa league', 'uefa europa league',
+      'conference league', 'uefa conference league',
+      'afc champions league', 'afc champions league elite', 'asian champions league',
+      'uefa nations league', 'european championship', 'uefa european championship',
+      'euro 2024', 'uefa euro',
+      'asian cup', 'afc asian cup',
+      'copa america', 'conmebol copa america'
     ];
 
-    const competitionLower = competition.toLowerCase();
-
-    // فحص دقيق للبطولات المهمة
-    if (saudiCompetitions.some(comp => competition.includes(comp))) return 'saudi';
-    if (europeanCompetitions.some(comp => competition.includes(comp))) return 'european';
-    if (continentalCompetitions.some(comp => competition.includes(comp))) return 'continental';
-    if (worldcupCompetitions.some(comp => competition.includes(comp)) || 
+    // فحص دقيق للبطولات بأولوية كأس العالم للأندية
+    if (worldcupCompetitions.some(comp => competitionLower.includes(comp)) || 
         competitionLower.includes('world cup') || 
         competitionLower.includes('club world cup')) return 'worldcup';
+    
+    if (saudiCompetitions.some(comp => competitionLower.includes(comp))) return 'saudi';
+    if (europeanCompetitions.some(comp => competitionLower.includes(comp))) return 'european';
+    if (continentalCompetitions.some(comp => competitionLower.includes(comp))) return 'continental';
 
     // فلترة البطولات غير المهمة
     const ignoredCompetitions = [
@@ -146,16 +148,22 @@ const Matches = () => {
     return 'all';
   };
 
-  // ترتيب البطولات حسب الأولوية المحسن
+  // ترتيب البطولات حسب الأولوية - كأس العالم للأندية في المقدمة
   const getCompetitionPriority = (competition: string): number => {
+    const competitionLower = competition.toLowerCase();
     const priorities: { [key: string]: number } = {
       // كأس العالم للأندية - أولوية قصوى
       'FIFA Club World Cup': 1,
       'Club World Cup': 1,
       
+      // كأس العالم
+      'FIFA World Cup': 2,
+      'World Cup': 2,
+      
       // البطولات السعودية
       'Saudi Pro League': 5,
       'Saudi Professional League': 5,
+      'Roshn Saudi League': 5,
       'King Cup': 6,
       'Saudi Super Cup': 7,
       
@@ -178,9 +186,7 @@ const Matches = () => {
       'UEFA Europa League': 30,
       'Europa League': 30,
       
-      // كأس العالم وتصفياته
-      'FIFA World Cup': 35,
-      'World Cup': 35,
+      // تصفيات كأس العالم
       'World Cup Qualification': 40,
       
       // كؤوس محلية
@@ -190,6 +196,11 @@ const Matches = () => {
       'Coppa Italia': 53,
       'Coupe de France': 54
     };
+    
+    // فحص خاص لكأس العالم للأندية
+    if (competitionLower.includes('club world cup') || competitionLower.includes('fifa club world cup')) {
+      return 1;
+    }
     
     return priorities[competition] || 999;
   };
@@ -259,11 +270,13 @@ const Matches = () => {
       setIsLoading(true);
       console.log('بدء تحميل البيانات...');
 
+      // جلب المباريات المباشرة أولاً
       const livePromise = fetchMatchData('live');
       const newsPromise = fetchNewsData();
 
       await Promise.all([livePromise, newsPromise]);
 
+      // جلب باقي البيانات
       fetchMatchData('today');
       fetchMatchData('tomorrow');
       fetchMatchData('yesterday');
@@ -276,8 +289,10 @@ const Matches = () => {
 
   const fetchMatchData = async (status: 'live' | 'today' | 'tomorrow' | 'yesterday') => {
     try {
+      console.log(`=== جلب مباريات ${status} ===`);
+      
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 15000)
+        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 20000)
       );
 
       const today = new Date();
@@ -286,27 +301,40 @@ const Matches = () => {
       
       if (status === 'live') {
         apiStatus = 'live';
+        console.log('جلب المباريات المباشرة...');
       } else if (status === 'today') {
         apiStatus = 'upcoming';
         targetDate = today;
+        console.log('جلب مباريات اليوم...');
       } else if (status === 'tomorrow') {
         apiStatus = 'upcoming';
         targetDate = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+        console.log('جلب مباريات الغد...');
       } else if (status === 'yesterday') {
         apiStatus = 'finished';
         targetDate = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        console.log('جلب مباريات الأمس...');
       }
 
       const dataPromise = supabase.functions.invoke('get-football-matches', {
         body: {
           status: apiStatus,
-          date: targetDate.toISOString().split('T')[0]
+          date: targetDate.toISOString().split('T')[0],
+          forceRefresh: true // إجبار التحديث
         }
       });
 
-      const { data } = await Promise.race([dataPromise, timeoutPromise]) as any;
+      const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error(`خطأ في API ${status}:`, error);
+        throw error;
+      }
+
+      console.log(`استجابة API ${status}:`, data);
 
       if (data?.success && data?.matches) {
+        console.log(`تم جلب ${data.matches.length} مباراة للحالة ${status}`);
         setAllMatches(prev => ({
           ...prev,
           [status]: data.matches
@@ -316,6 +344,7 @@ const Matches = () => {
           [status]: ''
         }));
       } else {
+        console.log(`لا توجد مباريات للحالة ${status}`);
         setAllMatches(prev => ({
           ...prev,
           [status]: []
@@ -393,6 +422,7 @@ const Matches = () => {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    console.log('=== تحديث البيانات ===');
     await fetchInitialData();
     setIsRefreshing(false);
   };
@@ -498,9 +528,7 @@ const Matches = () => {
   const SoccerPlayerAnimation = () => <div className="flex items-center justify-center py-8">
       <div className="relative">
         <AnimatedSoccerBall size="w-10 h-10" className="animate-pulse" />
-        <div className="absolute -right-16 top-0 animate-bounce delay-75">
-          
-        </div>
+        <div className="absolute -right-16 top-0 animate-bounce delay-75"></div>
       </div>
     </div>;
 
@@ -587,14 +615,19 @@ const Matches = () => {
     const category = getCompetitionCategory(competition);
     const priority = getCompetitionPriority(competition);
     const isHighPriority = priority <= 20;
+    const isClubWorldCup = competition.toLowerCase().includes('club world cup');
     
     return <AccordionItem value={competition} className={`border rounded-xl overflow-hidden mb-4 backdrop-blur-sm ${
-      isHighPriority 
+      isClubWorldCup 
+        ? 'border-yellow-400/60 bg-gradient-to-r from-yellow-900/30 to-amber-900/30 shadow-lg shadow-yellow-500/20' 
+        : isHighPriority 
         ? 'border-yellow-500/40 bg-gradient-to-r from-yellow-900/20 to-amber-900/20' 
         : 'border-gray-700/30 bg-gradient-to-r from-gray-800/40 to-gray-700/40'
     }`}>
         <AccordionTrigger className={`font-bold px-6 py-4 transition-all duration-300 ${
-          isHighPriority 
+          isClubWorldCup 
+            ? 'text-yellow-200 hover:text-yellow-100' 
+            : isHighPriority 
             ? 'text-yellow-300 hover:text-yellow-200' 
             : 'text-gray-300 hover:text-gray-200'
         } ${isMobile ? 'text-sm' : 'text-base'}`}>
@@ -603,7 +636,14 @@ const Matches = () => {
                 <img src={matches[0].leagueFlag} alt="" className="w-8 h-6 object-cover rounded-md shadow-md border border-gray-600/50" />
               </div>}
             
-            {isHighPriority && <Star className="w-5 h-5 text-yellow-400" />}
+            {isClubWorldCup && <div className="flex items-center space-x-2 space-x-reverse">
+                <Trophy className="w-6 h-6 text-yellow-400 animate-pulse" />
+                <span className="text-xs bg-yellow-400/30 text-yellow-200 px-2 py-1 rounded-full border border-yellow-400/40">
+                  🏆 يبدأ غداً
+                </span>
+              </div>}
+            
+            {isHighPriority && !isClubWorldCup && <Star className="w-5 h-5 text-yellow-400" />}
             {getCategoryIcon(category)}
             
             <div className="text-right flex-1">
@@ -611,7 +651,12 @@ const Matches = () => {
                 <span className={isMobile ? 'text-sm' : 'text-base'}>
                   {isMobile && competition.length > 25 ? competition.substring(0, 25) + '...' : competition}
                 </span>
-                {isHighPriority && (
+                {isClubWorldCup && (
+                  <span className="text-xs bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded-full border border-yellow-400/30 animate-pulse">
+                    🏆 استثنائية
+                  </span>
+                )}
+                {isHighPriority && !isClubWorldCup && (
                   <span className="text-xs bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded-full border border-yellow-400/30">
                     مهمة
                   </span>
@@ -746,7 +791,7 @@ const Matches = () => {
   // تجميع المباريات حسب البطولة
   const groupedMatches = groupMatchesByCompetition(currentMatches);
 
-  // ترتيب البطولات حسب الأولوية
+  // ترتيب البطولات حسب الأولوية - كأس العالم للأندية في المقدمة
   const sortedCompetitions = Object.keys(groupedMatches).sort((a, b) => 
     getCompetitionPriority(a) - getCompetitionPriority(b)
   );
@@ -841,6 +886,12 @@ const Matches = () => {
                           <span>{getCategoryName('all')}</span>
                         </div>
                       </SelectItem>
+                      <SelectItem value="worldcup" className="text-white hover:bg-gray-700">
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          {getCategoryIcon('worldcup')}
+                          <span>{getCategoryName('worldcup')}</span>
+                        </div>
+                      </SelectItem>
                       <SelectItem value="saudi" className="text-white hover:bg-gray-700">
                         <div className="flex items-center space-x-2 space-x-reverse">
                           {getCategoryIcon('saudi')}
@@ -857,12 +908,6 @@ const Matches = () => {
                         <div className="flex items-center space-x-2 space-x-reverse">
                           {getCategoryIcon('continental')}
                           <span>{getCategoryName('continental')}</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="worldcup" className="text-white hover:bg-gray-700">
-                        <div className="flex items-center space-x-2 space-x-reverse">
-                          {getCategoryIcon('worldcup')}
-                          <span>{getCategoryName('worldcup')}</span>
                         </div>
                       </SelectItem>
                     </SelectContent>

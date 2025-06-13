@@ -100,7 +100,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
           <img
             src={mediaUrl}
             alt="صورة التعليق"
-            className="max-w-full h-auto rounded-lg border border-gray-600/30"
+            className="max-w-full h-auto rounded-lg border border-gray-600/30 shadow-md hover:shadow-lg transition-shadow duration-200"
             style={{ maxHeight: '300px' }}
             onLoad={() => {
               console.log('✅ Image loaded successfully:', mediaUrl);
@@ -108,6 +108,8 @@ const CommentItem: React.FC<CommentItemProps> = ({
             onError={(e) => {
               console.error('❌ Image failed to load:', mediaUrl);
               console.error('Error event:', e);
+              // إخفاء الصورة في حالة فشل التحميل
+              e.currentTarget.style.display = 'none';
             }}
           />
         </div>
@@ -122,7 +124,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
           <video
             src={mediaUrl}
             controls
-            className="max-w-full h-auto rounded-lg border border-gray-600/30"
+            className="max-w-full h-auto rounded-lg border border-gray-600/30 shadow-md"
             style={{ maxHeight: '300px' }}
             onLoadedData={() => {
               console.log('✅ Video loaded successfully:', mediaUrl);
@@ -157,7 +159,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
         </Avatar>
 
         <div className="flex-1 min-w-0">
-          <div className="bg-gray-800/50 rounded-2xl px-4 py-3">
+          <div className="bg-gray-800/50 rounded-2xl px-4 py-3 backdrop-blur-sm border border-gray-700/30">
             <div className="flex items-center space-x-2 space-x-reverse mb-1">
               <span 
                 className="font-medium text-white text-sm cursor-pointer hover:underline"
@@ -171,7 +173,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
             </div>
             
             {comment.content && (
-              <p className="text-gray-200 text-sm leading-relaxed">
+              <p className="text-gray-200 text-sm leading-relaxed mb-2">
                 {renderHashtags(comment.content)}
               </p>
             )}
