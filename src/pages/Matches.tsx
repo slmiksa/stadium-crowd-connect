@@ -89,9 +89,12 @@ const Matches = () => {
   const isImportantCompetition = (competition: string): boolean => {
     const competitionLower = competition.toLowerCase();
     
-    // كأس العالم للأندية - أولوية عليا
+    // كأس العالم للأندية - أولوية عليا مع أسماء أكثر شمولاً
     const clubWorldCupNames = [
-      'fifa club world cup', 'club world cup', 'cwc'
+      'fifa club world cup', 'club world cup', 'cwc',
+      'copa mundial de clubes', 'coupe du monde des clubs',
+      'mundial de clubes', 'world club cup', 'intercontinental cup',
+      'fifa intercontinental cup', 'club wc'
     ];
     
     // كأس العالم وتصفياته
@@ -151,9 +154,12 @@ const Matches = () => {
   const getCompetitionCategory = (competition: string): CompetitionCategory => {
     const competitionLower = competition.toLowerCase();
     
-    // كأس العالم والأندية - أولوية قصوى
+    // كأس العالم والأندية - أولوية قصوى مع أسماء أكثر شمولاً
     if (competitionLower.includes('club world cup') || 
         competitionLower.includes('fifa club world cup') ||
+        competitionLower.includes('intercontinental cup') ||
+        competitionLower.includes('mundial de clubes') ||
+        competitionLower.includes('world club cup') ||
         competitionLower.includes('world cup')) return 'worldcup';
     
     // البطولات السعودية
@@ -174,8 +180,12 @@ const Matches = () => {
   const getCompetitionPriority = (competition: string): number => {
     const competitionLower = competition.toLowerCase();
     
-    // كأس العالم للأندية - أولوية قصوى
-    if (competitionLower.includes('club world cup') || competitionLower.includes('fifa club world cup')) return 1;
+    // كأس العالم للأندية - أولوية قصوى مع أسماء أكثر شمولاً
+    if (competitionLower.includes('club world cup') || 
+        competitionLower.includes('fifa club world cup') ||
+        competitionLower.includes('intercontinental cup') ||
+        competitionLower.includes('mundial de clubes') ||
+        competitionLower.includes('world club cup')) return 1;
     
     // كأس العالم
     if (competitionLower.includes('fifa world cup') && !competitionLower.includes('qualification')) return 2;
@@ -555,7 +565,7 @@ const Matches = () => {
           {match.status === 'live' && <div className="flex items-center space-x-2 space-x-reverse">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
               <span className="text-red-400 text-xs font-bold bg-red-500/20 px-2 py-1 rounded-full">مباشر</span>
-              {match.minute && <span className="text-red-400 text-xs bg-red-500/30 px-2 py-1 rounded-full border border-red-500/50">
+              {match.minute && <span className="text-red-400 text-xs bg-red-500/30 px-2 py-1 rounded-full">
                   {match.minute}'
                 </span>}
             </div>}
@@ -696,7 +706,7 @@ const Matches = () => {
   }: {
     newsItem: NewsItem;
   }) => <div onClick={() => handleNewsClick(newsItem)} className="bg-gradient-to-br from-gray-800/70 to-gray-700/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:bg-gradient-to-br hover:from-gray-700/80 hover:to-gray-600/80 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] shadow-lg hover:shadow-2xl group">
-      {newsItem.image && newsItem.image !== '/placeholder.svg' && <div className="mb-4 rounded-xl overflow-hidden shadow-md">
+      {newsItem.image && newsItem.image !== '/placeholder.svg' && <div className="mb-4 rounded-xl overflow-hidden shadow-lg">
           <img src={newsItem.image} alt={newsItem.title} className={`w-full object-cover group-hover:scale-105 transition-transform duration-300 ${isMobile ? 'h-36' : 'h-48'}`} />
         </div>}
 
@@ -828,7 +838,7 @@ const Matches = () => {
                     المباريات والأخبار
                   </h1>
                   <p className={`text-gray-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    🏆 كأس العالم للأندية يبدأ غداً!
+                    🏆 كأس العالم للأندية - تابع آخر المباريات!
                   </p>
                 </div>
               </div>

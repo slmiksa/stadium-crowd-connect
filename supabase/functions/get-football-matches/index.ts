@@ -10,21 +10,25 @@ const corsHeaders = {
 const isImportantCompetition = (leagueName: string): boolean => {
   const nameLower = leagueName.toLowerCase();
   
-  // كأس العالم للأندية - أولوية عليا
+  // كأس العالم للأندية - أولوية عليا مع أسماء أكثر شمولاً
   const clubWorldCupNames = [
-    'fifa club world cup', 'club world cup', 'cwc'
+    'fifa club world cup', 'club world cup', 'cwc',
+    'copa mundial de clubes', 'coupe du monde des clubs',
+    'mundial de clubes', 'world club cup', 'intercontinental cup',
+    'fifa intercontinental cup', 'club wc'
   ];
   
   // كأس العالم وتصفياته
   const worldCupNames = [
     'fifa world cup', 'world cup', 'wc', 
-    'world cup qualification', 'fifa world cup qualification', 'world cup qualifiers'
+    'world cup qualification', 'fifa world cup qualification', 'world cup qualifiers',
+    'wc qualification', 'copa del mundo', 'coupe du monde'
   ];
   
   // البطولات السعودية
   const saudiCompetitions = [
     'saudi pro league', 'saudi professional league', 'roshn saudi league',
-    'king cup', 'saudi super cup'
+    'king cup', 'saudi super cup', 'saudi arabia pro league'
   ];
   
   // الدوريات الأوروبية الكبرى
@@ -298,6 +302,10 @@ serve(async (req) => {
           if (!data.errors || Object.keys(data.errors).length === 0) {
             allMatches = data.response || []
             console.log('المباريات المباشرة الخام:', allMatches.length)
+            
+            // تسجيل أسماء البطولات للمراجعة
+            const leagues = [...new Set(allMatches.map(m => m.league.name))]
+            console.log('البطولات المتاحة حالياً:', leagues)
           }
         } else {
           console.error('خطأ في استجابة API المباشر:', response.status)
@@ -325,6 +333,10 @@ serve(async (req) => {
             if (data.response && data.response.length > 0) {
               allMatches = data.response
               console.log(`تم العثور على ${data.response.length} مباراة منتهية أمس`)
+              
+              // تسجيل أسماء البطولات للمراجعة
+              const leagues = [...new Set(allMatches.map(m => m.league.name))]
+              console.log('البطولات في مباريات أمس:', leagues)
             }
           }
         } catch (error) {
@@ -361,6 +373,10 @@ serve(async (req) => {
             if (data.response && data.response.length > 0) {
               allMatches = data.response
               console.log(`تم العثور على ${data.response.length} مباراة في ${searchDate}`)
+              
+              // تسجيل أسماء البطولات للمراجعة
+              const leagues = [...new Set(allMatches.map(m => m.league.name))]
+              console.log('البطولات في مباريات اليوم/غدا:', leagues)
             }
           }
         } catch (error) {
@@ -379,6 +395,8 @@ serve(async (req) => {
       const isImportant = isImportantCompetition(leagueName)
       if (!isImportant) {
         console.log(`تم تجاهل البطولة غير المهمة: ${leagueName}`)
+      } else {
+        console.log(`تم قبول البطولة المهمة: ${leagueName}`)
       }
       return isImportant
     })
