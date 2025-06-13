@@ -6,14 +6,66 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// قائمة البطولات التي يجب تجاهلها (تقليل البطولات المرفوضة)
-const ignoredLeagues = [
-  'Ghana Premier League',
-  'Nigerian Professional Football League',
-  'South African Premier Soccer League',
-  'Ghanaian Premier League',
-  'Congo League'
-]
+// قائمة محسنة للبطولات المهمة فقط
+const isImportantCompetition = (leagueName: string): boolean => {
+  const nameLower = leagueName.toLowerCase();
+  
+  // كأس العالم للأندية - أولوية عليا
+  const clubWorldCupNames = [
+    'fifa club world cup', 'club world cup', 'cwc'
+  ];
+  
+  // كأس العالم وتصفياته
+  const worldCupNames = [
+    'fifa world cup', 'world cup', 'wc', 
+    'world cup qualification', 'fifa world cup qualification', 'world cup qualifiers'
+  ];
+  
+  // البطولات السعودية
+  const saudiCompetitions = [
+    'saudi pro league', 'saudi professional league', 'roshn saudi league',
+    'king cup', 'saudi super cup'
+  ];
+  
+  // الدوريات الأوروبية الكبرى
+  const europeanLeagues = [
+    'premier league', 'english premier league', 'epl',
+    'la liga', 'laliga', 'spanish la liga',
+    'bundesliga', 'german bundesliga',
+    'serie a', 'italian serie a',
+    'ligue 1', 'french ligue 1'
+  ];
+  
+  // الكؤوس الأوروبية
+  const europeanCups = [
+    'fa cup', 'copa del rey', 'dfb pokal', 'dfb-pokal', 
+    'coppa italia', 'coupe de france'
+  ];
+  
+  // البطولات القارية المهمة
+  const continentalCompetitions = [
+    'champions league', 'uefa champions league',
+    'europa league', 'uefa europa league',
+    'conference league', 'uefa conference league',
+    'afc champions league', 'afc champions league elite', 'asian champions league',
+    'uefa nations league', 'european championship', 'uefa european championship',
+    'euro 2024', 'uefa euro', 'euro ',
+    'asian cup', 'afc asian cup',
+    'copa america', 'conmebol copa america'
+  ];
+
+  // فحص البطولات المهمة
+  const allImportantCompetitions = [
+    ...clubWorldCupNames,
+    ...worldCupNames,
+    ...saudiCompetitions,
+    ...europeanLeagues,
+    ...europeanCups,
+    ...continentalCompetitions
+  ];
+
+  return allImportantCompetitions.some(comp => nameLower.includes(comp));
+};
 
 // ترجمات محسنة ومصححة للفرق
 const teamTranslations: { [key: string]: string } = {
@@ -245,6 +297,7 @@ serve(async (req) => {
           
           if (!data.errors || Object.keys(data.errors).length === 0) {
             allMatches = data.response || []
+            console.log('المباريات المباشرة الخام:', allMatches.length)
           }
         } else {
           console.error('خطأ في استجابة API المباشر:', response.status)
@@ -320,17 +373,21 @@ serve(async (req) => {
 
     console.log(`إجمالي المباريات المجلبة: ${allMatches.length}`)
 
-    // تصفية البطولات المرفوضة (تقليل القائمة لعدم إزالة الكثير)
+    // تصفية البطولات المهمة فقط
     const filteredMatches = allMatches.filter((fixture: any) => {
       const leagueName = fixture.league.name
-      return !ignoredLeagues.includes(leagueName)
+      const isImportant = isImportantCompetition(leagueName)
+      if (!isImportant) {
+        console.log(`تم تجاهل البطولة غير المهمة: ${leagueName}`)
+      }
+      return isImportant
     })
 
     console.log(`المباريات بعد التصفية: ${filteredMatches.length}`)
 
-    // إذا لم نحصل على مباريات حقيقية، نرجع قائمة فارغة
+    // إذا لم نحصل على مباريات مهمة، نرجع قائمة فارغة
     if (filteredMatches.length === 0) {
-      console.log('لا توجد مباريات حقيقية متاحة بعد التصفية')
+      console.log('لا توجد مباريات مهمة متاحة بعد التصفية')
       return new Response(
         JSON.stringify({ 
           matches: [],
@@ -342,7 +399,7 @@ serve(async (req) => {
             status === 'live' ? 'مباشرة الآن' :
             status === 'upcoming' ? (date === new Date().toISOString().split('T')[0] ? 'اليوم' : 'غدا') :
             'أمس'
-          }`
+          } في البطولات المهمة`
         }),
         { 
           status: 200, 
@@ -351,7 +408,7 @@ serve(async (req) => {
       )
     }
 
-    // معالجة المباريات الحقيقية فقط
+    // معالجة المباريات المهمة فقط
     const processedMatches = filteredMatches.map((fixture: any) => {
       const leagueName = fixture.league.name
 
@@ -397,7 +454,7 @@ serve(async (req) => {
       }
     })
 
-    console.log(`=== إرجاع ${processedMatches.length} مباراة حقيقية للحالة: ${status} ===`)
+    console.log(`=== إرجاع ${processedMatches.length} مباراة مهمة للحالة: ${status} ===`)
 
     return new Response(
       JSON.stringify({ 

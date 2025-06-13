@@ -85,32 +85,41 @@ const Matches = () => {
     news: ''
   });
 
-  // تصنيف البطولات المحسن - أولوية لكأس العالم للأندية
-  const getCompetitionCategory = (competition: string): CompetitionCategory => {
+  // قائمة محسنة للبطولات المهمة فقط
+  const isImportantCompetition = (competition: string): boolean => {
     const competitionLower = competition.toLowerCase();
     
-    // كأس العالم والأندية - أولوية قصوى
-    const worldcupCompetitions = [
-      'fifa club world cup', 'club world cup', 'cwc',
-      'world cup', 'fifa world cup',
+    // كأس العالم للأندية - أولوية عليا
+    const clubWorldCupNames = [
+      'fifa club world cup', 'club world cup', 'cwc'
+    ];
+    
+    // كأس العالم وتصفياته
+    const worldCupNames = [
+      'fifa world cup', 'world cup', 'wc', 
       'world cup qualification', 'fifa world cup qualification', 'world cup qualifiers',
       'wc qualification'
     ];
     
     // البطولات السعودية
     const saudiCompetitions = [
-      'saudi pro league', 'saudi professional league', 'king cup', 'saudi super cup',
-      'roshn saudi league'
+      'saudi pro league', 'saudi professional league', 'roshn saudi league',
+      'king cup', 'saudi super cup'
     ];
     
-    // البطولات الأوروبية المهمة
-    const europeanCompetitions = [
+    // الدوريات الأوروبية الكبرى
+    const europeanLeagues = [
       'premier league', 'english premier league', 'epl',
       'la liga', 'laliga', 'spanish la liga',
       'bundesliga', 'german bundesliga',
       'serie a', 'italian serie a',
-      'ligue 1', 'french ligue 1',
-      'fa cup', 'copa del rey', 'dfb pokal', 'dfb-pokal', 'coppa italia', 'coupe de france'
+      'ligue 1', 'french ligue 1'
+    ];
+    
+    // الكؤوس الأوروبية
+    const europeanCups = [
+      'fa cup', 'copa del rey', 'dfb pokal', 'dfb-pokal', 
+      'coppa italia', 'coupe de france'
     ];
     
     // البطولات القارية المهمة
@@ -120,124 +129,116 @@ const Matches = () => {
       'conference league', 'uefa conference league',
       'afc champions league', 'afc champions league elite', 'asian champions league',
       'uefa nations league', 'european championship', 'uefa european championship',
-      'euro 2024', 'uefa euro',
+      'euro 2024', 'uefa euro', 'euro ',
       'asian cup', 'afc asian cup',
       'copa america', 'conmebol copa america'
     ];
 
-    // فحص دقيق للبطولات بأولوية كأس العالم للأندية
-    if (worldcupCompetitions.some(comp => competitionLower.includes(comp)) || 
-        competitionLower.includes('world cup') || 
-        competitionLower.includes('club world cup')) return 'worldcup';
-    
-    if (saudiCompetitions.some(comp => competitionLower.includes(comp))) return 'saudi';
-    if (europeanCompetitions.some(comp => competitionLower.includes(comp))) return 'european';
-    if (continentalCompetitions.some(comp => competitionLower.includes(comp))) return 'continental';
-
-    // فلترة البطولات غير المهمة
-    const ignoredCompetitions = [
-      'ghana', 'nigeria', 'south africa', 'kenya', 'uganda', 'tanzania',
-      'youth', 'u20', 'u19', 'u18', 'u17', 'women', 'reserve',
-      'second division', 'third division', 'amateur'
+    // فحص البطولات المهمة
+    const allImportantCompetitions = [
+      ...clubWorldCupNames,
+      ...worldCupNames,
+      ...saudiCompetitions,
+      ...europeanLeagues,
+      ...europeanCups,
+      ...continentalCompetitions
     ];
+
+    return allImportantCompetitions.some(comp => competitionLower.includes(comp));
+  };
+
+  // تصنيف البطولات
+  const getCompetitionCategory = (competition: string): CompetitionCategory => {
+    const competitionLower = competition.toLowerCase();
     
-    if (ignoredCompetitions.some(ignored => competitionLower.includes(ignored))) {
-      return 'all'; // سيتم تصفيتها لاحقاً
-    }
+    // كأس العالم والأندية - أولوية قصوى
+    if (competitionLower.includes('club world cup') || 
+        competitionLower.includes('fifa club world cup') ||
+        competitionLower.includes('world cup')) return 'worldcup';
+    
+    // البطولات السعودية
+    if (competitionLower.includes('saudi')) return 'saudi';
+    
+    // الدوريات الأوروبية
+    const europeanKeywords = ['premier league', 'la liga', 'bundesliga', 'serie a', 'ligue 1', 'fa cup', 'copa del rey', 'dfb pokal', 'coppa italia', 'coupe de france'];
+    if (europeanKeywords.some(keyword => competitionLower.includes(keyword))) return 'european';
+    
+    // البطولات القارية
+    const continentalKeywords = ['champions league', 'europa league', 'conference league', 'afc champions', 'asian cup', 'euro', 'copa america', 'nations league'];
+    if (continentalKeywords.some(keyword => competitionLower.includes(keyword))) return 'continental';
 
     return 'all';
   };
 
-  // ترتيب البطولات حسب الأولوية - كأس العالم للأندية في المقدمة
+  // ترتيب البطولات حسب الأولوية
   const getCompetitionPriority = (competition: string): number => {
     const competitionLower = competition.toLowerCase();
-    const priorities: { [key: string]: number } = {
-      // كأس العالم للأندية - أولوية قصوى
-      'FIFA Club World Cup': 1,
-      'Club World Cup': 1,
-      
-      // كأس العالم
-      'FIFA World Cup': 2,
-      'World Cup': 2,
-      
-      // البطولات السعودية
-      'Saudi Pro League': 5,
-      'Saudi Professional League': 5,
-      'Roshn Saudi League': 5,
-      'King Cup': 6,
-      'Saudi Super Cup': 7,
-      
-      // دوري أبطال أوروبا
-      'UEFA Champions League': 10,
-      'Champions League': 10,
-      
-      // الدوريات الأوروبية الكبرى
-      'Premier League': 15,
-      'English Premier League': 15,
-      'La Liga': 16,
-      'LaLiga': 16,
-      'Bundesliga': 17,
-      'Serie A': 18,
-      'Ligue 1': 19,
-      
-      // البطولات القارية
-      'AFC Champions League Elite': 25,
-      'AFC Champions League': 25,
-      'UEFA Europa League': 30,
-      'Europa League': 30,
-      
-      // تصفيات كأس العالم
-      'World Cup Qualification': 40,
-      
-      // كؤوس محلية
-      'FA Cup': 50,
-      'Copa del Rey': 51,
-      'DFB Pokal': 52,
-      'Coppa Italia': 53,
-      'Coupe de France': 54
-    };
     
-    // فحص خاص لكأس العالم للأندية
-    if (competitionLower.includes('club world cup') || competitionLower.includes('fifa club world cup')) {
-      return 1;
-    }
+    // كأس العالم للأندية - أولوية قصوى
+    if (competitionLower.includes('club world cup') || competitionLower.includes('fifa club world cup')) return 1;
     
-    return priorities[competition] || 999;
+    // كأس العالم
+    if (competitionLower.includes('fifa world cup') && !competitionLower.includes('qualification')) return 2;
+    
+    // البطولات السعودية
+    if (competitionLower.includes('saudi pro league') || competitionLower.includes('roshn saudi league')) return 5;
+    if (competitionLower.includes('king cup')) return 6;
+    
+    // دوري أبطال أوروبا
+    if (competitionLower.includes('uefa champions league') || competitionLower.includes('champions league')) return 10;
+    
+    // الدوريات الأوروبية الكبرى
+    if (competitionLower.includes('premier league')) return 15;
+    if (competitionLower.includes('la liga')) return 16;
+    if (competitionLower.includes('bundesliga')) return 17;
+    if (competitionLower.includes('serie a')) return 18;
+    if (competitionLower.includes('ligue 1')) return 19;
+    
+    // دوري أبطال آسيا
+    if (competitionLower.includes('afc champions league')) return 25;
+    
+    // تصفيات كأس العالم
+    if (competitionLower.includes('world cup qualification')) return 40;
+    
+    return 999;
   };
 
   // تصفية المباريات للبطولات المهمة فقط
   const filterMatchesByCategory = (matches: Match[]): Match[] => {
-    // تصفية البطولات غير المهمة أولاً
-    const importantMatches = matches.filter(match => {
-      const category = getCompetitionCategory(match.competition);
-      const competitionLower = match.competition.toLowerCase();
-      
-      // إزالة البطولات غير المهمة
-      const ignoredKeywords = [
-        'youth', 'u20', 'u19', 'u18', 'u17', 'women', 'reserve',
-        'ghana', 'nigeria', 'south africa', 'kenya', 'uganda', 'tanzania',
-        'second division', 'third division', 'amateur'
-      ];
-      
-      if (ignoredKeywords.some(keyword => competitionLower.includes(keyword))) {
-        return false;
-      }
-      
-      // الاحتفاظ بالبطولات المهمة فقط
-      return category !== 'all' || getCompetitionPriority(match.competition) < 900;
-    });
-
-    if (selectedCategory === 'all') return importantMatches;
+    console.log('=== FILTER MATCHES START ===');
+    console.log('Total matches before filtering:', matches.length);
     
-    return importantMatches.filter(match => {
+    // تصفية البطولات المهمة أولاً
+    const importantMatches = matches.filter(match => {
+      const isImportant = isImportantCompetition(match.competition);
+      if (!isImportant) {
+        console.log('Filtered out unimportant:', match.competition);
+      }
+      return isImportant;
+    });
+    
+    console.log('Important matches:', importantMatches.length);
+
+    if (selectedCategory === 'all') {
+      console.log('Returning all important matches');
+      return importantMatches;
+    }
+    
+    const categoryFiltered = importantMatches.filter(match => {
       const category = getCompetitionCategory(match.competition);
       return category === selectedCategory;
     });
+    
+    console.log('Category filtered matches:', categoryFiltered.length);
+    return categoryFiltered;
   };
 
   // تجميع المباريات حسب البطولة
   const groupMatchesByCompetition = (matches: Match[]): GroupedMatches => {
+    console.log('=== GROUP MATCHES START ===');
     const filteredMatches = filterMatchesByCategory(matches);
+    console.log('Filtered matches count:', filteredMatches.length);
+    
     const grouped: GroupedMatches = {};
     
     filteredMatches.forEach(match => {
@@ -249,7 +250,7 @@ const Matches = () => {
 
     // ترتيب المباريات داخل كل بطولة
     Object.keys(grouped).forEach(competition => {
-      grouped[competition].sort((a, b) => {
+      grouped[competition].sort((a: any, b: any) => {
         if (activeTab === 'tomorrow') {
           return new Date(a.date).getTime() - new Date(b.date).getTime();
         } else {
@@ -258,6 +259,7 @@ const Matches = () => {
       });
     });
     
+    console.log('Grouped competitions:', Object.keys(grouped));
     return grouped;
   };
 
@@ -320,7 +322,7 @@ const Matches = () => {
         body: {
           status: apiStatus,
           date: targetDate.toISOString().split('T')[0],
-          forceRefresh: true // إجبار التحديث
+          forceRefresh: true
         }
       });
 
@@ -795,6 +797,12 @@ const Matches = () => {
   const sortedCompetitions = Object.keys(groupedMatches).sort((a, b) => 
     getCompetitionPriority(a) - getCompetitionPriority(b)
   );
+
+  console.log('=== RENDER DATA ===');
+  console.log('Active tab:', activeTab);
+  console.log('Current matches:', currentMatches.length);
+  console.log('Grouped competitions:', Object.keys(groupedMatches));
+  console.log('Sorted competitions:', sortedCompetitions);
 
   if (isLoading) {
     return <Layout>
