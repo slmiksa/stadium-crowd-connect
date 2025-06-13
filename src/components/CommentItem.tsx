@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { MessageCircle, Heart, Play } from 'lucide-react';
 import VerificationBadge from './VerificationBadge';
+import LikeButton from './LikeButton';
 
 interface Comment {
   id: string;
@@ -44,6 +44,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
   console.log('Image URL:', comment.image_url);
   console.log('Media Type:', comment.media_type);
   console.log('Verification Status:', comment.profiles?.verification_status);
+
+  // Check if this is a reply (has parent_id)
+  const isReply = !!comment.parent_id;
 
   const formatTime = (dateString: string) => {
     try {
@@ -207,21 +210,30 @@ const CommentItem: React.FC<CommentItemProps> = ({
           </div>
 
           <div className="flex items-center space-x-4 space-x-reverse mt-2 px-2">
-            <Button
-              variant="ghost"
+            {/* Show reply button only for main comments (not replies) */}
+            {!isReply && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onReply(comment.id, comment.profiles.username)}
+                className="text-gray-400 hover:text-blue-400 text-xs h-auto p-1"
+              >
+                <MessageCircle size={14} className="ml-1" />
+                رد
+              </Button>
+            )}
+            
+            {/* Like button for all comments (main and replies) */}
+            <LikeButton
+              commentId={comment.id}
               size="sm"
-              onClick={() => onReply(comment.id, comment.profiles.username)}
-              className="text-gray-400 hover:text-blue-400 text-xs h-auto p-1"
-            >
-              <MessageCircle size={14} className="ml-1" />
-              رد
-            </Button>
+            />
           </div>
         </div>
       </div>
 
-      {/* Replies */}
-      {replies.length > 0 && (
+      {/* Replies - only show for main comments */}
+      {!isReply && replies.length > 0 && (
         <div className="mr-8 space-y-3">
           {replies.map((reply) => (
             <CommentItem
