@@ -49,11 +49,11 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
   const fetchLiveMatches = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/get-football-matches`, {
+      const response = await fetch(`https://zuvpksebzsthinjsxebt.supabase.co/functions/v1/get-football-matches`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1dnBrc2VienN0aGluanN4ZWJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NDAyMzQsImV4cCI6MjA2NDIxNjIzNH0.HPOH1UvYlwf7KeA97NtNHJAC2bXkLxVSKtLDcs2cjeU`
         },
         body: JSON.stringify({ status: 'live' })
       });
@@ -84,7 +84,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
         .single();
 
       if (data && !error) {
-        setActiveMatch(data.match_data as Match);
+        setActiveMatch(data.match_data as unknown as Match);
       } else {
         setActiveMatch(null);
       }
@@ -107,7 +107,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
         .insert({
           room_id: roomId,
           match_id: match.id,
-          match_data: match,
+          match_data: match as any,
           activated_by: userId
         });
 
