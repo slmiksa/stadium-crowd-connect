@@ -38,7 +38,6 @@ const CommentItem: React.FC<CommentItemProps> = ({
 }) => {
   console.log('=== COMMENT ITEM RENDER START ===');
   console.log('Comment ID:', comment.id);
-  console.log('Full comment object:', comment);
   console.log('Media URL:', comment.media_url);
   console.log('Image URL:', comment.image_url);
   console.log('Media Type:', comment.media_type);
@@ -92,16 +91,31 @@ const CommentItem: React.FC<CommentItemProps> = ({
       return null;
     }
 
+    // تحديد نوع الوسائط بناءً على الامتداد إذا لم يكن محدد
+    let actualMediaType = mediaType;
+    if (!actualMediaType) {
+      const url = mediaUrl.toLowerCase();
+      if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp')) {
+        actualMediaType = 'image';
+      } else if (url.includes('.mp4') || url.includes('.webm') || url.includes('.ogg')) {
+        actualMediaType = 'video';
+      } else {
+        // افتراض أنها صورة إذا لم نتمكن من تحديد النوع
+        actualMediaType = 'image';
+      }
+    }
+
     // إذا كان نوع الوسائط صورة أو لم يكن محدد (للتوافق مع النظام القديم)
-    if (!mediaType || mediaType.startsWith('image/')) {
+    if (!actualMediaType || actualMediaType === 'image' || actualMediaType.startsWith('image/')) {
       console.log('Rendering image with URL:', mediaUrl);
       return (
         <div className="mt-3">
           <img
             src={mediaUrl}
             alt="صورة التعليق"
-            className="max-w-full h-auto rounded-lg border border-gray-600/30 shadow-md hover:shadow-lg transition-shadow duration-200"
-            style={{ maxHeight: '300px' }}
+            className="max-w-full h-auto rounded-lg border border-gray-600/30 shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+            style={{ maxHeight: '400px', maxWidth: '100%' }}
+            loading="lazy"
             onLoad={() => {
               console.log('✅ Image loaded successfully:', mediaUrl);
             }}
@@ -111,13 +125,17 @@ const CommentItem: React.FC<CommentItemProps> = ({
               // إخفاء الصورة في حالة فشل التحميل
               e.currentTarget.style.display = 'none';
             }}
+            onClick={() => {
+              // فتح الصورة في نافذة جديدة عند النقر
+              window.open(mediaUrl, '_blank');
+            }}
           />
         </div>
       );
     }
 
     // إذا كان نوع الوسائط فيديو
-    if (mediaType.startsWith('video/')) {
+    if (actualMediaType === 'video' || actualMediaType.startsWith('video/')) {
       console.log('Rendering video with URL:', mediaUrl);
       return (
         <div className="mt-3">
@@ -125,7 +143,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
             src={mediaUrl}
             controls
             className="max-w-full h-auto rounded-lg border border-gray-600/30 shadow-md"
-            style={{ maxHeight: '300px' }}
+            style={{ maxHeight: '400px', maxWidth: '100%' }}
             onLoadedData={() => {
               console.log('✅ Video loaded successfully:', mediaUrl);
             }}
