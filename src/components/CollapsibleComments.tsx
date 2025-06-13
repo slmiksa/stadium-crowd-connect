@@ -19,6 +19,7 @@ interface Comment {
     id: string;
     username: string;
     avatar_url?: string;
+    verification_status: string;
   };
   replies?: Comment[];
 }
@@ -70,7 +71,7 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
         
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, username, avatar_url')
+          .select('id, username, avatar_url, verification_status')
           .in('id', userIds);
 
         if (profilesError) {
@@ -86,7 +87,8 @@ const CollapsibleComments: React.FC<CollapsibleCommentsProps> = ({
           profiles: profilesData?.find(profile => profile.id === comment.user_id) || {
             id: comment.user_id,
             username: 'مستخدم مجهول',
-            avatar_url: null
+            avatar_url: null,
+            verification_status: 'none'
           }
         }));
 

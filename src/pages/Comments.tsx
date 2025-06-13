@@ -101,7 +101,7 @@ const Comments = () => {
         
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, username, avatar_url')
+          .select('id, username, avatar_url, verification_status')
           .in('id', userIds);
 
         if (profilesError) {
@@ -115,7 +115,8 @@ const Comments = () => {
           profiles: profilesData?.find(profile => profile.id === comment.user_id) || {
             id: comment.user_id,
             username: 'مستخدم مجهول',
-            avatar_url: null
+            avatar_url: null,
+            verification_status: 'none'
           }
         }));
 
