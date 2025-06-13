@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { MessageCircle, Heart, Play } from 'lucide-react';
+import VerificationBadge from './VerificationBadge';
 
 interface Comment {
   id: string;
@@ -20,6 +21,7 @@ interface Comment {
     id: string;
     username: string;
     avatar_url?: string;
+    verification_status?: string;
   };
 }
 
@@ -41,6 +43,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
   console.log('Media URL:', comment.media_url);
   console.log('Image URL:', comment.image_url);
   console.log('Media Type:', comment.media_type);
+  console.log('Verification Status:', comment.profiles?.verification_status);
 
   const formatTime = (dateString: string) => {
     try {
@@ -185,6 +188,10 @@ const CommentItem: React.FC<CommentItemProps> = ({
               >
                 {comment.profiles.username}
               </span>
+              <VerificationBadge 
+                verificationStatus={comment.profiles.verification_status} 
+                size={14} 
+              />
               <span className="text-gray-400 text-xs">
                 {formatTime(comment.created_at)}
               </span>
