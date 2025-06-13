@@ -737,6 +737,47 @@ export type Database = {
           },
         ]
       }
+      room_live_matches: {
+        Row: {
+          activated_by: string
+          created_at: string
+          id: string
+          is_active: boolean
+          match_data: Json
+          match_id: string
+          room_id: string
+          updated_at: string
+        }
+        Insert: {
+          activated_by: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          match_data: Json
+          match_id: string
+          room_id: string
+          updated_at?: string
+        }
+        Update: {
+          activated_by?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          match_data?: Json
+          match_id?: string
+          room_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_live_matches_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_members: {
         Row: {
           id: string

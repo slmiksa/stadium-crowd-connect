@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import LiveMatchWidget from '@/components/LiveMatchWidget';
 
 interface Message {
   id: string;
@@ -698,9 +699,23 @@ const ChatRoom = () => {
         </div>
       )}
 
+      {/* Live Match Widget under announcement */}
+      {roomId && (
+        <div className={`fixed ${roomInfo?.announcement ? 'top-28' : 'top-20'} left-0 right-0 z-30 px-4`}>
+          <LiveMatchWidget
+            roomId={roomId}
+            isOwnerOrModerator={user?.id === roomInfo?.owner_id || isModerator(user?.id || '')}
+            onRemove={() => {
+              // تحديث العرض بعد إزالة المباراة
+              console.log('Live match removed');
+            }}
+          />
+        </div>
+      )}
+
       {/* Messages Container with proper margin for fixed elements */}
       <div className={`flex-1 overflow-y-auto p-4 space-y-4 pb-24 ${
-        roomInfo?.announcement ? 'mt-28' : 'mt-20'
+        roomInfo?.announcement ? 'mt-32' : 'mt-24'
       }`}>
         {messages.map(renderMessage)}
         <div ref={messagesEndRef} />
