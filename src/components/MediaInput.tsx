@@ -72,6 +72,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
 
   const startRecording = async () => {
     try {
+      console.log('=== STARTING VOICE RECORDING ===');
       console.log('Requesting microphone access...');
       
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -86,14 +87,19 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
       console.log('Microphone access granted');
       streamRef.current = stream;
 
-      // Check if MediaRecorder supports webm
+      // تحديد نوع الملف المدعوم
       let mimeType = 'audio/webm;codecs=opus';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         mimeType = 'audio/webm';
         if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = 'audio/mp4';
+          mimeType = 'audio/wav';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'audio/mp4';
+          }
         }
       }
+
+      console.log('Using MIME type:', mimeType);
 
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: mimeType
@@ -103,14 +109,27 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
+        console.log('Audio data available:', event.data.size, 'bytes');
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstop = () => {
+        console.log('=== RECORDING STOPPED ===');
+        console.log('Total chunks:', audioChunksRef.current.length);
+        
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, { type: mimeType });
+        console.log('Created audio blob:', audioBlob.size, 'bytes, type:', audioBlob.type);
+        
+        // إنشاء ملف صوتي مع الاسم والنوع الصحيح
+        const extension = mimeType.includes('webm') ? 'webm' : 
+                         mimeType.includes('wav') ? 'wav' : 'mp4';
+        const audioFile = new File([audioBlob], `voice_${Date.now()}.${extension}`, { 
+          type: mimeType 
+        });
+        
+        console.log('Created audio file:', audioFile.name, audioFile.size, 'bytes, type:', audioFile.type);
         
         setSelectedMedia(audioFile);
         setMediaType('voice');
@@ -118,7 +137,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         const audioUrl = URL.createObjectURL(audioBlob);
         setAudioPreview(audioUrl);
         
-        // Clean up stream
+        // تنظيف المتدفق
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
           streamRef.current = null;
@@ -130,7 +149,9 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
         alert('حدث خطأ أثناء التسجيل');
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(1000); // جمع البيانات كل ثانية
+      console.log('Recording started');
+      
       setIsRecording(true);
       setRecordingDuration(0);
 
@@ -155,6 +176,7 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
   };
 
   const stopRecording = () => {
+    console.log('=== STOPPING RECORDING ===');
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -195,50 +217,36 @@ const MediaInput = ({ onSendMessage, isSending, quotedMessage, onClearQuote }: M
   };
 
   const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
-    console.log('=== MEDIA INPUT SUBMIT ===');
-    console.log('Message:', message);
-    console.log('Has media:', !!selectedMedia);
+    console.log('=== SEND MESSAGE CALLED ===');
+    console.log('Content:', content);
+    console.log('Media file:', mediaFile ? `${mediaFile.name} (${mediaFile.size} bytes, type: ${mediaFile.type})` : 'none');
     console.log('Media type:', mediaType);
     
-    if (!content.trim() && !selectedMedia) {
-      console.log('No content to send');
+    if (!content.trim() && !mediaFile) {
+      console.log('No content or media to send');
       return;
     }
     
-    // Set correct media type for different file types
+    // تحديد نوع الوسائط بشكل صحيح
     let finalMediaType = mediaType;
-    if (selectedMedia) {
+    if (mediaFile) {
       if (mediaType === 'voice') {
         finalMediaType = 'voice';
-      } else if (selectedMedia.type.startsWith('image/')) {
+      } else if (mediaFile.type.startsWith('image/')) {
         finalMediaType = 'image';
-      } else if (selectedMedia.type.startsWith('video/')) {
+      } else if (mediaFile.type.startsWith('video/')) {
         finalMediaType = 'video';
       }
     }
     
-    console.log('Calling onSendMessage with:', {
-      content: content.trim(),
-      hasFile: !!selectedMedia,
-      fileType: finalMediaType
-    });
+    console.log('Final media type determined:', finalMediaType);
+    console.log('Calling onSendMessage...');
     
-    onSendMessage(content.trim(), selectedMedia || undefined, finalMediaType || undefined);
+    onSendMessage(content.trim(), mediaFile || undefined, finalMediaType || undefined);
     
-    // Clear form
+    // تنظيف النموذج
     setMessage('');
-    setSelectedMedia(null);
-    setMediaPreview(null);
-    setMediaType(null);
-    setAudioPreview(null);
-    setRecordingDuration(0);
-    setIsPlayingPreview(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    if (audioPreviewRef.current) {
-      audioPreviewRef.current = null;
-    }
+    clearMedia();
     
     console.log('Form cleared after send');
   };

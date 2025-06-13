@@ -288,9 +288,9 @@ const ChatRoom = () => {
   };
 
   const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
-    console.log('=== SEND MESSAGE FUNCTION CALLED ===');
+    console.log('=== CHATROOM SEND MESSAGE ===');
     console.log('Content:', content);
-    console.log('Media file:', mediaFile ? `${mediaFile.name} (${mediaFile.size} bytes)` : 'none');
+    console.log('Media file:', mediaFile ? `${mediaFile.name} (${mediaFile.size} bytes, type: ${mediaFile.type})` : 'none');
     console.log('Media type:', mediaType);
 
     if (!content.trim() && !mediaFile) {
@@ -326,19 +326,33 @@ const ChatRoom = () => {
           throw new Error(validation.error);
         }
 
-        console.log('=== STARTING MEDIA UPLOAD ===');
+        console.log('=== STARTING MEDIA UPLOAD IN CHATROOM ===');
+        console.log('File details:', {
+          name: mediaFile.name,
+          size: mediaFile.size,
+          type: mediaFile.type,
+          mediaType: mediaType
+        });
         
         try {
           const uploadResult = await uploadChatMedia(mediaFile, user.id, 'room');
+          console.log('Upload result:', uploadResult);
           
           if (mediaType === 'voice') {
             voiceUrl = uploadResult.url;
-            finalMediaType = 'audio/webm';
-          } else {
+            finalMediaType = 'voice';
+            console.log('Voice URL set:', voiceUrl);
+          } else if (mediaFile.type.startsWith('image/')) {
             mediaUrl = uploadResult.url;
+            finalMediaType = 'image';
+            console.log('Image URL set:', mediaUrl);
+          } else if (mediaFile.type.startsWith('video/')) {
+            mediaUrl = uploadResult.url;
+            finalMediaType = 'video';
+            console.log('Video URL set:', mediaUrl);
           }
           
-          console.log('Media uploaded successfully:', uploadResult.url);
+          console.log('Final media type:', finalMediaType);
         } catch (uploadError) {
           console.error('Upload failed:', uploadError);
           throw new Error(`فشل في رفع الملف: ${uploadError.message}`);
@@ -356,19 +370,21 @@ const ChatRoom = () => {
         content: finalContent,
       };
 
-      // Handle different media types
+      // إضافة بيانات الوسائط حسب النوع
       if (voiceUrl) {
         messageData.voice_url = voiceUrl;
         messageData.voice_duration = 0;
+        console.log('Added voice data to message:', { voice_url: voiceUrl });
       }
       
       if (mediaUrl) {
         messageData.media_url = mediaUrl;
         messageData.media_type = finalMediaType;
+        console.log('Added media data to message:', { media_url: mediaUrl, media_type: finalMediaType });
       }
 
-      console.log('=== INSERTING MESSAGE ===');
-      console.log('Message data:', messageData);
+      console.log('=== INSERTING MESSAGE TO DATABASE ===');
+      console.log('Final message data:', messageData);
 
       const { data: insertData, error: insertError } = await supabase
         .from('room_messages')
