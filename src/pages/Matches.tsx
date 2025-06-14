@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,24 +22,20 @@ interface Match {
 }
 
 const Matches = () => {
+  const navigate = useNavigate();
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
   const [todayMatches, setTodayMatches] = useState<Match[]>([]);
-  const [yesterdayMatches, setYesterdayMatches] = useState<Match[]>([]);
+  const [finishedMatches, setFinishedMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('live');
   const { toast } = useToast();
 
   useEffect(() => {
-    if (activeTab === 'live') {
-      fetchLiveMatches();
-    } else if (activeTab === 'today') {
-      fetchTodayMatches();
-    } else if (activeTab === 'yesterday') {
-      fetchYesterdayMatches();
-    }
+    fetchDataForTab(activeTab);
   }, [activeTab]);
 
   const fetchMatches = async (status: string) => {
+    console.log(`🔍 جاري جلب المباريات - الحالة: ${status}`);
     setIsLoading(true);
     try {
       const response = await fetch(`https://zuvpksebzsthinjsxebt.supabase.co/functions/v1/get-football-matches`, {
@@ -50,16 +47,28 @@ const Matches = () => {
         body: JSON.stringify({ status })
       });
 
+      console.log(`📡 استجابة API للحالة ${status}:`, response.status);
+
       if (response.ok) {
         const result = await response.json();
-        return result.matches || [];
+        console.log(`✅ البيانات المستلمة للحالة ${status}:`, result);
+        
+        if (result.success && result.matches) {
+          console.log(`📊 عدد المباريات للحالة ${status}: ${result.matches.length}`);
+          return result.matches;
+        } else {
+          console.warn(`⚠️ لا توجد مباريات للحالة ${status}`);
+          return [];
+        }
+      } else {
+        console.error(`❌ خطأ في استجابة API للحالة ${status}:`, response.status);
+        return [];
       }
-      return [];
     } catch (error) {
-      console.error('Error fetching matches:', error);
+      console.error(`❌ خطأ في جلب المباريات للحالة ${status}:`, error);
       toast({
         title: "خطأ",
-        description: "فشل في جلب المباريات",
+        description: `فشل في جلب المباريات ${status === 'live' ? 'المباشرة' : status === 'upcoming' ? 'اليوم' : 'المنتهية'}`,
         variant: "destructive"
       });
       return [];
@@ -68,19 +77,22 @@ const Matches = () => {
     }
   };
 
-  const fetchLiveMatches = async () => {
-    const matches = await fetchMatches('live');
-    setLiveMatches(matches);
-  };
-
-  const fetchTodayMatches = async () => {
-    const matches = await fetchMatches('upcoming');
-    setTodayMatches(matches);
-  };
-
-  const fetchYesterdayMatches = async () => {
-    const matches = await fetchMatches('finished');
-    setYesterdayMatches(matches);
+  const fetchDataForTab = async (tab: string) => {
+    console.log(`🔄 جاري تحديث البيانات للتبويب: ${tab}`);
+    
+    if (tab === 'live') {
+      const matches = await fetchMatches('live');
+      setLiveMatches(matches);
+      console.log(`🔴 المباريات المباشرة: ${matches.length}`);
+    } else if (tab === 'today') {
+      const matches = await fetchMatches('upcoming');
+      setTodayMatches(matches);
+      console.log(`📅 مباريات اليوم: ${matches.length}`);
+    } else if (tab === 'finished') {
+      const matches = await fetchMatches('finished');
+      setFinishedMatches(matches);
+      console.log(`📆 المباريات المنتهية: ${matches.length}`);
+    }
   };
 
   const getStatusBadge = (status: string, minute?: number) => {
@@ -97,13 +109,8 @@ const Matches = () => {
   };
 
   const refreshCurrentTab = () => {
-    if (activeTab === 'live') {
-      fetchLiveMatches();
-    } else if (activeTab === 'today') {
-      fetchTodayMatches();
-    } else if (activeTab === 'yesterday') {
-      fetchYesterdayMatches();
-    }
+    console.log(`🔄 تحديث التبويب النشط: ${activeTab}`);
+    fetchDataForTab(activeTab);
   };
 
   const getCurrentMatches = () => {
@@ -112,8 +119,8 @@ const Matches = () => {
         return liveMatches;
       case 'today':
         return todayMatches;
-      case 'yesterday':
-        return yesterdayMatches;
+      case 'finished':
+        return finishedMatches;
       default:
         return [];
     }
@@ -125,7 +132,7 @@ const Matches = () => {
         return <Clock size={16} className="ml-1" />;
       case 'today':
         return <Calendar size={16} className="ml-1" />;
-      case 'yesterday':
+      case 'finished':
         return <CalendarDays size={16} className="ml-1" />;
       default:
         return null;
@@ -150,6 +157,10 @@ const Matches = () => {
     });
   };
 
+  const handleMatchClick = (matchId: string) => {
+    navigate(`/match/${matchId}`);
+  };
+
   return (
     <div className="min-h-screen bg-zinc-900 text-white p-4">
       <div className="max-w-4xl mx-auto">
@@ -168,9 +179,9 @@ const Matches = () => {
               {getTabIcon('today')}
               اليوم
             </TabsTrigger>
-            <TabsTrigger value="yesterday" className="text-sm data-[state=active]:bg-gray-500 data-[state=active]:text-white">
-              {getTabIcon('yesterday')}
-              الأمس
+            <TabsTrigger value="finished" className="text-sm data-[state=active]:bg-gray-500 data-[state=active]:text-white">
+              {getTabIcon('finished')}
+              منتهية
             </TabsTrigger>
           </TabsList>
 
@@ -179,7 +190,7 @@ const Matches = () => {
             <h2 className="text-lg font-medium text-white">
               {activeTab === 'live' && 'المباريات المباشرة'}
               {activeTab === 'today' && 'مباريات اليوم'}
-              {activeTab === 'yesterday' && 'مباريات الأمس'}
+              {activeTab === 'finished' && 'المباريات المنتهية'}
               <span className="text-sm text-gray-400 ml-2">
                 ({getCurrentMatches().length} مباراة)
               </span>
@@ -222,7 +233,7 @@ const Matches = () => {
                 <h3 className="text-lg font-medium text-white mb-2">
                   {activeTab === 'live' && 'لا توجد مباريات مباشرة حالياً'}
                   {activeTab === 'today' && 'لا توجد مباريات اليوم'}
-                  {activeTab === 'yesterday' && 'لا توجد مباريات الأمس'}
+                  {activeTab === 'finished' && 'لا توجد مباريات منتهية'}
                 </h3>
                 <p className="text-gray-400 mb-4">
                   سنعرض المباريات المتاحة عند توفرها
@@ -237,7 +248,8 @@ const Matches = () => {
                 {getCurrentMatches().map((match) => (
                   <div
                     key={match.id}
-                    className="bg-zinc-800 rounded-lg p-4 hover:bg-zinc-700 transition-colors border border-zinc-700"
+                    onClick={() => handleMatchClick(match.id)}
+                    className="bg-zinc-800 rounded-lg p-4 hover:bg-zinc-700 transition-colors border border-zinc-700 cursor-pointer"
                   >
                     {/* رأس المباراة */}
                     <div className="flex items-center justify-between mb-3">
