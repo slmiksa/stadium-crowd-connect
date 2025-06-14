@@ -1,46 +1,60 @@
-
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Hash, MessageSquare, Calendar, Newspaper, User } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Home, MessageSquare, User, Trophy, Hash } from 'lucide-react';
 
 const BottomNavigation = () => {
-  const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const isActive = (path: string) => location.pathname === path;
-
-  const navItems = [
-    { icon: Home, label: 'الرئيسية', path: '/' },
-    { icon: Hash, label: 'الهاشتاجات', path: '/hashtags' },
-    { icon: MessageSquare, label: 'الغرف', path: '/rooms' },
-    { icon: Calendar, label: 'المباريات', path: '/matches' },
-    { icon: Newspaper, label: 'الأخبار', path: '/news' },
-    { icon: User, label: 'الملف الشخصي', path: '/profile' }
+  const menuItems = [
+    {
+      id: 'hashtags',
+      label: 'الرئيسية',
+      icon: Hash,
+      path: '/hashtags',
+      isActive: location.pathname === '/' || location.pathname === '/hashtags' || location.pathname.startsWith('/hashtag/')
+    },
+    {
+      id: 'matches',
+      label: 'المباريات',
+      icon: Trophy,
+      path: '/matches',
+      isActive: location.pathname === '/matches' || location.pathname.startsWith('/match/')
+    },
+    {
+      id: 'chatRooms',
+      label: 'الدردشات',
+      icon: MessageSquare,
+      path: '/chat-rooms',
+      isActive: location.pathname === '/chat-rooms' || location.pathname.startsWith('/chat-room/') || location.pathname === '/create-chat-room'
+    },
+    {
+      id: 'profile',
+      label: 'الملف الشخصي',
+      icon: User,
+      path: '/profile',
+      isActive: location.pathname === '/profile' || location.pathname === '/edit-profile' || location.pathname.startsWith('/profile/')
+    },
   ];
 
-  if (!user) return null;
-
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50">
-      <div className="flex justify-around items-center py-2">
-        {navItems.map(({ icon: Icon, label, path }) => (
-          <button
-            key={path}
-            onClick={() => navigate(path)}
-            className={`flex flex-col items-center justify-center p-2 min-w-0 flex-1 ${
-              isActive(path)
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-600 dark:text-gray-400'
-            }`}
-          >
-            <Icon size={20} />
-            <span className="text-xs mt-1 truncate">{label}</span>
-          </button>
+    <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-zinc-900 to-zinc-800/95 backdrop-blur-lg border-t border-zinc-700/50 z-50 safe-area-padding">
+      <ul className="flex justify-around items-center p-3">
+        {menuItems.map((item) => (
+          <li key={item.id} className="flex-1 text-center">
+            <button
+              onClick={() => navigate(item.path)}
+              className={`flex flex-col items-center justify-center gap-1 text-xs ${
+                item.isActive ? 'text-white' : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              {React.createElement(item.icon, { size: 20 })}
+              <span>{item.label}</span>
+            </button>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </nav>
   );
 };
 

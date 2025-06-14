@@ -2,7 +2,7 @@
 import { Navigate } from 'react-router-dom';
 
 const Index = () => {
-  return <Navigate to="/matches" replace />;
+  return <Navigate to="/hashtags" replace />;
 };
 
 export default Index;
