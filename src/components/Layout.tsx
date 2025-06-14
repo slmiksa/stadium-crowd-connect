@@ -2,6 +2,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import BottomNavigation from './BottomNavigation';
+import InstallPwaButton from './InstallPwaButton';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,6 +20,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className={`w-full h-full ${shouldHideFooter ? 'pt-safe pb-safe' : 'pt-safe pb-16'} overflow-x-hidden`}>
         {children}
       </main>
+      <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-50 md:bottom-5 md:left-auto md:right-5 md:translate-x-0">
+        <InstallPwaButton />
+      </div>
       {!shouldHideFooter && <BottomNavigation />}
     </div>
   );
