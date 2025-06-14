@@ -39,7 +39,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
   const [todayMatches, setTodayMatches] = useState<Match[]>([]);
   const [yesterdayMatches, setYesterdayMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('live');
+  const [activeTab, setActiveTab] = useState('today');
   const [activeMatch, setActiveMatch] = useState<Match | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -47,13 +47,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchActiveMatch();
-      if (activeTab === 'live') {
-        fetchLiveMatches();
-      } else if (activeTab === 'today') {
-        fetchTodayMatches();
-      } else if (activeTab === 'yesterday') {
-        fetchYesterdayMatches();
-      }
+      refreshCurrentTab();
     }
   }, [isOpen, roomId, activeTab]);
 
@@ -64,26 +58,39 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
     try {
       console.log(`🔄 جاري جلب المباريات - النوع: ${status}`);
       
+      // تحديد نوع المباراة المطلوبة
+      let apiStatus = status;
+      if (status === 'today') {
+        apiStatus = 'upcoming';
+      } else if (status === 'yesterday') {
+        apiStatus = 'finished';
+      }
+      
       const response = await fetch(`https://zuvpksebzsthinjsxebt.supabase.co/functions/v1/get-football-matches`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1dnBrc2VienN0aGluanN4ZWJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NDAyMzQsImV4cCI6MjA2NDIxNjIzNH0.HPOH1UvYlwf7KeA97NtNHJAC2bXkLxVSKtLDcs2cjeU`
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status: apiStatus })
       });
 
       console.log(`📡 استجابة API: ${response.status} ${response.statusText}`);
 
       if (!response.ok) {
-        throw new Error(`خطأ في الشبكة: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('خطأ في API:', errorText);
+        throw new Error(`خطأ في الشبكة: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log(`✅ تم جلب المباريات بنجاح: ${result.matches?.length || 0} مباراة`);
+      console.log(`✅ تم جلب المباريات بنجاح:`, result);
       
       if (!result.matches || !Array.isArray(result.matches)) {
         console.warn('⚠️ البيانات المستلمة غير صحيحة:', result);
+        if (result.message) {
+          setError(result.message);
+        }
         return [];
       }
 
@@ -354,20 +361,18 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
                 </div>
               ) : getCurrentMatches().length === 0 ? (
                 <div className="text-center py-6">
-                  <p className="text-gray-400">
+                  <p className="text-gray-400 mb-2">
                     {activeTab === 'live' && 'لا توجد مباريات مباشرة حالياً'}
                     {activeTab === 'today' && 'لا توجد مباريات اليوم'}
                     {activeTab === 'yesterday' && 'لا توجد مباريات الأمس'}
                   </p>
-                  {error && (
-                    <Button
-                      onClick={refreshCurrentTab}
-                      size="sm"
-                      className="mt-2"
-                    >
-                      إعادة المحاولة
-                    </Button>
-                  )}
+                  <Button
+                    onClick={refreshCurrentTab}
+                    size="sm"
+                    className="mt-2"
+                  >
+                    إعادة المحاولة
+                  </Button>
                 </div>
               ) : (
                 <div className="max-h-60 overflow-y-auto space-y-2">
