@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Play, Settings } from 'lucide-react';
 import LiveMatchManager from './LiveMatchManager';
@@ -27,6 +28,7 @@ const ChatRoomSettingsModal: React.FC<ChatRoomSettingsModalProps> = ({
   const [announcement, setAnnouncement] = useState(currentAnnouncement || '');
   const [isUpdating, setIsUpdating] = useState(false);
   const [showLiveMatchManager, setShowLiveMatchManager] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const updateAnnouncement = async () => {
@@ -133,7 +135,7 @@ const ChatRoomSettingsModal: React.FC<ChatRoomSettingsModalProps> = ({
           isOpen={showLiveMatchManager}
           onClose={() => setShowLiveMatchManager(false)}
           roomId={roomId}
-          userId="" // سيتم تمريره من المكون الأب
+          userId={user?.id || ''}
         />
       )}
     </>

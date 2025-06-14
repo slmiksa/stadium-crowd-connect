@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,6 +57,7 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
           console.log('✅ تم تحديث بيانات المباراة:', updatedMatch);
           setMatchData(updatedMatch);
           
+          // تحديث قاعدة البيانات
           const { error: updateError } = await supabase
             .from('room_live_matches')
             .update({ 
@@ -69,14 +69,6 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
           if (updateError) {
             console.error('خطأ في تحديث قاعدة البيانات:', updateError);
           }
-
-          // بث التحديث فوراً لجميع المتصلين
-          const broadcastChannel = supabase.channel(`room-${roomId}-live-match`);
-          await broadcastChannel.send({
-            type: 'broadcast',
-            event: 'match_updated',
-            payload: { match: updatedMatch }
-          });
         }
       }
     } catch (error) {
@@ -128,7 +120,7 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
     
     // إعداد الاشتراك في التحديثات الفورية
     const channel = supabase
-      .channel(`room-${roomId}-live-match`)
+      .channel(`room-live-match-${roomId}`)
       .on(
         'postgres_changes',
         {
@@ -140,29 +132,27 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
         (payload) => {
           console.log('📡 تحديث فوري من قاعدة البيانات:', payload);
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            fetchLiveMatch();
+            if (payload.new && payload.new.is_active) {
+              const newMatchData = payload.new.match_data as unknown as MatchData;
+              console.log('📡 تحديث المباراة من real-time:', newMatchData);
+              setMatchData(newMatchData);
+              
+              if ((newMatchData as any).update_interval_minutes) {
+                setUpdateInterval((newMatchData as any).update_interval_minutes);
+              }
+            }
           } else if (payload.eventType === 'DELETE') {
+            console.log('📡 حذف المباراة من real-time');
             setMatchData(null);
           }
         }
       )
-      .on('broadcast', { event: 'match_activated' }, (payload) => {
-        console.log('📡 تم تفعيل مباراة جديدة:', payload);
-        fetchLiveMatch();
-      })
-      .on('broadcast', { event: 'match_updated' }, (payload) => {
-        console.log('📡 تحديث فوري للمباراة:', payload);
-        if (payload.payload?.match) {
-          setMatchData(payload.payload.match);
-        }
-      })
-      .on('broadcast', { event: 'match_deactivated' }, () => {
-        console.log('📡 تم إلغاء تفعيل المباراة');
-        setMatchData(null);
-      })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 حالة الاشتراك في real-time:', status);
+      });
 
     return () => {
+      console.log('📡 إلغاء الاشتراك في real-time');
       supabase.removeChannel(channel);
     };
   }, [roomId, fetchLiveMatch]);
@@ -191,17 +181,8 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
         .eq('room_id', roomId);
 
       if (!error) {
-        // بث إشعار الإلغاء فوراً
-        const broadcastChannel = supabase.channel(`room-${roomId}-live-match`);
-        await broadcastChannel.send({
-          type: 'broadcast',
-          event: 'match_deactivated',
-          payload: {}
-        });
-
         setMatchData(null);
         onRemove?.();
-        
         console.log('✅ تم إزالة المباراة بنجاح');
       } else {
         console.error('خطأ في إزالة المباراة:', error);
