@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -162,14 +161,15 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
         throw new Error('معرف الغرفة أو المستخدم غير متوفر');
       }
 
-      // إزالة أي مباراة نشطة حالياً للغرفة
-      const { error: updateError } = await supabase
+      // حذف أي مباراة نشطة حالياً للغرفة (بدلاً من التحديث)
+      const { error: deleteError } = await supabase
         .from('room_live_matches')
-        .update({ is_active: false })
+        .delete()
         .eq('room_id', roomId);
 
-      if (updateError) {
-        console.error('خطأ في إزالة المباراة النشطة:', updateError);
+      if (deleteError) {
+        console.warn('تحذير في حذف المباراة النشطة:', deleteError);
+        // نتابع حتى لو لم نتمكن من الحذف (قد لا تكون هناك مباراة نشطة)
       }
 
       // تفعيل المباراة الجديدة
@@ -180,9 +180,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
           match_id: match.id,
           match_data: match as any,
           activated_by: userId,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          is_active: true
         });
 
       if (insertError) {
@@ -219,10 +217,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
     try {
       const { error } = await supabase
         .from('room_live_matches')
-        .update({ 
-          is_active: false,
-          updated_at: new Date().toISOString()
-        })
+        .delete()
         .eq('room_id', roomId);
 
       if (error) {
