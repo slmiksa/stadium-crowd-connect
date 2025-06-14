@@ -113,7 +113,7 @@ export const usePushNotifications = () => {
     console.log('Saving new subscription to DB...');
     const { error: insertError } = await supabase.from('push_subscriptions').insert({
       user_id: user.id,
-      subscription: subscription.toJSON(),
+      subscription: subscription.toJSON() as any,
     });
 
     if (insertError) {
