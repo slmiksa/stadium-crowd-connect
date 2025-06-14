@@ -70,6 +70,12 @@ const ChatRoom = () => {
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Define isOwnerOrModerator variable
+  const isOwnerOrModerator = user && roomInfo && (
+    user.id === roomInfo.owner_id || 
+    userRoles.some(role => role.user_id === user.id && role.role === 'moderator')
+  );
+
   useEffect(() => {
     if (roomId && user) {
       fetchRoomInfo();
