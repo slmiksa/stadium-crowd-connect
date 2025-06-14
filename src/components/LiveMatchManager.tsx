@@ -46,17 +46,12 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchActiveMatch();
-      if (activeTab === 'live') {
-        fetchLiveMatches();
-      } else if (activeTab === 'today') {
-        fetchTodayMatches();
-      } else if (activeTab === 'yesterday') {
-        fetchYesterdayMatches();
-      }
+      fetchDataForTab(activeTab);
     }
   }, [isOpen, roomId, activeTab]);
 
   const fetchMatches = async (status: string) => {
+    console.log(`🔍 جاري جلب المباريات - الحالة: ${status}`);
     setIsLoading(true);
     try {
       const response = await fetch(`https://zuvpksebzsthinjsxebt.supabase.co/functions/v1/get-football-matches`, {
@@ -68,16 +63,28 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
         body: JSON.stringify({ status })
       });
 
+      console.log(`📡 استجابة API للحالة ${status}:`, response.status);
+
       if (response.ok) {
         const result = await response.json();
-        return result.matches || [];
+        console.log(`✅ البيانات المستلمة للحالة ${status}:`, result);
+        
+        if (result.success && result.matches) {
+          console.log(`📊 عدد المباريات للحالة ${status}: ${result.matches.length}`);
+          return result.matches;
+        } else {
+          console.warn(`⚠️ لا توجد مباريات للحالة ${status}`);
+          return [];
+        }
+      } else {
+        console.error(`❌ خطأ في استجابة API للحالة ${status}:`, response.status);
+        return [];
       }
-      return [];
     } catch (error) {
-      console.error('Error fetching matches:', error);
+      console.error(`❌ خطأ في جلب المباريات للحالة ${status}:`, error);
       toast({
         title: "خطأ",
-        description: "فشل في جلب المباريات",
+        description: `فشل في جلب المباريات ${status === 'live' ? 'المباشرة' : status === 'upcoming' ? 'اليوم' : 'الأمس'}`,
         variant: "destructive"
       });
       return [];
@@ -86,19 +93,22 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
     }
   };
 
-  const fetchLiveMatches = async () => {
-    const matches = await fetchMatches('live');
-    setLiveMatches(matches);
-  };
-
-  const fetchTodayMatches = async () => {
-    const matches = await fetchMatches('today');
-    setTodayMatches(matches);
-  };
-
-  const fetchYesterdayMatches = async () => {
-    const matches = await fetchMatches('yesterday');
-    setYesterdayMatches(matches);
+  const fetchDataForTab = async (tab: string) => {
+    console.log(`🔄 جاري تحديث البيانات للتبويب: ${tab}`);
+    
+    if (tab === 'live') {
+      const matches = await fetchMatches('live');
+      setLiveMatches(matches);
+      console.log(`🔴 المباريات المباشرة: ${matches.length}`);
+    } else if (tab === 'today') {
+      const matches = await fetchMatches('upcoming');
+      setTodayMatches(matches);
+      console.log(`📅 مباريات اليوم: ${matches.length}`);
+    } else if (tab === 'yesterday') {
+      const matches = await fetchMatches('finished');
+      setYesterdayMatches(matches);
+      console.log(`📆 مباريات الأمس: ${matches.length}`);
+    }
   };
 
   const fetchActiveMatch = async () => {
@@ -112,15 +122,18 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
 
       if (data && !error) {
         setActiveMatch(data.match_data as unknown as Match);
+        console.log(`🎯 المباراة النشطة الحالية:`, data.match_data);
       } else {
         setActiveMatch(null);
+        console.log(`ℹ️ لا توجد مباراة نشطة حالياً`);
       }
     } catch (error) {
-      console.error('Error fetching active match:', error);
+      console.error('❌ خطأ في جلب المباراة النشطة:', error);
     }
   };
 
   const activateMatch = async (match: Match) => {
+    console.log(`🎮 تفعيل مباراة: ${match.homeTeam} vs ${match.awayTeam}`);
     try {
       // إزالة أي مباراة نشطة حالياً
       await supabase
@@ -146,9 +159,10 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
         description: `تم تفعيل نقل مباراة ${match.homeTeam} vs ${match.awayTeam}`,
       });
 
+      console.log(`✅ تم تفعيل المباراة بنجاح`);
       onClose();
     } catch (error) {
-      console.error('Error activating match:', error);
+      console.error('❌ خطأ في تفعيل المباراة:', error);
       toast({
         title: "خطأ",
         description: "فشل في تفعيل النقل المباشر",
@@ -158,6 +172,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
   };
 
   const deactivateMatch = async () => {
+    console.log(`🛑 إيقاف النقل المباشر`);
     try {
       await supabase
         .from('room_live_matches')
@@ -169,8 +184,9 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
         title: "تم إيقاف النقل المباشر",
         description: "تم إيقاف نقل المباراة المباشرة",
       });
+      console.log(`✅ تم إيقاف النقل المباشر بنجاح`);
     } catch (error) {
-      console.error('Error deactivating match:', error);
+      console.error('❌ خطأ في إيقاف النقل المباشر:', error);
       toast({
         title: "خطأ",
         description: "فشل في إيقاف النقل المباشر",
@@ -193,13 +209,8 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
   };
 
   const refreshCurrentTab = () => {
-    if (activeTab === 'live') {
-      fetchLiveMatches();
-    } else if (activeTab === 'today') {
-      fetchTodayMatches();
-    } else if (activeTab === 'yesterday') {
-      fetchYesterdayMatches();
-    }
+    console.log(`🔄 تحديث التبويب النشط: ${activeTab}`);
+    fetchDataForTab(activeTab);
   };
 
   const getCurrentMatches = () => {
@@ -234,6 +245,32 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const getTabTitle = (tab: string) => {
+    switch (tab) {
+      case 'live':
+        return 'المباريات المباشرة';
+      case 'today':
+        return 'مباريات اليوم';
+      case 'yesterday':
+        return 'مباريات الأمس';
+      default:
+        return '';
+    }
+  };
+
+  const getEmptyMessage = (tab: string) => {
+    switch (tab) {
+      case 'live':
+        return 'لا توجد مباريات مباشرة حالياً';
+      case 'today':
+        return 'لا توجد مباريات اليوم';
+      case 'yesterday':
+        return 'لا توجد مباريات الأمس';
+      default:
+        return 'لا توجد مباريات';
+    }
   };
 
   return (
@@ -292,9 +329,10 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
             {/* رأس القائمة مع زر التحديث */}
             <div className="flex items-center justify-between mt-4">
               <h3 className="text-sm font-medium text-white">
-                {activeTab === 'live' && 'المباريات المباشرة'}
-                {activeTab === 'today' && 'مباريات اليوم'}
-                {activeTab === 'yesterday' && 'مباريات الأمس'}
+                {getTabTitle(activeTab)}
+                <span className="text-xs text-gray-400 ml-2">
+                  ({getCurrentMatches().length})
+                </span>
               </h3>
               <Button
                 onClick={refreshCurrentTab}
@@ -320,11 +358,18 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
                 </div>
               ) : getCurrentMatches().length === 0 ? (
                 <div className="text-center py-6">
-                  <p className="text-gray-400">
-                    {activeTab === 'live' && 'لا توجد مباريات مباشرة حالياً'}
-                    {activeTab === 'today' && 'لا توجد مباريات اليوم'}
-                    {activeTab === 'yesterday' && 'لا توجد مباريات الأمس'}
+                  <p className="text-gray-400 text-sm">
+                    {getEmptyMessage(activeTab)}
                   </p>
+                  <Button 
+                    onClick={refreshCurrentTab} 
+                    size="sm" 
+                    variant="outline" 
+                    className="mt-3"
+                  >
+                    <RefreshCw size={14} className="ml-1" />
+                    إعادة المحاولة
+                  </Button>
                 </div>
               ) : (
                 <div className="max-h-60 overflow-y-auto space-y-2">
