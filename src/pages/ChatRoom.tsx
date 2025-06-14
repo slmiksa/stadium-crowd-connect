@@ -667,7 +667,7 @@ const ChatRoom = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-900 flex flex-col relative">
+    <div className="min-h-screen bg-zinc-900 flex flex-col">
       {/* Fixed Header */}
       <div className="bg-zinc-800 border-b border-zinc-700 p-4 fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center justify-between">
@@ -714,31 +714,40 @@ const ChatRoom = () => {
         </div>
       </div>
 
-      {/* Fixed Announcement under header */}
-      {roomInfo?.announcement && (
-        <div className="fixed top-20 left-0 right-0 z-40">
-          <ChatRoomAnnouncement announcement={roomInfo.announcement} />
-        </div>
-      )}
+      {/* Fixed Content Area - الإعلانات والمباريات */}
+      <div className="fixed top-20 left-0 right-0 z-40 bg-zinc-900">
+        {/* Announcement */}
+        {roomInfo?.announcement && (
+          <div className="px-4">
+            <ChatRoomAnnouncement announcement={roomInfo.announcement} />
+          </div>
+        )}
+        
+        {/* Live Match Widget */}
+        {roomId && (
+          <div className="px-4">
+            <LiveMatchWidget
+              roomId={roomId}
+              isOwnerOrModerator={user?.id === roomInfo?.owner_id || isModerator(user?.id || '')}
+              onRemove={() => {
+                console.log('Live match removed');
+              }}
+            />
+          </div>
+        )}
+      </div>
 
-      {/* Live Match Widget under announcement */}
-      {roomId && (
-        <div className={`fixed ${roomInfo?.announcement ? 'top-28' : 'top-20'} left-0 right-0 z-30 px-4`}>
-          <LiveMatchWidget
-            roomId={roomId}
-            isOwnerOrModerator={user?.id === roomInfo?.owner_id || isModerator(user?.id || '')}
-            onRemove={() => {
-              // تحديث العرض بعد إزالة المباراة
-              console.log('Live match removed');
-            }}
-          />
-        </div>
-      )}
-
-      {/* Messages Container with proper margin for fixed elements */}
-      <div className={`flex-1 overflow-y-auto p-4 space-y-4 pb-24 ${
-        roomInfo?.announcement ? 'mt-32' : 'mt-24'
-      }`}>
+      {/* Messages Container - محسوب بناءً على ارتفاع المحتوى الثابت */}
+      <div 
+        className="flex-1 overflow-y-auto p-4 space-y-4 pb-24"
+        style={{
+          marginTop: `${
+            80 + // header height
+            (roomInfo?.announcement ? 60 : 0) + // announcement height if exists
+            60 // live match widget space (always reserve space)
+          }px`
+        }}
+      >
         {messages.map(renderMessage)}
         <div ref={messagesEndRef} />
       </div>

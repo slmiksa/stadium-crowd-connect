@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -226,7 +227,7 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
 
   if (isLoading) {
     return (
-      <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-500/30 rounded-lg p-3 animate-pulse">
+      <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-500/30 rounded-lg p-3 animate-pulse mb-2">
         <div className="h-4 bg-gray-600 rounded w-1/2 mx-auto"></div>
       </div>
     );
@@ -237,7 +238,7 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
   }
 
   return (
-    <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-500/30 rounded-lg p-3 mb-4">
+    <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-500/30 rounded-lg p-3 mb-2">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2 space-x-reverse">
           <div className={`w-3 h-3 rounded-full ${getStatusColor(matchData.status)} animate-pulse`}></div>
@@ -253,7 +254,6 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
             </span>
           )}
         </div>
-        {/* تقييد زر الإلغاء للمشرفين فقط */}
         {isOwnerOrModerator && (
           <Button
             onClick={removeLiveMatch}
