@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Play, Square, RefreshCw, Calendar, Clock, CalendarDays, AlertCircle } from 'lucide-react';
 
@@ -41,6 +42,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
   const [activeTab, setActiveTab] = useState('today');
   const [activeMatch, setActiveMatch] = useState<Match | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [updateInterval, setUpdateInterval] = useState<number>(2); // دقائق
   const { toast } = useToast();
 
   useEffect(() => {
@@ -172,13 +174,16 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
         // نتابع حتى لو لم نتمكن من الحذف (قد لا تكون هناك مباراة نشطة)
       }
 
-      // تفعيل المباراة الجديدة
+      // تفعيل المباراة الجديدة مع فترة التحديث
       const { error: insertError } = await supabase
         .from('room_live_matches')
         .insert({
           room_id: roomId,
           match_id: match.id,
-          match_data: match as any,
+          match_data: {
+            ...match,
+            update_interval_minutes: updateInterval
+          } as any,
           activated_by: userId,
           is_active: true
         });
@@ -189,9 +194,23 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
       }
 
       setActiveMatch(match);
+      
+      // إرسال إشعار فوري للعجة عبر قناة real-time
+      const broadcastChannel = supabase.channel(`room-${roomId}-live-match`);
+      await broadcastChannel.send({
+        type: 'broadcast',
+        event: 'match_activated',
+        payload: { 
+          match: {
+            ...match,
+            update_interval_minutes: updateInterval
+          }
+        }
+      });
+
       toast({
         title: "تم تفعيل النقل المباشر",
-        description: `تم تفعيل نقل مباراة ${match.homeTeam} vs ${match.awayTeam}`,
+        description: `تم تفعيل نقل مباراة ${match.homeTeam} vs ${match.awayTeam} مع تحديث كل ${updateInterval} دقيقة`,
       });
 
       onClose();
@@ -305,6 +324,26 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* خيار فترة التحديث */}
+          <div className="bg-zinc-700/50 rounded-lg p-3">
+            <label className="text-sm font-medium text-gray-300 mb-2 block">
+              فترة تحديث النتائج
+            </label>
+            <Select 
+              value={updateInterval.toString()} 
+              onValueChange={(value) => setUpdateInterval(parseInt(value))}
+            >
+              <SelectTrigger className="bg-zinc-700 border-zinc-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-700 border-zinc-600">
+                <SelectItem value="2" className="text-white">كل دقيقتين</SelectItem>
+                <SelectItem value="5" className="text-white">كل 5 دقائق</SelectItem>
+                <SelectItem value="10" className="text-white">كل 10 دقائق</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* المباراة النشطة حالياً */}
           {activeMatch && (
             <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-3">

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Clock, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,68 +31,14 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
 }) => {
   const [matchData, setMatchData] = useState<MatchData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [updateInterval, setUpdateInterval] = useState<number>(2); // دقائق
 
-  useEffect(() => {
-    fetchLiveMatch();
-    
-    // Set up real-time subscription for match updates
-    const channel = supabase
-      .channel('live-match-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'room_live_matches',
-          filter: `room_id=eq.${roomId}`
-        },
-        () => {
-          fetchLiveMatch();
-        }
-      )
-      .subscribe();
-
-    // Update match data every minute
-    const interval = setInterval(() => {
-      if (matchData?.status === 'live') {
-        updateMatchData();
-      }
-    }, 60000);
-
-    return () => {
-      supabase.removeChannel(channel);
-      clearInterval(interval);
-    };
-  }, [roomId]);
-
-  const fetchLiveMatch = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('room_live_matches')
-        .select('*')
-        .eq('room_id', roomId)
-        .eq('is_active', true)
-        .single();
-
-      if (error || !data) {
-        setMatchData(null);
-        setIsLoading(false);
-        return;
-      }
-
-      setMatchData(data.match_data as unknown as MatchData);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error fetching live match:', error);
-      setMatchData(null);
-      setIsLoading(false);
-    }
-  };
-
-  const updateMatchData = async () => {
+  const updateMatchData = useCallback(async () => {
     if (!matchData) return;
 
     try {
+      console.log('🔄 تحديث بيانات المباراة...');
+      
       // استدعاء API المباريات للحصول على آخر التحديثات
       const response = await fetch(`https://zuvpksebzsthinjsxebt.supabase.co/functions/v1/get-football-matches`, {
         method: 'POST',
@@ -108,32 +54,136 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
         const updatedMatch = result.matches?.find((match: any) => match.id === matchData.id);
         
         if (updatedMatch) {
+          console.log('✅ تم تحديث بيانات المباراة:', updatedMatch);
           setMatchData(updatedMatch);
           
           // تحديث البيانات في قاعدة البيانات
-          await supabase
+          const { error: updateError } = await supabase
             .from('room_live_matches')
             .update({ 
               match_data: updatedMatch as any,
               updated_at: new Date().toISOString()
             })
             .eq('room_id', roomId);
+
+          if (updateError) {
+            console.error('خطأ في تحديث قاعدة البيانات:', updateError);
+          }
+
+          // بث التحديث فوراً لجميع المتصلين
+          const broadcastChannel = supabase.channel(`room-${roomId}-live-match`);
+          await broadcastChannel.send({
+            type: 'broadcast',
+            event: 'match_updated',
+            payload: { match: updatedMatch }
+          });
         }
       }
     } catch (error) {
       console.error('Error updating match data:', error);
     }
-  };
+  }, [matchData, roomId]);
+
+  const fetchLiveMatch = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('room_live_matches')
+        .select('*')
+        .eq('room_id', roomId)
+        .eq('is_active', true)
+        .single();
+
+      if (error || !data) {
+        setMatchData(null);
+        setIsLoading(false);
+        return;
+      }
+
+      const match = data.match_data as unknown as MatchData;
+      setMatchData(match);
+      
+      // تحديث فترة التحديث من البيانات المحفوظة
+      if ((match as any).update_interval_minutes) {
+        setUpdateInterval((match as any).update_interval_minutes);
+      }
+      
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching live match:', error);
+      setMatchData(null);
+      setIsLoading(false);
+    }
+  }, [roomId]);
+
+  useEffect(() => {
+    fetchLiveMatch();
+    
+    // إعداد الاشتراك في التحديثات الفورية
+    const channel = supabase
+      .channel(`room-${roomId}-live-match`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'room_live_matches',
+          filter: `room_id=eq.${roomId}`
+        },
+        (payload) => {
+          console.log('📡 تحديث فوري من قاعدة البيانات:', payload);
+          fetchLiveMatch();
+        }
+      )
+      .on('broadcast', { event: 'match_activated' }, (payload) => {
+        console.log('📡 تم تفعيل مباراة جديدة:', payload);
+        fetchLiveMatch();
+      })
+      .on('broadcast', { event: 'match_updated' }, (payload) => {
+        console.log('📡 تحديث فوري للمباراة:', payload);
+        if (payload.payload?.match) {
+          setMatchData(payload.payload.match);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [roomId, fetchLiveMatch]);
+
+  // تحديث تلقائي للمباراة حسب الفترة المحددة
+  useEffect(() => {
+    if (!matchData?.status || matchData.status !== 'live') return;
+
+    const intervalMs = updateInterval * 60 * 1000; // تحويل الدقائق إلى ميلي ثانية
+    console.log(`⏰ إعداد تحديث تلقائي كل ${updateInterval} دقيقة`);
+    
+    const interval = setInterval(updateMatchData, intervalMs);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [matchData, updateInterval, updateMatchData]);
 
   const removeLiveMatch = async () => {
     try {
-      await supabase
+      const { error } = await supabase
         .from('room_live_matches')
-        .update({ is_active: false })
+        .delete()
         .eq('room_id', roomId);
 
-      setMatchData(null);
-      onRemove?.();
+      if (!error) {
+        // بث إشعار الإلغاء فوراً
+        const broadcastChannel = supabase.channel(`room-${roomId}-live-match`);
+        await broadcastChannel.send({
+          type: 'broadcast',
+          event: 'match_deactivated',
+          payload: {}
+        });
+
+        setMatchData(null);
+        onRemove?.();
+      }
     } catch (error) {
       console.error('Error removing live match:', error);
     }
@@ -188,13 +238,20 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
           <span className="text-xs text-gray-400">
             {matchData.competition}
           </span>
+          {matchData.status === 'live' && (
+            <span className="text-xs text-gray-500">
+              (تحديث كل {updateInterval} دقيقة)
+            </span>
+          )}
         </div>
+        {/* تقييد زر الإلغاء للمشرفين فقط */}
         {isOwnerOrModerator && (
           <Button
             onClick={removeLiveMatch}
             size="sm"
             variant="ghost"
             className="h-6 w-6 p-0 text-gray-400 hover:text-red-400"
+            title="إيقاف النقل المباشر (للمشرفين فقط)"
           >
             <X size={12} />
           </Button>
