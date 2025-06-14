@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Play, Square, RefreshCw, Calendar, Clock, CalendarDays } from 'lucide-react';
+import { Play, Square, RefreshCw, Calendar, Clock, CalendarDays, AlertCircle } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -41,6 +41,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('live');
   const [activeMatch, setActiveMatch] = useState<Match | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,7 +59,11 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
 
   const fetchMatches = async (status: string) => {
     setIsLoading(true);
+    setError(null);
+    
     try {
+      console.log(`🔄 جاري جلب المباريات - النوع: ${status}`);
+      
       const response = await fetch(`https://zuvpksebzsthinjsxebt.supabase.co/functions/v1/get-football-matches`, {
         method: 'POST',
         headers: {
@@ -68,16 +73,29 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
         body: JSON.stringify({ status })
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        return result.matches || [];
+      console.log(`📡 استجابة API: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        throw new Error(`خطأ في الشبكة: ${response.status} ${response.statusText}`);
       }
-      return [];
+
+      const result = await response.json();
+      console.log(`✅ تم جلب المباريات بنجاح: ${result.matches?.length || 0} مباراة`);
+      
+      if (!result.matches || !Array.isArray(result.matches)) {
+        console.warn('⚠️ البيانات المستلمة غير صحيحة:', result);
+        return [];
+      }
+
+      return result.matches;
     } catch (error) {
-      console.error('Error fetching matches:', error);
+      console.error('❌ خطأ في جلب المباريات:', error);
+      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
+      setError(`فشل في جلب المباريات: ${errorMessage}`);
+      
       toast({
-        title: "خطأ",
-        description: "فشل في جلب المباريات",
+        title: "خطأ في الاتصال",
+        description: `فشل في جلب المباريات: ${errorMessage}`,
         variant: "destructive"
       });
       return [];
@@ -87,16 +105,19 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
   };
 
   const fetchLiveMatches = async () => {
+    console.log('🔴 جلب المباريات المباشرة...');
     const matches = await fetchMatches('live');
     setLiveMatches(matches);
   };
 
   const fetchTodayMatches = async () => {
+    console.log('📅 جلب مباريات اليوم...');
     const matches = await fetchMatches('today');
     setTodayMatches(matches);
   };
 
   const fetchYesterdayMatches = async () => {
+    console.log('📆 جلب مباريات الأمس...');
     const matches = await fetchMatches('yesterday');
     setYesterdayMatches(matches);
   };
@@ -108,7 +129,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
         .select('match_data')
         .eq('room_id', roomId)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (data && !error) {
         setActiveMatch(data.match_data as unknown as Match);
@@ -122,6 +143,8 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
 
   const activateMatch = async (match: Match) => {
     try {
+      console.log('🎯 تفعيل المباراة:', match.homeTeam, 'vs', match.awayTeam);
+      
       // إزالة أي مباراة نشطة حالياً
       await supabase
         .from('room_live_matches')
@@ -182,7 +205,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
   const getStatusBadge = (status: string, minute?: number) => {
     switch (status) {
       case 'live':
-        return <Badge className="bg-red-500 text-white">{minute ? `${minute}'` : 'مباشر'}</Badge>;
+        return <Badge className="bg-red-500 text-white animate-pulse">{minute ? `${minute}'` : 'مباشر'}</Badge>;
       case 'upcoming':
         return <Badge className="bg-blue-500 text-white">لم تبدأ</Badge>;
       case 'finished':
@@ -193,6 +216,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
   };
 
   const refreshCurrentTab = () => {
+    setError(null);
     if (activeTab === 'live') {
       fetchLiveMatches();
     } else if (activeTab === 'today') {
@@ -272,6 +296,16 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
             </div>
           )}
 
+          {/* رسالة الخطأ */}
+          {error && (
+            <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3">
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <AlertCircle size={16} className="text-red-400" />
+                <span className="text-sm text-red-400">{error}</span>
+              </div>
+            </div>
+          )}
+
           {/* تبويبات المباريات */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-zinc-700">
@@ -325,6 +359,15 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
                     {activeTab === 'today' && 'لا توجد مباريات اليوم'}
                     {activeTab === 'yesterday' && 'لا توجد مباريات الأمس'}
                   </p>
+                  {error && (
+                    <Button
+                      onClick={refreshCurrentTab}
+                      size="sm"
+                      className="mt-2"
+                    >
+                      إعادة المحاولة
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="max-h-60 overflow-y-auto space-y-2">
