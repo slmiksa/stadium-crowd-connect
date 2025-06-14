@@ -138,13 +138,18 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
         .eq('is_active', true)
         .maybeSingle();
 
-      if (data && !error) {
+      if (error) {
+        console.error('خطأ في جلب المباراة النشطة:', error);
+        return;
+      }
+
+      if (data && data.match_data) {
         setActiveMatch(data.match_data as unknown as Match);
       } else {
         setActiveMatch(null);
       }
     } catch (error) {
-      console.error('Error fetching active match:', error);
+      console.error('خطأ في جلب المباراة النشطة:', error);
     }
   };
 
@@ -152,23 +157,38 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
     try {
       console.log('🎯 تفعيل المباراة:', match.homeTeam, 'vs', match.awayTeam);
       
-      // إزالة أي مباراة نشطة حالياً
-      await supabase
+      // التحقق من وجود room_id و user_id
+      if (!roomId || !userId) {
+        throw new Error('معرف الغرفة أو المستخدم غير متوفر');
+      }
+
+      // إزالة أي مباراة نشطة حالياً للغرفة
+      const { error: updateError } = await supabase
         .from('room_live_matches')
         .update({ is_active: false })
         .eq('room_id', roomId);
 
+      if (updateError) {
+        console.error('خطأ في إزالة المباراة النشطة:', updateError);
+      }
+
       // تفعيل المباراة الجديدة
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('room_live_matches')
         .insert({
           room_id: roomId,
           match_id: match.id,
           match_data: match as any,
-          activated_by: userId
+          activated_by: userId,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
 
-      if (error) throw error;
+      if (insertError) {
+        console.error('خطأ في تفعيل المباراة:', insertError);
+        throw insertError;
+      }
 
       setActiveMatch(match);
       toast({
@@ -178,10 +198,18 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
 
       onClose();
     } catch (error) {
-      console.error('Error activating match:', error);
+      console.error('خطأ في تفعيل المباراة:', error);
+      let errorMessage = 'فشل في تفعيل النقل المباشر';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null && 'message' in error) {
+        errorMessage = (error as any).message;
+      }
+      
       toast({
-        title: "خطأ",
-        description: "فشل في تفعيل النقل المباشر",
+        title: "خطأ في التفعيل",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -189,10 +217,17 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
 
   const deactivateMatch = async () => {
     try {
-      await supabase
+      const { error } = await supabase
         .from('room_live_matches')
-        .update({ is_active: false })
+        .update({ 
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
         .eq('room_id', roomId);
+
+      if (error) {
+        throw error;
+      }
 
       setActiveMatch(null);
       toast({
@@ -200,7 +235,7 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
         description: "تم إيقاف نقل المباراة المباشرة",
       });
     } catch (error) {
-      console.error('Error deactivating match:', error);
+      console.error('خطأ في إيقاف المباراة:', error);
       toast({
         title: "خطأ",
         description: "فشل في إيقاف النقل المباشر",
