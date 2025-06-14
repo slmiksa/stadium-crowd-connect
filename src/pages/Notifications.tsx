@@ -10,6 +10,7 @@ import { useVerificationNotifications } from '@/hooks/useVerificationNotificatio
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const Notifications = () => {
   const { user } = useAuth();
@@ -17,6 +18,9 @@ const Notifications = () => {
   const { handleProfileClick, handlePostClick, handleRoomClick, handleMessageClick, handleNotificationClick } = useNotificationHandlers(markAsRead);
   const { toast } = useToast();
   
+  // تفعيل نظام الإشعارات الخارجية (Push Notifications)
+  usePushNotifications();
+
   // تفعيل نظام إشعارات التوثيق
   useVerificationNotifications();
 
