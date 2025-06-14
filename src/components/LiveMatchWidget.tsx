@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Clock, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
   isOwnerOrModerator,
   onRemove 
 }) => {
+  const navigate = useNavigate();
   const [matchData, setMatchData] = useState<MatchData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [updateInterval, setUpdateInterval] = useState<number>(2); // دقائق
@@ -189,6 +190,14 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
     }
   };
 
+  const handleMatchClick = () => {
+    if (matchData) {
+      // حفظ معرف الغرفة في sessionStorage للعودة إليها
+      sessionStorage.setItem('returnToRoom', roomId);
+      navigate(`/match-details/${matchData.id}`);
+    }
+  };
+
   const getStatusText = (status: string, minute?: number) => {
     switch (status) {
       case 'live':
@@ -258,42 +267,49 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
         )}
       </div>
 
-      <div className="flex items-center justify-between">
-        {/* الفريق المحلي */}
-        <div className="flex items-center space-x-2 space-x-reverse flex-1">
-          {matchData.homeLogo && (
-            <img 
-              src={matchData.homeLogo} 
-              alt={matchData.homeTeam}
-              className="w-6 h-6 object-contain"
-            />
-          )}
-          <span className="text-white font-medium text-sm truncate">
-            {matchData.homeTeam}
-          </span>
-        </div>
-
-        {/* النتيجة */}
-        <div className="flex items-center space-x-3 space-x-reverse mx-4">
-          <div className="bg-gray-800/50 rounded-lg px-3 py-1">
-            <span className="text-white font-bold text-lg">
-              {matchData.homeScore ?? 0} - {matchData.awayScore ?? 0}
+      {/* منطقة المباراة القابلة للضغط */}
+      <div 
+        onClick={handleMatchClick}
+        className="cursor-pointer hover:bg-white/5 rounded-lg p-2 transition-colors"
+        title="اضغط لعرض تفاصيل المباراة"
+      >
+        <div className="flex items-center justify-between">
+          {/* الفريق المحلي */}
+          <div className="flex items-center space-x-2 space-x-reverse flex-1">
+            {matchData.homeLogo && (
+              <img 
+                src={matchData.homeLogo} 
+                alt={matchData.homeTeam}
+                className="w-6 h-6 object-contain"
+              />
+            )}
+            <span className="text-white font-medium text-sm truncate">
+              {matchData.homeTeam}
             </span>
           </div>
-        </div>
 
-        {/* الفريق الضيف */}
-        <div className="flex items-center space-x-2 space-x-reverse flex-1 justify-end">
-          <span className="text-white font-medium text-sm truncate">
-            {matchData.awayTeam}
-          </span>
-          {matchData.awayLogo && (
-            <img 
-              src={matchData.awayLogo} 
-              alt={matchData.awayTeam}
-              className="w-6 h-6 object-contain"
-            />
-          )}
+          {/* النتيجة */}
+          <div className="flex items-center space-x-3 space-x-reverse mx-4">
+            <div className="bg-gray-800/50 rounded-lg px-3 py-1">
+              <span className="text-white font-bold text-lg">
+                {matchData.homeScore ?? 0} - {matchData.awayScore ?? 0}
+              </span>
+            </div>
+          </div>
+
+          {/* الفريق الضيف */}
+          <div className="flex items-center space-x-2 space-x-reverse flex-1 justify-end">
+            <span className="text-white font-medium text-sm truncate">
+              {matchData.awayTeam}
+            </span>
+            {matchData.awayLogo && (
+              <img 
+                src={matchData.awayLogo} 
+                alt={matchData.awayTeam}
+                className="w-6 h-6 object-contain"
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -301,7 +317,7 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
         <div className="flex items-center justify-center mt-2 space-x-2 space-x-reverse">
           <Clock size={12} className="text-red-400" />
           <span className="text-xs text-red-400 animate-pulse">
-            مباراة مباشرة
+            مباراة مباشرة - اضغط للتفاصيل
           </span>
         </div>
       )}

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
-import { ArrowRight, Clock, Users, MapPin, Target, CreditCard, UserCheck, TrendingUp } from 'lucide-react';
+import { ArrowRight, Clock, Users, MapPin, Target, CreditCard, UserCheck, TrendingUp, MessageCircle } from 'lucide-react';
 
 interface Player {
   id: number;
@@ -95,6 +95,9 @@ const MatchDetails = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'lineups' | 'stats'>('overview');
 
+  // التحقق من وجود معرف غرفة للعودة إليها
+  const returnToRoom = sessionStorage.getItem('returnToRoom');
+
   useEffect(() => {
     fetchMatchDetails();
   }, [matchId]);
@@ -120,6 +123,17 @@ const MatchDetails = () => {
       console.error('Error fetching match details:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleBackNavigation = () => {
+    if (returnToRoom) {
+      // العودة للغرفة ومسح البيانات من sessionStorage
+      sessionStorage.removeItem('returnToRoom');
+      navigate(`/chat-room/${returnToRoom}`);
+    } else {
+      // العودة للمباريات العادية
+      navigate('/matches');
     }
   };
 
@@ -182,11 +196,11 @@ const MatchDetails = () => {
         <div className="min-h-screen bg-gray-900">
           <div className="p-4">
             <button
-              onClick={() => navigate('/matches')}
+              onClick={handleBackNavigation}
               className="flex items-center text-blue-400 mb-4 hover:text-blue-300 transition-colors"
             >
               <ArrowRight size={20} className="ml-2" />
-              العودة للمباريات
+              {returnToRoom ? 'العودة للغرفة' : 'العودة للمباريات'}
             </button>
             <div className="flex items-center justify-center min-h-[60vh]">
               <div className="text-center bg-gray-800/60 backdrop-blur-sm rounded-3xl p-12 border border-gray-700/50">
@@ -208,11 +222,18 @@ const MatchDetails = () => {
         <div className="bg-gray-800/80 backdrop-blur-sm border-b border-gray-700/50 sticky top-0 z-10">
           <div className="flex items-center justify-between p-4">
             <button
-              onClick={() => navigate('/matches')}
+              onClick={handleBackNavigation}
               className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
             >
               <ArrowRight size={20} className="ml-2" />
-              العودة
+              {returnToRoom ? (
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <MessageCircle size={16} />
+                  <span>العودة للغرفة</span>
+                </div>
+              ) : (
+                'العودة'
+              )}
             </button>
             <h1 className="text-xl font-bold text-white">تفاصيل المباراة</h1>
             <div className="w-12"></div>
