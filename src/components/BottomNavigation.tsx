@@ -1,59 +1,160 @@
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, MessageSquare, User, Trophy, Hash } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { MessageSquare, Hash, Users, Bell, User } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const BottomNavigation = () => {
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { t, isRTL } = useLanguage();
+  const { user } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const menuItems = [
-    {
-      id: 'hashtags',
-      label: 'الرئيسية',
-      icon: Hash,
-      path: '/hashtags',
-      isActive: location.pathname === '/' || location.pathname === '/hashtags' || location.pathname.startsWith('/hashtag/')
+  const tabs = [
+    { 
+      id: 'matches', 
+      path: '/matches', 
+      icon: Users, 
+      label: t('matches') 
     },
-    {
-      id: 'matches',
-      label: 'المباريات',
-      icon: Trophy,
-      path: '/matches',
-      isActive: location.pathname === '/matches' || location.pathname.startsWith('/match/')
+    { 
+      id: 'hashtags', 
+      path: '/hashtags', 
+      icon: Hash, 
+      label: t('hashtags') 
     },
-    {
-      id: 'chatRooms',
-      label: 'الدردشات',
-      icon: MessageSquare,
-      path: '/chat-rooms',
-      isActive: location.pathname === '/chat-rooms' || location.pathname.startsWith('/chat-room/') || location.pathname === '/create-chat-room'
+    { 
+      id: 'chat-rooms', 
+      path: '/chat-rooms', 
+      icon: MessageSquare, 
+      label: t('chatRooms') 
     },
-    {
-      id: 'profile',
-      label: 'الملف الشخصي',
-      icon: User,
-      path: '/profile',
-      isActive: location.pathname === '/profile' || location.pathname === '/edit-profile' || location.pathname.startsWith('/profile/')
+    { 
+      id: 'messages', 
+      path: '/messages', 
+      icon: Bell, 
+      label: 'تنبيهاتي' 
     },
+    { 
+      id: 'profile', 
+      path: '/profile', 
+      icon: User, 
+      label: t('profile') 
+    }
   ];
 
+  const fetchUnreadCount = async () => {
+    if (!user) return;
+
+    try {
+      // Get unread notifications count
+      const { data: notifications, error: notifError } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+
+      // Get unread messages count
+      const { data: messages, error: msgError } = await supabase
+        .from('private_messages')
+        .select('id')
+        .eq('receiver_id', user.id)
+        .eq('is_read', false);
+
+      if (notifError || msgError) {
+        console.error('Error fetching unread counts:', notifError || msgError);
+        return;
+      }
+
+      const totalUnread = (notifications?.length || 0) + (messages?.length || 0);
+      setUnreadCount(totalUnread);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchUnreadCount();
+
+      // Subscribe to real-time updates for notifications
+      const notificationsChannel = supabase
+        .channel('notifications_realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            fetchUnreadCount();
+          }
+        )
+        .subscribe();
+
+      // Subscribe to real-time updates for private messages
+      const messagesChannel = supabase
+        .channel('messages_realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'private_messages',
+            filter: `receiver_id=eq.${user.id}`
+          },
+          () => {
+            fetchUnreadCount();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(notificationsChannel);
+        supabase.removeChannel(messagesChannel);
+      };
+    }
+  }, [user]);
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-zinc-900 to-zinc-800/95 backdrop-blur-lg border-t border-zinc-700/50 z-50 safe-area-padding">
-      <ul className="flex justify-around items-center p-3">
-        {menuItems.map((item) => (
-          <li key={item.id} className="flex-1 text-center">
+    <nav className="fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur-md border-t border-zinc-800 pb-safe">
+      <div className="flex justify-around items-center h-16 px-4">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = location.pathname === tab.path;
+          const isMessagesTab = tab.id === 'messages';
+          
+          return (
             <button
-              onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center justify-center gap-1 text-xs ${
-                item.isActive ? 'text-white' : 'text-gray-400 hover:text-gray-300'
+              key={tab.id}
+              onClick={() => navigate(tab.path)}
+              className={`relative flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
+                isActive 
+                  ? 'text-blue-400 bg-blue-950/50' 
+                  : 'text-zinc-400 hover:text-zinc-300'
               }`}
             >
-              {React.createElement(item.icon, { size: 20 })}
-              <span>{item.label}</span>
+              <div className="relative">
+                <Icon size={20} />
+                {isMessagesTab && unreadCount > 0 && (
+                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="text-xs text-white font-bold">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <span className="text-xs mt-1 font-medium">
+                {tab.label}
+              </span>
             </button>
-          </li>
-        ))}
-      </ul>
+          );
+        })}
+      </div>
     </nav>
   );
 };

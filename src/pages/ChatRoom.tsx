@@ -16,7 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import LiveMatchWidget from '@/components/LiveMatchWidget';
 import { uploadChatMedia, validateFile } from '@/utils/storageUtils';
-import Layout from '@/components/Layout';
 
 interface Message {
   id: string;
@@ -69,12 +68,6 @@ const ChatRoom = () => {
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Define isOwnerOrModerator variable
-  const isOwnerOrModerator = user && roomInfo && (
-    user.id === roomInfo.owner_id || 
-    userRoles.some(role => role.user_id === user.id && role.role === 'moderator')
-  );
 
   useEffect(() => {
     if (roomId && user) {
@@ -674,10 +667,10 @@ const ChatRoom = () => {
   };
 
   return (
-    <Layout>
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-        {/* Header */}
-        <div className="bg-gray-800/80 backdrop-blur-sm border-b border-gray-700/50 p-4 flex items-center justify-between sticky top-0 z-10">
+    <div className="min-h-screen bg-zinc-900 flex flex-col relative">
+      {/* Fixed Header */}
+      <div className="bg-zinc-800 border-b border-zinc-700 p-4 fixed top-0 left-0 right-0 z-50">
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button 
               onClick={() => navigate('/chat-rooms')}
@@ -719,33 +712,69 @@ const ChatRoom = () => {
             )}
           </div>
         </div>
+      </div>
 
-        {/* Live Match Widget - معلق في الأعلى */}
-        <LiveMatchWidget 
-          roomId={roomId!} 
-          isOwnerOrModerator={isOwnerOrModerator}
-          onRemove={() => {
-            // تحديث المباراة المعروضة بعد الحذف
-            window.location.reload();
-          }}
-        />
-
-        {/* Chat Messages */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {messages.map(renderMessage)}
-          <div ref={messagesEndRef} />
+      {/* Fixed Announcement under header */}
+      {roomInfo?.announcement && (
+        <div className="fixed top-20 left-0 right-0 z-40">
+          <ChatRoomAnnouncement announcement={roomInfo.announcement} />
         </div>
+      )}
 
-        {/* Input Area */}
-        <div className="border-t border-gray-700/50 p-4 bg-gray-800/60 backdrop-blur-sm">
-          <MediaInput 
-            onSendMessage={sendMessage} 
-            isSending={isSending}
-            quotedMessage={quotedMessage}
-            onClearQuote={() => setQuotedMessage(null)}
+      {/* Live Match Widget under announcement */}
+      {roomId && (
+        <div className={`fixed ${roomInfo?.announcement ? 'top-28' : 'top-20'} left-0 right-0 z-30 px-4`}>
+          <LiveMatchWidget
+            roomId={roomId}
+            isOwnerOrModerator={user?.id === roomInfo?.owner_id || isModerator(user?.id || '')}
+            onRemove={() => {
+              // تحديث العرض بعد إزالة المباراة
+              console.log('Live match removed');
+            }}
           />
         </div>
+      )}
+
+      {/* Messages Container with proper margin for fixed elements */}
+      <div className={`flex-1 overflow-y-auto p-4 space-y-4 pb-24 ${
+        roomInfo?.announcement ? 'mt-32' : 'mt-24'
+      }`}>
+        {messages.map(renderMessage)}
+        <div ref={messagesEndRef} />
       </div>
+
+      {/* Fixed Input Area at Bottom */}
+      <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 p-4 z-40">
+        <MediaInput 
+          onSendMessage={sendMessage} 
+          isSending={isSending}
+          quotedMessage={quotedMessage}
+          onClearQuote={() => setQuotedMessage(null)}
+        />
+      </div>
+
+      {/* Image Modal */}
+      {imageModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          onClick={closeImageModal}
+        >
+          <div className="relative max-w-full max-h-full">
+            <button
+              onClick={closeImageModal}
+              className="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition-colors z-10"
+            >
+              <X size={24} />
+            </button>
+            <img 
+              src={imageModal} 
+              alt="صورة مكبرة" 
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       {showMembersModal && roomId && (
@@ -770,7 +799,7 @@ const ChatRoom = () => {
           onAnnouncementUpdate={handleAnnouncementUpdate}
         />
       )}
-    </Layout>
+    </div>
   );
 };
 
