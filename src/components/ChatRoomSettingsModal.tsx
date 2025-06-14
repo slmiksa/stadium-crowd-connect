@@ -2,15 +2,12 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Tv } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Play, Settings } from 'lucide-react';
 import LiveMatchManager from './LiveMatchManager';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface ChatRoomSettingsModalProps {
   roomId: string;
@@ -27,70 +24,44 @@ const ChatRoomSettingsModal: React.FC<ChatRoomSettingsModalProps> = ({
   onClose,
   onAnnouncementUpdate
 }) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
   const [announcement, setAnnouncement] = useState(currentAnnouncement || '');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [showLiveMatchManager, setShowLiveMatchManager] = useState(false);
+  const { toast } = useToast();
 
-  const handleSaveAnnouncement = async () => {
-    setIsLoading(true);
+  const updateAnnouncement = async () => {
+    setIsUpdating(true);
     try {
       const { error } = await supabase
         .from('chat_rooms')
-        .update({ 
-          announcement: announcement.trim() || null,
-          updated_at: new Date().toISOString()
-        })
+        .update({ announcement: announcement.trim() || null })
         .eq('id', roomId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating announcement:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في تحديث الإعلان",
+          variant: "destructive"
+        });
+        return;
+      }
 
       onAnnouncementUpdate(announcement.trim() || null);
       toast({
-        title: "تم الحفظ",
+        title: "تم التحديث",
         description: "تم تحديث إعلان الغرفة بنجاح"
       });
+      onClose();
     } catch (error) {
-      console.error('Error updating announcement:', error);
+      console.error('Error:', error);
       toast({
         title: "خطأ",
-        description: "فشل في تحديث الإعلان",
+        description: "حدث خطأ غير متوقع",
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleClearAnnouncement = async () => {
-    setAnnouncement('');
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('chat_rooms')
-        .update({ 
-          announcement: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', roomId);
-
-      if (error) throw error;
-
-      onAnnouncementUpdate(null);
-      toast({
-        title: "تم الحذف",
-        description: "تم حذف إعلان الغرفة"
-      });
-    } catch (error) {
-      console.error('Error clearing announcement:', error);
-      toast({
-        title: "خطأ",
-        description: "فشل في حذف الإعلان",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+      setIsUpdating(false);
     }
   };
 
@@ -102,75 +73,67 @@ const ChatRoomSettingsModal: React.FC<ChatRoomSettingsModalProps> = ({
             <DialogTitle className="text-white">إعدادات الغرفة</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* إدارة الإعلان */}
-            <div className="space-y-3">
-              <Label htmlFor="announcement" className="text-white">
+            <div className="space-y-2">
+              <Label htmlFor="announcement" className="text-sm font-medium text-gray-300">
                 إعلان الغرفة
               </Label>
               <Textarea
                 id="announcement"
                 value={announcement}
                 onChange={(e) => setAnnouncement(e.target.value)}
-                placeholder="اكتب إعلاناً للغرفة (اختياري)..."
-                className="bg-zinc-700 border-zinc-600 text-white placeholder:text-zinc-400 resize-none"
+                placeholder="اكتب إعلان للغرفة (اختياري)..."
+                className="bg-zinc-700 border-zinc-600 text-white resize-none"
                 rows={3}
-                maxLength={500}
               />
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-zinc-400">
-                  {announcement.length}/500 حرف
-                </span>
-                <div className="flex space-x-2 space-x-reverse">
-                  <Button
-                    onClick={handleClearAnnouncement}
-                    variant="outline"
-                    size="sm"
-                    disabled={isLoading || !announcement.trim()}
-                    className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
-                  >
-                    مسح
-                  </Button>
-                  <Button
-                    onClick={handleSaveAnnouncement}
-                    size="sm"
-                    disabled={isLoading}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Save size={16} className="ml-1" />
-                    حفظ
-                  </Button>
-                </div>
-              </div>
+              <p className="text-xs text-gray-400">
+                سيظهر الإعلان في أعلى الغرفة لجميع الأعضاء
+              </p>
             </div>
 
-            <Separator className="bg-zinc-700" />
-
             {/* إدارة النقل المباشر */}
-            <div className="space-y-3">
-              <Label className="text-white">النقل المباشر للمباريات</Label>
-              <p className="text-sm text-zinc-400">
-                قم بتفعيل نقل مباراة مباشرة لعرضها في أعلى الدردشة للأعضاء
-              </p>
+            <div className="border-t border-zinc-600 pt-4">
               <Button
                 onClick={() => setShowLiveMatchManager(true)}
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
               >
-                <Tv size={16} className="ml-2" />
-                إدارة النقل المباشر
+                <Play size={16} className="ml-2" />
+                إدارة النقل المباشر للمباريات
+              </Button>
+              <p className="text-xs text-gray-400 mt-2">
+                اختر مباراة لبثها مباشرة في الغرفة مع التحديثات التلقائية
+              </p>
+            </div>
+
+            {/* أزرار الإجراءات */}
+            <div className="flex space-x-2 space-x-reverse">
+              <Button 
+                onClick={updateAnnouncement} 
+                disabled={isUpdating}
+                className="flex-1"
+              >
+                {isUpdating ? 'جاري التحديث...' : 'حفظ التغييرات'}
+              </Button>
+              <Button 
+                onClick={onClose} 
+                variant="outline"
+                className="flex-1 border-zinc-600 text-gray-300 hover:bg-zinc-700"
+              >
+                إلغاء
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* مكون إدارة المباراة المباشرة */}
-      {user && (
+      {/* مدير النقل المباشر */}
+      {showLiveMatchManager && (
         <LiveMatchManager
           isOpen={showLiveMatchManager}
           onClose={() => setShowLiveMatchManager(false)}
           roomId={roomId}
-          userId={user.id}
+          userId="" // سيتم تمريره من المكون الأب
         />
       )}
     </>

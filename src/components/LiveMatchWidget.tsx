@@ -33,7 +33,7 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
   const navigate = useNavigate();
   const [matchData, setMatchData] = useState<MatchData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [updateInterval, setUpdateInterval] = useState<number>(2); // دقائق
+  const [updateInterval, setUpdateInterval] = useState<number>(2);
 
   const updateMatchData = useCallback(async () => {
     if (!matchData) return;
@@ -41,7 +41,6 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
     try {
       console.log('🔄 تحديث بيانات المباراة...');
       
-      // استدعاء API المباريات للحصول على آخر التحديثات
       const response = await fetch(`https://zuvpksebzsthinjsxebt.supabase.co/functions/v1/get-football-matches`, {
         method: 'POST',
         headers: {
@@ -59,7 +58,6 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
           console.log('✅ تم تحديث بيانات المباراة:', updatedMatch);
           setMatchData(updatedMatch);
           
-          // تحديث البيانات في قاعدة البيانات
           const { error: updateError } = await supabase
             .from('room_live_matches')
             .update({ 
@@ -88,25 +86,33 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
 
   const fetchLiveMatch = useCallback(async () => {
     try {
+      console.log('📡 جلب المباراة النشطة للغرفة:', roomId);
+      
       const { data, error } = await supabase
         .from('room_live_matches')
         .select('*')
         .eq('room_id', roomId)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
+      if (error) {
+        console.error('خطأ في جلب المباراة النشطة:', error);
         setMatchData(null);
         setIsLoading(false);
         return;
       }
 
-      const match = data.match_data as unknown as MatchData;
-      setMatchData(match);
-      
-      // تحديث فترة التحديث من البيانات المحفوظة
-      if ((match as any).update_interval_minutes) {
-        setUpdateInterval((match as any).update_interval_minutes);
+      if (data) {
+        const match = data.match_data as unknown as MatchData;
+        console.log('✅ تم جلب المباراة النشطة:', match);
+        setMatchData(match);
+        
+        if ((match as any).update_interval_minutes) {
+          setUpdateInterval((match as any).update_interval_minutes);
+        }
+      } else {
+        console.log('📭 لا توجد مباراة نشطة للغرفة');
+        setMatchData(null);
       }
       
       setIsLoading(false);
@@ -133,7 +139,11 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
         },
         (payload) => {
           console.log('📡 تحديث فوري من قاعدة البيانات:', payload);
-          fetchLiveMatch();
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            fetchLiveMatch();
+          } else if (payload.eventType === 'DELETE') {
+            setMatchData(null);
+          }
         }
       )
       .on('broadcast', { event: 'match_activated' }, (payload) => {
@@ -146,6 +156,10 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
           setMatchData(payload.payload.match);
         }
       })
+      .on('broadcast', { event: 'match_deactivated' }, () => {
+        console.log('📡 تم إلغاء تفعيل المباراة');
+        setMatchData(null);
+      })
       .subscribe();
 
     return () => {
@@ -157,7 +171,7 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
   useEffect(() => {
     if (!matchData?.status || matchData.status !== 'live') return;
 
-    const intervalMs = updateInterval * 60 * 1000; // تحويل الدقائق إلى ميلي ثانية
+    const intervalMs = updateInterval * 60 * 1000;
     console.log(`⏰ إعداد تحديث تلقائي كل ${updateInterval} دقيقة`);
     
     const interval = setInterval(updateMatchData, intervalMs);
@@ -169,6 +183,8 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
 
   const removeLiveMatch = async () => {
     try {
+      console.log('🗑️ إزالة المباراة النشطة...');
+      
       const { error } = await supabase
         .from('room_live_matches')
         .delete()
@@ -185,6 +201,10 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
 
         setMatchData(null);
         onRemove?.();
+        
+        console.log('✅ تم إزالة المباراة بنجاح');
+      } else {
+        console.error('خطأ في إزالة المباراة:', error);
       }
     } catch (error) {
       console.error('Error removing live match:', error);
@@ -193,7 +213,6 @@ const LiveMatchWidget: React.FC<LiveMatchWidgetProps> = ({
 
   const handleMatchClick = () => {
     if (matchData) {
-      // حفظ معرف الغرفة في sessionStorage للعودة إليها
       sessionStorage.setItem('returnToRoom', roomId);
       navigate(`/match-details/${matchData.id}`);
     }
