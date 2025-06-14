@@ -4,8 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Play, Square, RefreshCw } from 'lucide-react';
+import { Play, Square, RefreshCw, Calendar, Clock, CalendarDays } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -34,19 +35,28 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
   roomId,
   userId
 }) => {
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [liveMatches, setLiveMatches] = useState<Match[]>([]);
+  const [todayMatches, setTodayMatches] = useState<Match[]>([]);
+  const [yesterdayMatches, setYesterdayMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('live');
   const [activeMatch, setActiveMatch] = useState<Match | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
-      fetchLiveMatches();
       fetchActiveMatch();
+      if (activeTab === 'live') {
+        fetchLiveMatches();
+      } else if (activeTab === 'today') {
+        fetchTodayMatches();
+      } else if (activeTab === 'yesterday') {
+        fetchYesterdayMatches();
+      }
     }
-  }, [isOpen, roomId]);
+  }, [isOpen, roomId, activeTab]);
 
-  const fetchLiveMatches = async () => {
+  const fetchMatches = async (status: string) => {
     setIsLoading(true);
     try {
       const response = await fetch(`https://zuvpksebzsthinjsxebt.supabase.co/functions/v1/get-football-matches`, {
@@ -55,23 +65,40 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
           'Content-Type': 'application/json',
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1dnBrc2VienN0aGluanN4ZWJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NDAyMzQsImV4cCI6MjA2NDIxNjIzNH0.HPOH1UvYlwf7KeA97NtNHJAC2bXkLxVSKtLDcs2cjeU`
         },
-        body: JSON.stringify({ status: 'live' })
+        body: JSON.stringify({ status })
       });
 
       if (response.ok) {
         const result = await response.json();
-        setMatches(result.matches || []);
+        return result.matches || [];
       }
+      return [];
     } catch (error) {
-      console.error('Error fetching live matches:', error);
+      console.error('Error fetching matches:', error);
       toast({
         title: "خطأ",
-        description: "فشل في جلب المباريات المباشرة",
+        description: "فشل في جلب المباريات",
         variant: "destructive"
       });
+      return [];
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchLiveMatches = async () => {
+    const matches = await fetchMatches('live');
+    setLiveMatches(matches);
+  };
+
+  const fetchTodayMatches = async () => {
+    const matches = await fetchMatches('today');
+    setTodayMatches(matches);
+  };
+
+  const fetchYesterdayMatches = async () => {
+    const matches = await fetchMatches('yesterday');
+    setYesterdayMatches(matches);
   };
 
   const fetchActiveMatch = async () => {
@@ -152,17 +179,61 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, minute?: number) => {
     switch (status) {
       case 'live':
-        return <Badge className="bg-red-500 text-white">مباشر</Badge>;
+        return <Badge className="bg-red-500 text-white">{minute ? `${minute}'` : 'مباشر'}</Badge>;
       case 'upcoming':
-        return <Badge className="bg-blue-500 text-white">قادمة</Badge>;
+        return <Badge className="bg-blue-500 text-white">لم تبدأ</Badge>;
       case 'finished':
         return <Badge className="bg-gray-500 text-white">انتهت</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const refreshCurrentTab = () => {
+    if (activeTab === 'live') {
+      fetchLiveMatches();
+    } else if (activeTab === 'today') {
+      fetchTodayMatches();
+    } else if (activeTab === 'yesterday') {
+      fetchYesterdayMatches();
+    }
+  };
+
+  const getCurrentMatches = () => {
+    switch (activeTab) {
+      case 'live':
+        return liveMatches;
+      case 'today':
+        return todayMatches;
+      case 'yesterday':
+        return yesterdayMatches;
+      default:
+        return [];
+    }
+  };
+
+  const getTabIcon = (tab: string) => {
+    switch (tab) {
+      case 'live':
+        return <Clock size={16} className="ml-1" />;
+      case 'today':
+        return <Calendar size={16} className="ml-1" />;
+      case 'yesterday':
+        return <CalendarDays size={16} className="ml-1" />;
+      default:
+        return null;
+    }
+  };
+
+  const formatMatchTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('ar-SA', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
@@ -195,15 +266,38 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
                 </span>
                 <span className="text-sm text-white">{activeMatch.awayTeam}</span>
               </div>
+              <div className="text-xs text-gray-400 mt-1">
+                {activeMatch.competition}
+              </div>
             </div>
           )}
 
-          {/* قائمة المباريات المباشرة */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-white">المباريات المباشرة</h3>
+          {/* تبويبات المباريات */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 bg-zinc-700">
+              <TabsTrigger value="live" className="text-xs data-[state=active]:bg-red-500">
+                {getTabIcon('live')}
+                مباشر
+              </TabsTrigger>
+              <TabsTrigger value="today" className="text-xs data-[state=active]:bg-blue-500">
+                {getTabIcon('today')}
+                اليوم
+              </TabsTrigger>
+              <TabsTrigger value="yesterday" className="text-xs data-[state=active]:bg-gray-500">
+                {getTabIcon('yesterday')}
+                الأمس
+              </TabsTrigger>
+            </TabsList>
+
+            {/* رأس القائمة مع زر التحديث */}
+            <div className="flex items-center justify-between mt-4">
+              <h3 className="text-sm font-medium text-white">
+                {activeTab === 'live' && 'المباريات المباشرة'}
+                {activeTab === 'today' && 'مباريات اليوم'}
+                {activeTab === 'yesterday' && 'مباريات الأمس'}
+              </h3>
               <Button
-                onClick={fetchLiveMatches}
+                onClick={refreshCurrentTab}
                 size="sm"
                 variant="ghost"
                 disabled={isLoading}
@@ -214,60 +308,66 @@ const LiveMatchManager: React.FC<LiveMatchManagerProps> = ({
               </Button>
             </div>
 
-            {isLoading ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-zinc-700 rounded-lg p-3 animate-pulse">
-                    <div className="h-4 bg-zinc-600 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-zinc-600 rounded w-1/2"></div>
-                  </div>
-                ))}
-              </div>
-            ) : matches.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-gray-400">لا توجد مباريات مباشرة حالياً</p>
-              </div>
-            ) : (
-              <div className="max-h-60 overflow-y-auto space-y-2">
-                {matches.map((match) => (
-                  <div
-                    key={match.id}
-                    className="bg-zinc-700 rounded-lg p-3 hover:bg-zinc-600 transition-colors"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                        {getStatusBadge(match.status)}
-                        {match.minute && (
-                          <span className="text-xs text-gray-400">{match.minute}'</span>
-                        )}
+            <TabsContent value={activeTab} className="mt-2">
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-zinc-700 rounded-lg p-3 animate-pulse">
+                      <div className="h-4 bg-zinc-600 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-zinc-600 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : getCurrentMatches().length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-gray-400">
+                    {activeTab === 'live' && 'لا توجد مباريات مباشرة حالياً'}
+                    {activeTab === 'today' && 'لا توجد مباريات اليوم'}
+                    {activeTab === 'yesterday' && 'لا توجد مباريات الأمس'}
+                  </p>
+                </div>
+              ) : (
+                <div className="max-h-60 overflow-y-auto space-y-2">
+                  {getCurrentMatches().map((match) => (
+                    <div
+                      key={match.id}
+                      className="bg-zinc-700 rounded-lg p-3 hover:bg-zinc-600 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          {getStatusBadge(match.status, match.minute)}
+                          <span className="text-xs text-gray-400">
+                            {formatMatchTime(match.date)}
+                          </span>
+                        </div>
+                        <Button
+                          onClick={() => activateMatch(match)}
+                          size="sm"
+                          disabled={activeMatch?.id === match.id}
+                          className="h-7"
+                        >
+                          <Play size={14} className="ml-1" />
+                          تفعيل
+                        </Button>
                       </div>
-                      <Button
-                        onClick={() => activateMatch(match)}
-                        size="sm"
-                        disabled={activeMatch?.id === match.id}
-                        className="h-7"
-                      >
-                        <Play size={14} className="ml-1" />
-                        تفعيل
-                      </Button>
-                    </div>
 
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-white">{match.homeTeam}</span>
-                      <span className="font-bold text-white">
-                        {match.homeScore ?? 0} - {match.awayScore ?? 0}
-                      </span>
-                      <span className="text-white">{match.awayTeam}</span>
-                    </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white truncate flex-1">{match.homeTeam}</span>
+                        <span className="font-bold text-white mx-3">
+                          {match.homeScore ?? 0} - {match.awayScore ?? 0}
+                        </span>
+                        <span className="text-white truncate flex-1 text-right">{match.awayTeam}</span>
+                      </div>
 
-                    <div className="text-xs text-gray-400 mt-1">
-                      {match.competition}
+                      <div className="text-xs text-gray-400 mt-1">
+                        {match.competition}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </DialogContent>
     </Dialog>
