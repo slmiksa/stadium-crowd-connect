@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface Member {
   id: string;
   user_id: string;
+  room_id: string;
   joined_at: string;
   is_banned: boolean;
   role: string;
@@ -114,6 +115,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         const ownerMember = {
           id: `owner-${roomOwner}`,
           user_id: roomOwner,
+          room_id: roomId,
           joined_at: new Date().toISOString(),
           is_banned: false,
           role: 'owner',
