@@ -1007,6 +1007,10 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: string
       }
+      is_not_banned: {
+        Args: { user_id_to_check: string }
+        Returns: boolean
+      }
       is_room_owner: {
         Args: { room_id_param: string; user_id_param: string }
         Returns: boolean

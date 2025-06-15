@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
 
 const CreateHashtagPost = () => {
   const { t } = useLanguage();
@@ -18,6 +18,7 @@ const CreateHashtagPost = () => {
   const [profile, setProfile] = useState<any>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -115,7 +116,11 @@ const CreateHashtagPost = () => {
       if (selectedImage) {
         imageUrl = await uploadImage(selectedImage);
         if (!imageUrl) {
-          alert('فشل في رفع الصورة');
+          toast({
+            title: 'خطأ',
+            description: 'فشل في رفع الصورة',
+            variant: 'destructive',
+          });
           setIsSubmitting(false);
           return;
         }
@@ -134,12 +139,24 @@ const CreateHashtagPost = () => {
 
       if (error) {
         console.error('Error creating post:', error);
+        toast({
+            title: 'خطأ في النشر',
+            description: error.message.includes('violates row-level security policy')
+                ? 'لا يمكنك النشر. قد يكون حسابك محظوراً.'
+                : 'فشل في إنشاء المنشور. الرجاء المحاولة مرة أخرى.',
+            variant: 'destructive'
+        });
         return;
       }
 
       navigate('/hashtags');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ غير متوقع.',
+        variant: 'destructive'
+      });
     } finally {
       setIsSubmitting(false);
     }

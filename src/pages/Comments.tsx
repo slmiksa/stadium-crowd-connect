@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,6 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import CommentInput from '@/components/CommentInput';
 import CommentItem from '@/components/CommentItem';
+import { useToast } from '@/hooks/use-toast';
 
 interface Comment {
   id: string;
@@ -53,6 +53,7 @@ const Comments = () => {
     avatar_url?: string;
     verification_status?: string;
   } | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (postId) {
@@ -206,12 +207,12 @@ const Comments = () => {
 
   const handleSubmitComment = async (content: string, mediaFile?: File, mediaType?: string) => {
     if (!user) {
-      alert('يجب تسجيل الدخول أولاً');
+      toast({ title: 'خطأ', description: 'يجب تسجيل الدخول أولاً', variant: 'destructive' });
       return;
     }
 
     if (!content.trim() && !mediaFile) {
-      alert('يرجى كتابة تعليق أو إرفاق وسائط');
+      toast({ title: 'خطأ', description: 'يرجى كتابة تعليق أو إرفاق وسائط', variant: 'destructive' });
       return;
     }
 
@@ -281,9 +282,15 @@ const Comments = () => {
       setReplyTo(null);
       setActiveReplyId(null);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in handleSubmitComment:', error);
-      alert(error.message || 'حدث خطأ أثناء إضافة التعليق');
+      toast({
+        title: 'خطأ في التعليق',
+        description: error.message.includes('violates row-level security policy')
+            ? 'لا يمكنك التعليق. قد يكون حسابك محظوراً.'
+            : error.message || 'فشل في إضافة التعليق. الرجاء المحاولة مرة أخرى.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }

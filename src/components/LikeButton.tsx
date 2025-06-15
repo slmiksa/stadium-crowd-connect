@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface LikeButtonProps {
   postId?: string;
@@ -23,6 +23,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(initialLikesCount);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   // Size configurations
   const sizeConfig = {
@@ -139,73 +140,43 @@ const LikeButton: React.FC<LikeButtonProps> = ({
     setIsLoading(true);
 
     try {
-      if (postId) {
-        if (isLiked) {
-          // Remove like from post
-          const { error } = await supabase
-            .from('hashtag_likes')
-            .delete()
-            .eq('user_id', user.id)
-            .eq('post_id', postId);
+      const table = postId ? 'hashtag_likes' : 'hashtag_comment_likes';
+      const recordKey = postId ? 'post_id' : 'comment_id';
+      const recordId = postId || commentId;
 
-          if (error) {
-            console.error('Error removing like:', error);
-            return;
-          }
-        } else {
-          // Add like to post
-          const { error } = await supabase
-            .from('hashtag_likes')
-            .insert({
-              user_id: user.id,
-              post_id: postId
-            });
+      let error;
 
-          if (error) {
-            console.error('Error adding like:', error);
-            return;
-          }
-        }
-      } else if (commentId) {
-        console.log('Processing comment like for comment:', commentId, 'user:', user.id);
-        
-        if (isLiked) {
-          // Remove like from comment
-          const { error } = await supabase
-            .from('hashtag_comment_likes')
-            .delete()
-            .eq('user_id', user.id)
-            .eq('comment_id', commentId);
-
-          if (error) {
-            console.error('Error removing comment like:', error);
-            return;
-          }
-          console.log('Successfully removed comment like');
-        } else {
-          // Add like to comment
-          const { error } = await supabase
-            .from('hashtag_comment_likes')
-            .insert({
-              user_id: user.id,
-              comment_id: commentId
-            });
-
-          if (error) {
-            console.error('Error adding comment like:', error);
-            return;
-          }
-          console.log('Successfully added comment like');
-        }
+      if (isLiked) {
+        const { error: deleteError } = await supabase
+          .from(table)
+          .delete()
+          .eq('user_id', user.id)
+          .eq(recordKey, recordId);
+        error = deleteError;
+      } else {
+        const { error: insertError } = await supabase
+          .from(table)
+          .insert({ user_id: user.id, [recordKey]: recordId });
+        error = insertError;
       }
 
-      // Refresh data and notify parent
+      if (error) {
+        throw error;
+      }
+
       await fetchLikeData();
       if (onLikeChange) {
         onLikeChange();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in handleLike:', error);
+      toast({
+        title: 'خطأ',
+        description: error.message.includes('violates row-level security policy')
+            ? 'لا يمكنك الإعجاب. قد يكون حسابك محظوراً.'
+            : 'حدث خطأ ما.',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }

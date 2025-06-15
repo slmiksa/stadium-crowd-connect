@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, MoreVertical, Share2 } from 'lucide-react';
@@ -97,7 +96,9 @@ const HashtagPost: React.FC<HashtagPostProps> = ({ post, showComments = true, on
       console.error('Error deleting post:', error);
       toast({
         title: 'خطأ',
-        description: 'حدث خطأ أثناء حذف المنشور',
+        description: error.message.includes('violates row-level security policy')
+            ? 'لا يمكنك حذف المنشور. قد يكون حسابك محظوراً.'
+            : 'حدث خطأ أثناء حذف المنشور',
         variant: 'destructive',
       });
     } finally {

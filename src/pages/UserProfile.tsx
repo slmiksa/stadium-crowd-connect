@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface UserProfileData {
   id: string;
@@ -38,6 +39,7 @@ const UserProfile = () => {
   const { userId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Redirect to /profile if user is viewing their own profile OR if no userId
   useEffect(() => {
@@ -204,7 +206,7 @@ const UserProfile = () => {
 
         if (error) {
           console.error('Error unfollowing:', error);
-          return;
+          throw error;
         }
 
         setIsFollowing(false);
@@ -220,7 +222,7 @@ const UserProfile = () => {
 
         if (error) {
           console.error('Error following:', error);
-          return;
+          throw error;
         }
 
         setIsFollowing(true);
@@ -229,8 +231,15 @@ const UserProfile = () => {
 
       // Refresh counts after follow/unfollow
       await fetchRealCounts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in handleFollow:', error);
+      toast({
+        title: 'خطأ',
+        description: error.message.includes('violates row-level security policy')
+            ? 'لا يمكنك المتابعة أو إلغاء المتابعة. قد يكون حسابك محظوراً.'
+            : 'حدث خطأ ما. الرجاء المحاولة مرة أخرى.',
+        variant: 'destructive',
+      });
     } finally {
       setIsFollowLoading(false);
     }
