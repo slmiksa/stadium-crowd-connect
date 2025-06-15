@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -107,7 +108,7 @@ const CreateHashtagPost = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !content.trim()) return;
+    if (!user || !content.trim() || profile?.is_banned) return;
 
     setIsSubmitting(true);
     try {
@@ -197,7 +198,7 @@ const CreateHashtagPost = () => {
           </div>
           <button
             onClick={handleSubmit}
-            disabled={!content.trim() || isSubmitting}
+            disabled={!content.trim() || isSubmitting || profile?.is_banned}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'جاري النشر...' : 'نشر'}
@@ -224,9 +225,10 @@ const CreateHashtagPost = () => {
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="ماذا يحدث؟ استخدم # لإضافة هاشتاقات"
+              placeholder={profile?.is_banned ? 'حسابك محظور. لا يمكنك النشر.' : "ماذا يحدث؟ استخدم # لإضافة هاشتاقات"}
               className="w-full bg-transparent border-0 text-white placeholder-zinc-400 resize-none text-lg focus:outline-none min-h-32"
               maxLength={500}
+              disabled={profile?.is_banned}
             />
 
             {/* Live Preview */}
@@ -265,10 +267,11 @@ const CreateHashtagPost = () => {
                   onChange={handleImageSelect}
                   className="hidden"
                   id="image-upload"
+                  disabled={profile?.is_banned}
                 />
                 <label
                   htmlFor="image-upload"
-                  className="p-2 text-zinc-400 hover:text-blue-400 transition-colors cursor-pointer"
+                  className={`p-2 text-zinc-400 transition-colors ${profile?.is_banned ? 'cursor-not-allowed opacity-50' : 'hover:text-blue-400 cursor-pointer'}`}
                 >
                   <Image size={20} />
                 </label>
@@ -276,6 +279,7 @@ const CreateHashtagPost = () => {
                   type="button"
                   onClick={insertHashtag}
                   className="p-2 text-zinc-400 hover:text-blue-400 transition-colors"
+                  disabled={profile?.is_banned}
                 >
                   <Hash size={20} />
                 </button>

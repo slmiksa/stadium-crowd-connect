@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -75,7 +76,8 @@ const Hashtags = () => {
           hashtag_likes (
             user_id
           )
-        `).order('created_at', {
+        `).not('hashtags', 'eq', '{}')
+        .order('created_at', {
         ascending: false
       }).limit(20);
       if (postsError) {
