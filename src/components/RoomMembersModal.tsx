@@ -298,8 +298,9 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
   if (!isOpen) return null;
 
-  const activemembers = members.filter(member => !member.is_banned);
-  const bannedMembers = members.filter(member => member.is_banned);
+  // استخدم التحقق بعدم وجود الحظر بشكل صريح (بحيث لو القيمة false أو undefined أو null فهو عضو نشط)
+  const activemembers = members.filter(member => member.is_banned !== true);
+  const bannedMembers = members.filter(member => member.is_banned === true);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
