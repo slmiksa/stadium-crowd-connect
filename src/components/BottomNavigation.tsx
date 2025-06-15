@@ -128,24 +128,13 @@ const BottomNavigation = () => {
         bg-zinc-900/95
         backdrop-blur-md
         border-t border-zinc-800
-        flex items-center justify-center
-        h-14
       "
       style={{
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        paddingTop: 0,
-        margin: 0,
-        height: 'auto',
-        boxSizing: 'border-box'
+        paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
       <div
-        className="flex justify-around items-center w-full max-w-lg px-1 h-full"
-        style={{
-          margin: 0,
-          padding: 0,
-          height: '100%',
-        }}
+        className="flex justify-around items-center w-full max-w-lg mx-auto px-1 h-14"
       >
         {tabs.map((tab) => {
           const Icon = tab.icon;
