@@ -940,6 +940,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_post: {
+        Args: { post_id_to_delete: string }
+        Returns: undefined
+      }
       can_access_room_members: {
         Args: { room_id_param: string; user_id_param: string }
         Returns: boolean

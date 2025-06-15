@@ -146,12 +146,11 @@ const ReportsManagement = () => {
     }
   };
 
-  const deleteReportedPost = async (postId: string, reportId: string) => {
+  const deleteReportedPost = async (postId: string) => {
     try {
-      const { error } = await supabase
-        .from('hashtag_posts')
-        .delete()
-        .eq('id', postId);
+      const { error } = await supabase.rpc('admin_delete_post', { 
+        post_id_to_delete: postId 
+      });
 
       if (error) {
         console.error('Error deleting post:', error);
@@ -163,22 +162,21 @@ const ReportsManagement = () => {
         return;
       }
 
-      // Remove the deleted post from the local state so the UI updates
-      setPostDetails(prevDetails => {
-        const newDetails = { ...prevDetails };
-        delete newDetails[postId];
-        return newDetails;
-      });
-
-      // Update report status to resolved, without showing the generic toast
-      await updateReportStatus(reportId, 'resolved', 'تم حذف المنشور المبلغ عنه', false);
-      
       toast({
         title: 'تمت المعالجة بنجاح',
-        description: 'تم حذف المنشور وتحديث البلاغ.',
+        description: 'تم حذف المنشور وتحديث البلاغات المرتبطة به.',
       });
+
+      // Refetch reports to update the UI
+      fetchReports();
+      
     } catch (error) {
       console.error('Error:', error);
+      toast({
+        title: 'خطأ غير متوقع',
+        description: 'حدث خطأ غير متوقع أثناء حذف المنشور.',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -354,7 +352,7 @@ const ReportsManagement = () => {
                           size="sm"
                           variant="destructive"
                           className="bg-red-600 hover:bg-red-700 text-xs"
-                          onClick={() => deleteReportedPost(report.reported_post_id!, report.id)}
+                          onClick={() => deleteReportedPost(report.reported_post_id!)}
                         >
                           <Trash2 className="h-3 w-3 mr-1" />
                           حذف المنشور
