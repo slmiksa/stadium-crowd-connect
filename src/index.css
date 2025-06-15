@@ -1,8 +1,10 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  /* ... keep existing code (root variables) */
   :root {
     --background: 9 9 11;
     --foreground: 250 250 250;
@@ -55,6 +57,7 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* ... keep existing code (html, body, #root setup) */
   html, body, #root {
     width: 100%;
     height: 100%;
@@ -74,7 +77,7 @@
     /* منع التكبير بالضغط المزدوج */
     touch-action: manipulation;
     /* خلفية موحدة مع لون الفوتر في المنطقة الآمنة */
-    background: #09212c;
+    background: #062331;
     background-attachment: fixed;
   }
 
@@ -106,6 +109,7 @@
     );
   }
 
+  /* ... keep existing code (fonts, inputs, scrollbar, transitions) */
   /* Arabic Font Support */
   html[lang="ar"] {
     font-family: 'Noto Sans Arabic', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -143,6 +147,7 @@
   }
 }
 
+/* ... keep existing code (full screen, safe area, RTL, animations) */
 /* Enhanced full screen support */
 .min-h-screen {
   min-height: 100vh;
@@ -283,6 +288,7 @@
   animation: pulse 2s infinite;
 }
 
+/* ... keep existing code (Android, Modals, etc.) */
 /* Android keyboard handling */
 @media screen and (max-height: 500px) and (orientation: landscape) {
   .mobile-input-container {
@@ -326,7 +332,7 @@
 /* تحسين الفوتر مع المساحة الآمنة */
 .bottom-navigation-safe {
   padding-bottom: env(safe-area-inset-bottom);
-  background: #09212c;
+  background: #062331;
   backdrop-filter: blur(12px);
 }
 

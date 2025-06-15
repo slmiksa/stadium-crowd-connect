@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -103,10 +102,9 @@ const BottomNavigation = () => {
 
   return (
     <nav 
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      className="fixed bottom-0 left-0 right-0 z-[100] backdrop-blur-md border-t border-zinc-800/30 bg-[#062331]"
+      className="fixed bottom-0 left-0 right-0 z-[100] backdrop-blur-md border-t border-zinc-800/30 bg-[#062331]/90"
     >
-      <div className="flex justify-around items-center w-full max-w-lg mx-auto h-12 bg-transparent px-2">
+      <div className="flex justify-around items-center w-full max-w-lg mx-auto h-12 bg-transparent px-2 pb-safe">
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = location.pathname === tab.path;
