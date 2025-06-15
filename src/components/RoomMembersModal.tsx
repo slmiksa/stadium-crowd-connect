@@ -96,7 +96,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
           .single();
 
         if (!ownerError && ownerProfile) {
-          // Add owner as first member
+          // Add owner as first member with proper type structure
           const ownerMember: Member = {
             id: `owner-${ownerId}`,
             user_id: ownerId,
