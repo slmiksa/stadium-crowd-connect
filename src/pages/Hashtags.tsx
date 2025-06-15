@@ -75,9 +75,9 @@ const Hashtags = () => {
           hashtag_likes (
             user_id
           )
-        `).order('likes_count', {
+        `).order('created_at', {
         ascending: false
-      }).limit(10);
+      }).limit(20);
       if (postsError) {
         console.error('Error fetching popular posts:', postsError);
         return;
