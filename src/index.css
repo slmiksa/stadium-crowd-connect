@@ -100,8 +100,8 @@
     /* خلفية المحتوى الرئيسي مع التدرج المحدث للفوتر الأصغر */
     background: linear-gradient(to bottom, 
       rgb(9 9 11) 0%, 
-      rgb(9 9 11) calc(100% - 64px), 
-      transparent calc(100% - 64px), 
+      rgb(9 9 11) calc(100% - 48px), 
+      transparent calc(100% - 48px), 
       transparent 100%
     );
   }
