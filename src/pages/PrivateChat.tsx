@@ -353,7 +353,7 @@ const PrivateChat = () => {
       </div>
 
       {/* Messages - with padding for fixed header and input */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 pt-20 pb-20">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 pt-20 pb-[104px] pb-safe">
         {messages.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-zinc-400">لا توجد رسائل بعد</p>
@@ -521,8 +521,8 @@ const PrivateChat = () => {
         </div>
       )}
 
-      {/* Fixed Message Input */}
-      <div className="bg-zinc-800 border-t border-zinc-700 p-4 flex-shrink-0 fixed bottom-0 left-0 right-0 z-50">
+      {/* Fixed Message Input - WITH safe area + slight shadow */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-800 border-t border-zinc-700 p-4 pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
         <MediaInput
           onSendMessage={sendMessage}
           isSending={isSending}
