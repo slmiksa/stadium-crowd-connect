@@ -4,17 +4,14 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { MessageSquare, Hash, Users, Bell, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+
 const BottomNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const {
-    t,
-    isRTL
-  } = useLanguage();
-  const {
-    user
-  } = useAuth();
+  const { t, isRTL } = useLanguage();
+  const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+
   const tabs = [{
     id: 'matches',
     path: '/matches',
@@ -41,6 +38,7 @@ const BottomNavigation = () => {
     icon: User,
     label: t('profile')
   }];
+
   const fetchUnreadCount = async () => {
     if (!user) return;
     try {
@@ -65,6 +63,7 @@ const BottomNavigation = () => {
       console.error('Error:', error);
     }
   };
+
   useEffect(() => {
     if (user) {
       fetchUnreadCount();
@@ -94,29 +93,44 @@ const BottomNavigation = () => {
       };
     }
   }, [user]);
-  return <nav style={{
-    paddingBottom: 'env(safe-area-inset-bottom)'
-  }} className="fixed bottom-0 left-0 right-0 z-[100] backdrop-blur-md border-t border-zinc-800 bg-[#09212c]/95 px-0 py-0 my-0 mx-0">
-      <div className="flex justify-around items-center w-full max-w-lg mx-auto px-1 h-14 bg-transparent">
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-[100] backdrop-blur-md border-t border-zinc-800 bg-[#09212c]/95">
+      <div className="flex justify-around items-center w-full max-w-lg mx-auto h-16 bg-transparent">
         {tabs.map(tab => {
-        const Icon = tab.icon;
-        const isActive = location.pathname === tab.path;
-        const isMessagesTab = tab.id === 'messages';
-        return <button key={tab.id} onClick={() => navigate(tab.path)} className={`relative flex flex-col items-center justify-center h-full px-3 rounded-lg transition-colors ${isActive ? 'text-blue-400 bg-blue-950/50' : 'text-zinc-400 hover:text-zinc-300'}`}>
+          const Icon = tab.icon;
+          const isActive = location.pathname === tab.path;
+          const isMessagesTab = tab.id === 'messages';
+          
+          return (
+            <button
+              key={tab.id}
+              onClick={() => navigate(tab.path)}
+              className={`relative flex flex-col items-center justify-center h-full px-3 rounded-lg transition-colors ${
+                isActive 
+                  ? 'text-blue-400 bg-blue-950/50' 
+                  : 'text-zinc-400 hover:text-zinc-300'
+              }`}
+            >
               <div className="relative">
                 <Icon size={20} />
-                {isMessagesTab && unreadCount > 0 && <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                {isMessagesTab && unreadCount > 0 && (
+                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
                     <span className="text-xs text-white font-bold">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
-                  </div>}
+                  </div>
+                )}
               </div>
               <span className="text-xs mt-1 font-medium text-slate-50">
                 {tab.label}
               </span>
-            </button>;
-      })}
+            </button>
+          );
+        })}
       </div>
-    </nav>;
+    </nav>
+  );
 };
+
 export default BottomNavigation;

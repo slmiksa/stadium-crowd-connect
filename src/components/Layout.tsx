@@ -13,12 +13,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const hiddenFooterPaths = ['/chat-room/', '/private-chat/'];
   const shouldHideFooter = hiddenFooterPaths.some(path => location.pathname.includes(path));
 
-  // ارتفاع الفوتر (h-14 == 56px) + الحافة الآمنة فقط
+  // ارتفاع الفوتر (h-16 == 64px) للمحتوى الرئيسي
   const mainStyle: React.CSSProperties = {
     paddingTop: 'env(safe-area-inset-top)',
-    paddingBottom: shouldHideFooter
-      ? 'env(safe-area-inset-bottom)' // إذا أخفي الفوتر، فقط احترم الحافة السفلية
-      : 'calc(56px + env(safe-area-inset-bottom))', // مساحة الفوتر تمامًا + الحواف
+    paddingBottom: shouldHideFooter ? '0' : '64px', // ارتفاع الفوتر بالضبط
+    minHeight: '100vh',
+    minHeight: '100dvh'
   };
 
   return (
