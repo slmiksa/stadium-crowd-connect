@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -122,13 +123,13 @@ const BottomNavigation = () => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur-md border-t border-zinc-800 z-[60]"
+      className="fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur-md border-t border-zinc-800 pb-safe z-[60]"
       style={{
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        height: '64px',
+        // تمت إزالة height لضبط الالتصاق بأسفل الشاشة تمامًا
       }}
     >
-      <div className="flex justify-around items-center h-full px-4">
+      <div className="flex justify-around items-center px-4 py-3">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = location.pathname === tab.path;
@@ -166,3 +167,4 @@ const BottomNavigation = () => {
 };
 
 export default BottomNavigation;
+
