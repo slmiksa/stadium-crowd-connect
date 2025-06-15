@@ -72,7 +72,7 @@ const ChatRoom = () => {
   useEffect(() => {
     if (roomId && user) {
       fetchRoomInfo();
-      checkMembership();
+      checkAndEnsureMembership();
       fetchMessages();
       fetchUserRoles();
       fetchCurrentUserProfile();
@@ -128,6 +128,8 @@ const ChatRoom = () => {
   };
 
   const fetchUserRoles = async () => {
+    if (!roomId) return;
+    
     try {
       const { data, error } = await supabase
         .from('room_members')
@@ -159,6 +161,8 @@ const ChatRoom = () => {
   };
 
   const fetchRoomInfo = async () => {
+    if (!roomId) return;
+    
     try {
       const { data: roomData, error: roomError } = await supabase
         .from('chat_rooms')
@@ -191,23 +195,72 @@ const ChatRoom = () => {
     }
   };
 
-  const checkMembership = async () => {
+  const checkAndEnsureMembership = async () => {
+    if (!roomId || !user) return;
+    
     try {
-      const { data, error } = await supabase
+      console.log('Checking membership for user:', user.id, 'in room:', roomId);
+      
+      // التحقق من العضوية أولاً
+      const { data: membershipData, error: membershipError } = await supabase
         .from('room_members')
         .select('id, is_banned')
         .eq('room_id', roomId)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .single();
 
-      if (data) {
+      if (membershipError && membershipError.code !== 'PGRST116') {
+        console.error('Error checking membership:', membershipError);
+        setIsLoading(false);
+        return;
+      }
+
+      if (membershipData) {
+        // المستخدم عضو بالفعل
         setIsMember(true);
-        setIsBanned(data.is_banned || false);
+        setIsBanned(membershipData.is_banned || false);
+        console.log('User is already a member, banned status:', membershipData.is_banned);
       } else {
-        setIsMember(false);
-        setIsBanned(false);
+        // التحقق إذا كان المستخدم مالك الغرفة
+        const { data: roomData, error: roomError } = await supabase
+          .from('chat_rooms')
+          .select('owner_id')
+          .eq('id', roomId)
+          .single();
+
+        if (roomError) {
+          console.error('Error fetching room owner:', roomError);
+          setIsLoading(false);
+          return;
+        }
+
+        if (roomData.owner_id === user.id) {
+          // المستخدم هو مالك الغرفة، يجب إضافته كعضو
+          console.log('User is room owner, adding as member automatically');
+          
+          const { error: insertError } = await supabase
+            .from('room_members')
+            .insert({
+              room_id: roomId,
+              user_id: user.id,
+              role: 'member' // سيتم ترقيته في خطوة منفصلة إذا لزم الأمر
+            });
+
+          if (insertError) {
+            console.error('Error adding owner as member:', insertError);
+          } else {
+            setIsMember(true);
+            setIsBanned(false);
+            console.log('Room owner added as member successfully');
+          }
+        } else {
+          // المستخدم ليس عضواً وليس مالكاً
+          setIsMember(false);
+          setIsBanned(false);
+        }
       }
     } catch (error) {
+      console.error('Error in checkAndEnsureMembership:', error);
       setIsMember(false);
       setIsBanned(false);
     } finally {
@@ -216,7 +269,11 @@ const ChatRoom = () => {
   };
 
   const fetchMessages = async () => {
+    if (!roomId) return;
+    
     try {
+      console.log('Fetching messages for room:', roomId);
+      
       const { data, error } = await supabase
         .from('room_messages')
         .select(`
@@ -237,6 +294,7 @@ const ChatRoom = () => {
         return;
       }
 
+      console.log('Messages fetched successfully:', data?.length || 0, 'messages');
       setMessages(data?.reverse() || []);
     } catch (error) {
       console.error('Error:', error);
@@ -244,6 +302,8 @@ const ChatRoom = () => {
   };
 
   const setupRealtimeSubscription = () => {
+    if (!roomId) return;
+    
     const channel = supabase
       .channel('room-messages')
       .on(
@@ -267,12 +327,14 @@ const ChatRoom = () => {
   };
 
   const joinRoom = async () => {
+    if (!roomId || !user) return;
+    
     try {
       const { error } = await supabase
         .from('room_members')
         .insert({
           room_id: roomId,
-          user_id: user?.id
+          user_id: user.id
         });
 
       if (error) {
@@ -282,6 +344,7 @@ const ChatRoom = () => {
 
       setIsMember(true);
       fetchRoomInfo();
+      fetchMessages(); // جلب الرسائل بعد الانضمام
     } catch (error) {
       console.error('Error:', error);
     }
@@ -666,6 +729,28 @@ const ChatRoom = () => {
     );
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!isMember && !isLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center p-4">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-4">انضم للغرفة</h2>
+          <p className="text-zinc-400 mb-6">يجب عليك الانضمام للغرفة لعرض الرسائل والمشاركة</p>
+          <Button onClick={joinRoom} className="bg-blue-500 hover:bg-blue-600">
+            انضمام للغرفة
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-900 flex flex-col pt-safe pb-safe">
       {/* Fixed Header */}
@@ -748,7 +833,14 @@ const ChatRoom = () => {
           }px + env(safe-area-inset-top, 0px))`,
         }}
       >
-        {messages.map(renderMessage)}
+        {messages.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-zinc-400">لا توجد رسائل في هذه الغرفة بعد</p>
+            <p className="text-zinc-500 text-sm mt-2">كن أول من يبدأ المحادثة!</p>
+          </div>
+        ) : (
+          messages.map(renderMessage)
+        )}
         <div ref={messagesEndRef} />
       </div>
 

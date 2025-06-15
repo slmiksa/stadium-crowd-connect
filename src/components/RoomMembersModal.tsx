@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Crown, UserX, Ban, Shield, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -84,6 +85,9 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   const fetchMembers = async () => {
     setIsLoading(true);
     try {
+      console.log('Fetching members for room:', roomId);
+      
+      // جلب أعضاء الغرفة مع معلومات البروفايل
       const { data, error } = await supabase
         .from('room_members')
         .select(`
@@ -95,14 +99,57 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
       if (error) {
         console.error('Error fetching members:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في جلب قائمة الأعضاء",
+          variant: "destructive"
+        });
         return;
       }
 
+      console.log('Members fetched successfully:', data?.length || 0, 'members');
       setMembers(data || []);
+      
+      // إذا لم توجد أعضاء، تحقق من وجود مالك الغرفة وأضفه
+      if ((!data || data.length === 0) && roomOwner) {
+        console.log('No members found, checking if room owner needs to be added');
+        await ensureRoomOwnerIsMember();
+      }
     } catch (error) {
       console.error('Error:', error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء جلب قائمة الأعضاء",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const ensureRoomOwnerIsMember = async () => {
+    if (!roomOwner) return;
+    
+    try {
+      console.log('Adding room owner as member:', roomOwner);
+      
+      const { error } = await supabase
+        .from('room_members')
+        .insert({
+          room_id: roomId,
+          user_id: roomOwner,
+          role: 'member'
+        });
+
+      if (error && error.code !== '23505') { // تجاهل خطأ الازدواجية
+        console.error('Error adding room owner as member:', error);
+      } else {
+        console.log('Room owner added as member successfully');
+        // إعادة جلب الأعضاء
+        fetchMembers();
+      }
+    } catch (error) {
+      console.error('Error in ensureRoomOwnerIsMember:', error);
     }
   };
 
@@ -322,7 +369,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
             <div className="space-y-4">
               {/* Active Members */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-zinc-400">الأعضاء النشطون</h3>
+                <h3 className="text-sm font-semibold text-zinc-400">الأعضاء النشطون ({activemembers.length})</h3>
                 {activemembers.map((member) => (
                   <div key={member.id} className="flex items-center justify-between">
                     <div 
@@ -398,7 +445,8 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
                 
                 {activemembers.length === 0 && (
                   <div className="text-center text-zinc-500 py-4">
-                    لا يوجد أعضاء نشطون في الغرفة
+                    <p>لا يوجد أعضاء نشطون في الغرفة</p>
+                    <p className="text-xs mt-2">سيتم إضافة مالك الغرفة تلقائياً</p>
                   </div>
                 )}
               </div>
@@ -406,7 +454,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
               {/* Banned Members - Only show if there are any and user has permission */}
               {bannedMembers.length > 0 && (isOwner || isCurrentUserModerator()) && (
                 <div className="space-y-3 pt-4 border-t border-zinc-700">
-                  <h3 className="text-sm font-semibold text-zinc-400">الأعضاء المحظورون</h3>
+                  <h3 className="text-sm font-semibold text-zinc-400">الأعضاء المحظورون ({bannedMembers.length})</h3>
                   {bannedMembers.map((member) => (
                     <div key={member.id} className="flex items-center justify-between">
                       <div 
