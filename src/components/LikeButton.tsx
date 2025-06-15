@@ -140,24 +140,40 @@ const LikeButton: React.FC<LikeButtonProps> = ({
     setIsLoading(true);
 
     try {
-      const table = postId ? 'hashtag_likes' : 'hashtag_comment_likes';
-      const recordKey = postId ? 'post_id' : 'comment_id';
-      const recordId = postId || commentId;
-
       let error;
 
-      if (isLiked) {
-        const { error: deleteError } = await supabase
-          .from(table)
-          .delete()
-          .eq('user_id', user.id)
-          .eq(recordKey, recordId);
-        error = deleteError;
-      } else {
-        const { error: insertError } = await supabase
-          .from(table)
-          .insert({ user_id: user.id, [recordKey]: recordId });
-        error = insertError;
+      if (postId) {
+        if (isLiked) {
+          // Unlike a post
+          const { error: deleteError } = await supabase
+            .from('hashtag_likes')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('post_id', postId);
+          error = deleteError;
+        } else {
+          // Like a post
+          const { error: insertError } = await supabase
+            .from('hashtag_likes')
+            .insert({ user_id: user.id, post_id: postId });
+          error = insertError;
+        }
+      } else if (commentId) {
+        if (isLiked) {
+          // Unlike a comment
+          const { error: deleteError } = await supabase
+            .from('hashtag_comment_likes')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('comment_id', commentId);
+          error = deleteError;
+        } else {
+          // Like a comment
+          const { error: insertError } = await supabase
+            .from('hashtag_comment_likes')
+            .insert({ user_id: user.id, comment_id: commentId });
+          error = insertError;
+        }
       }
 
       if (error) {
