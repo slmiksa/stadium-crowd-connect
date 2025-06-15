@@ -8,8 +8,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { Apple, Bot, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,12 +26,19 @@ const Login = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isInstructionDialogOpen, setIsInstructionDialogOpen] = useState(false);
+  const [platform, setPlatform] = useState<'ios' | 'android' | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
     username: ''
   });
+
+  const handleInstallGuideClick = (selectedPlatform: 'ios' | 'android') => {
+    setPlatform(selectedPlatform);
+    setIsInstructionDialogOpen(true);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -167,6 +183,33 @@ const Login = () => {
               <span className="bg-zinc-900 px-2 text-zinc-400">
                 {isRTL ? 'أو' : 'Or'}
               </span>
+            </div>
+          </div>
+
+          {/* Install App Buttons */}
+          <div className="mb-6 text-center">
+            <p className="text-zinc-400 text-sm mb-4">
+                {isRTL ? 'لأفضل تجربة، قم بتثبيت التطبيق على جهازك' : 'For the best experience, install the app on your device'}
+            </p>
+            <div className="flex justify-center gap-4">
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleInstallGuideClick('android')}
+                >
+                    <Bot className={isRTL ? "ml-2 h-5 w-5" : "mr-2 h-5 w-5"} />
+                    Android
+                </Button>
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleInstallGuideClick('ios')}
+                >
+                    <Apple className={isRTL ? "ml-2 h-5 w-5" : "mr-2 h-5 w-5"} />
+                    iOS
+                </Button>
             </div>
           </div>
 
@@ -324,6 +367,43 @@ const Login = () => {
           </Tabs>
         </div>
       </div>
+      <AlertDialog open={isInstructionDialogOpen} onOpenChange={setIsInstructionDialogOpen}>
+        <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'}>
+            <AlertDialogHeader>
+                <AlertDialogTitle>
+                    {platform === 'android'
+                        ? (isRTL ? 'تثبيت التطبيق على أندرويد' : 'Install App on Android')
+                        : (isRTL ? 'تثبيت التطبيق على iOS' : 'Install App on iOS')}
+                </AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  {platform === 'android' ? (
+                      <div className={`space-y-3 pt-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          <p>{isRTL ? 'لإضافة التطبيق إلى شاشتك الرئيسية، اتبع الخطوات التالية:' : 'To add the app to your home screen, follow these steps:'}</p>
+                          <ol className="list-decimal list-inside space-y-2">
+                              <li>{isRTL ? 'افتح المتصفح (Chrome).' : 'Open your browser (Chrome).'}</li>
+                              <li>{isRTL ? 'اضغط على قائمة الخيارات (الثلاث نقاط).' : 'Tap the menu button (three dots).'}</li>
+                              <li>{isRTL ? "اختر 'تثبيت التطبيق' أو 'إضافة إلى الشاشة الرئيسية'." : "Select 'Install app' or 'Add to Home Screen'."}</li>
+                          </ol>
+                      </div>
+                  ) : (
+                      <div className={`space-y-3 pt-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          <p>{isRTL ? 'لإضافة التطبيق إلى شاشتك الرئيسية، اتبع الخطوات التالية:' : 'To add the app to your home screen, follow these steps:'}</p>
+                          <ol className="list-decimal list-inside space-y-2">
+                              <li>{isRTL ? 'افتح المتصفح (Safari).' : 'Open your browser (Safari).'}</li>
+                              <li>{isRTL ? 'اضغط على أيقونة المشاركة (مربع به سهم لأعلى).' : 'Tap the Share icon (the square with an arrow pointing up).'}</li>
+                              <li>{isRTL ? "مرر للأسفل واختر 'إضافة إلى الشاشة الرئيسية'." : "Scroll down and select 'Add to Home Screen'."}</li>
+                          </ol>
+                      </div>
+                  )}
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={() => setIsInstructionDialogOpen(false)}>
+                    {isRTL ? 'فهمت' : 'Got it'}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
