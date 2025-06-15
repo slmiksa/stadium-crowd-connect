@@ -667,9 +667,9 @@ const ChatRoom = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-900 flex flex-col">
+    <div className="min-h-screen bg-zinc-900 flex flex-col pt-safe pb-safe">
       {/* Fixed Header */}
-      <div className="bg-zinc-800 border-b border-zinc-700 p-4 fixed top-0 left-0 right-0 z-50">
+      <div className="bg-zinc-800 border-b border-zinc-700 p-4 fixed top-0 left-0 right-0 z-50 pt-safe">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button 
@@ -715,7 +715,7 @@ const ChatRoom = () => {
       </div>
 
       {/* Fixed Content Area - الإعلانات والمباريات */}
-      <div className="fixed top-20 left-0 right-0 z-40 bg-zinc-900">
+      <div className="fixed left-0 right-0 z-40 bg-zinc-900" style={{ top: 'calc(80px + env(safe-area-inset-top, 0px))' }}>
         {/* Announcement */}
         {roomInfo?.announcement && (
           <div className="px-4">
@@ -741,11 +741,11 @@ const ChatRoom = () => {
       <div 
         className="flex-1 overflow-y-auto p-4 space-y-4 pb-24"
         style={{
-          marginTop: `${
+          marginTop: `calc(${
             80 + // header height
             (roomInfo?.announcement ? 60 : 0) + // announcement height if exists
             60 // live match widget space (always reserve space)
-          }px`
+          }px + env(safe-area-inset-top, 0px))`,
         }}
       >
         {messages.map(renderMessage)}
@@ -753,7 +753,7 @@ const ChatRoom = () => {
       </div>
 
       {/* Fixed Input Area at Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 p-4 z-40">
+      <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 p-4 pb-safe z-40">
         <MediaInput 
           onSendMessage={sendMessage} 
           isSending={isSending}
