@@ -20,6 +20,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import RevenueDetailsModal from './RevenueDetailsModal';
+import AdRequestDetailsModal from './AdRequestDetailsModal';
 
 interface AdRequest {
   id: string;
@@ -54,6 +55,8 @@ const AdRequestsManagement = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [showRevenueDetails, setShowRevenueDetails] = useState(false);
+  const [showRequestDetails, setShowRequestDetails] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<AdRequest | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -150,6 +153,11 @@ const AdRequestsManagement = () => {
         variant: 'destructive'
       });
     }
+  };
+
+  const handleRowClick = (request: AdRequest) => {
+    setSelectedRequest(request);
+    setShowRequestDetails(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -339,7 +347,11 @@ const AdRequestsManagement = () => {
                     </TableHeader>
                     <TableBody>
                       {filteredRequests.map((request) => (
-                        <TableRow key={request.id} className="border-zinc-700">
+                        <TableRow 
+                          key={request.id} 
+                          className="border-zinc-700 cursor-pointer hover:bg-zinc-800/50 transition-colors"
+                          onClick={() => handleRowClick(request)}
+                        >
                           <TableCell className="text-white font-medium">
                             <div className="flex items-center space-x-3 space-x-reverse">
                               <img
@@ -376,25 +388,45 @@ const AdRequestsManagement = () => {
                             })}
                           </TableCell>
                           <TableCell>
-                            {request.status === 'pending' && (
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  className="bg-green-600 hover:bg-green-700 text-xs"
-                                  onClick={() => updateRequestStatus(request.id, 'approved')}
-                                >
-                                  قبول
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="text-xs"
-                                  onClick={() => updateRequestStatus(request.id, 'rejected')}
-                                >
-                                  رفض
-                                </Button>
-                              </div>
-                            )}
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-blue-400 hover:text-blue-300 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRowClick(request);
+                                }}
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                عرض
+                              </Button>
+                              {request.status === 'pending' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateRequestStatus(request.id, 'approved');
+                                    }}
+                                  >
+                                    قبول
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateRequestStatus(request.id, 'rejected');
+                                    }}
+                                  >
+                                    رفض
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -413,6 +445,14 @@ const AdRequestsManagement = () => {
         onClose={() => setShowRevenueDetails(false)}
         adRequests={adRequests}
         totalRevenue={stats?.total_revenue || 0}
+      />
+
+      {/* مودال تفاصيل طلب الإعلان */}
+      <AdRequestDetailsModal
+        isOpen={showRequestDetails}
+        onClose={() => setShowRequestDetails(false)}
+        adRequest={selectedRequest}
+        onUpdateStatus={updateRequestStatus}
       />
     </div>
   );
