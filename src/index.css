@@ -74,8 +74,14 @@
     height: 100dvh;
     /* منع التكبير بالضغط المزدوج */
     touch-action: manipulation;
-    /* خلفية المساحة الآمنة بنفس لون الفوتر */
-    background-color: #09212c;
+    /* خلفية موحدة للكامل */
+    background: linear-gradient(to bottom, 
+      rgb(9 9 11) 0%, 
+      rgb(9 9 11) calc(100vh - env(safe-area-inset-bottom)), 
+      #09212c calc(100vh - env(safe-area-inset-bottom)), 
+      #09212c 100%
+    );
+    background-attachment: fixed;
   }
 
   body {
@@ -86,8 +92,8 @@
     overflow: hidden;
     overscroll-behavior: none;
     position: fixed;
-    /* خلفية ثابتة بلون الفوتر */
-    background-color: #09212c !important;
+    /* خلفية شفافة للسماح برؤية خلفية html */
+    background: transparent !important;
   }
 
   #root {
@@ -97,7 +103,13 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     position: relative;
-    background-color: rgb(9 9 11);
+    /* خلفية المحتوى الرئيسي فقط */
+    background: linear-gradient(to bottom, 
+      rgb(9 9 11) 0%, 
+      rgb(9 9 11) calc(100% - 80px), 
+      transparent calc(100% - 80px), 
+      transparent 100%
+    );
   }
 
   /* Arabic Font Support */
@@ -322,6 +334,7 @@
 .bottom-navigation-safe {
   padding-bottom: env(safe-area-inset-bottom);
   background: rgba(9, 33, 44, 0.95);
+  backdrop-filter: blur(12px);
 }
 
 /* منع التفاعل مع العناصر أثناء التحميل */
