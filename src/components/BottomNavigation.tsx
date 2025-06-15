@@ -104,7 +104,7 @@ const BottomNavigation = () => {
     <nav 
       className="fixed bottom-0 left-0 right-0 z-[100] backdrop-blur-md border-t border-zinc-800/30 bg-[#062331]/90"
     >
-      <div className="flex justify-around items-end w-full max-w-lg mx-auto h-12 bg-transparent px-2 pb-safe">
+      <div className="flex justify-around w-full max-w-lg mx-auto h-12 bg-transparent px-2 pb-safe">
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = location.pathname === tab.path;
@@ -114,7 +114,7 @@ const BottomNavigation = () => {
             <button
               key={tab.id}
               onClick={() => navigate(tab.path)}
-              className={`relative flex flex-col items-center justify-center p-2 rounded-lg transition-colors w-1/5 ${
+              className={`relative flex flex-col items-center justify-end h-full w-1/5 px-2 pb-1 rounded-lg transition-colors ${
                 isActive 
                   ? 'text-blue-400' 
                   : 'text-zinc-400 hover:text-zinc-300'
