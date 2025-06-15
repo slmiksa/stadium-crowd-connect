@@ -17,7 +17,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const mainStyle: React.CSSProperties = {
     paddingTop: 'env(safe-area-inset-top)',
     paddingBottom: shouldHideFooter ? '0' : '64px', // ارتفاع الفوتر بالضبط
-    minHeight: '100vh',
     minHeight: '100dvh'
   };
 
