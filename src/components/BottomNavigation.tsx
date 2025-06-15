@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -130,22 +129,15 @@ const BottomNavigation = () => {
         backdrop-blur-md
         border-t border-zinc-800
         flex items-center justify-center
+        h-14
       "
       style={{
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)', // احترام الحواف فقط
-        paddingTop: 0,
-        margin: 0,
-        height: 'auto', // لا تفرض any height
-        boxSizing: 'border-box'
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        boxSizing: 'content-box',
       }}
     >
       <div
-        className="flex justify-around items-center w-full max-w-lg px-1 py-2"
-        style={{
-          margin: 0,
-          paddingBottom: 0,    // لا padding إضافي
-          paddingTop: 0
-        }}
+        className="flex justify-around items-center w-full max-w-lg px-1 h-full"
       >
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -156,15 +148,11 @@ const BottomNavigation = () => {
             <button
               key={tab.id}
               onClick={() => navigate(tab.path)}
-              className={`relative flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
+              className={`relative flex flex-col items-center justify-center h-full px-3 rounded-lg transition-colors ${
                 isActive 
                   ? 'text-blue-400 bg-blue-950/50' 
                   : 'text-zinc-400 hover:text-zinc-300'
               }`}
-              style={{
-                marginBottom: 0, // لا توجد أي margin من الأسفل
-                marginTop: 0
-              }}
             >
               <div className="relative">
                 <Icon size={20} />

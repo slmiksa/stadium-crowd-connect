@@ -15,9 +15,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const hiddenFooterPaths = ['/chat-room/', '/private-chat/'];
   const shouldHideFooter = hiddenFooterPaths.some(path => location.pathname.includes(path));
 
+  const mainStyle: React.CSSProperties = {
+    paddingTop: 'env(safe-area-inset-top)',
+    paddingBottom: shouldHideFooter
+      ? 'env(safe-area-inset-bottom)'
+      : `calc(3.5rem + env(safe-area-inset-bottom))`, // 3.5rem = 56px (h-14)
+  };
+
   return (
     <div className="full-screen-container bg-zinc-900">
-      <main className={`w-full h-full ${shouldHideFooter ? 'pt-safe pb-safe' : 'pt-safe pb-16'} overflow-x-hidden`}>
+      <main className="w-full h-full overflow-x-hidden" style={mainStyle}>
         {children}
       </main>
       <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-50 md:bottom-5 md:left-auto md:right-5 md:translate-x-0">
