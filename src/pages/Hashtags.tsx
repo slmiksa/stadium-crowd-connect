@@ -298,12 +298,12 @@ const Hashtags = () => {
   return <Layout>
       <div className="max-w-6xl mx-auto p-3 md:p-6 pb-20 md:pb-32 overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 md:mb-6 sticky top-0 bg-zinc-950 py-2 z-10">
+        <div className="flex items-center justify-between mb-4 md:mb-6 sticky top-0 z-10 my-[7px] py-[3px] bg-[#1b3340] mx-px px-[22px] rounded-3xl">
           <div className="flex items-center space-x-3 space-x-reverse">
             <Hash size={24} className="text-blue-400" />
             <h1 className="text-xl md:text-2xl font-bold text-white">الهاشتاقات</h1>
           </div>
-          <div className="flex items-center space-x-2 space-x-reverse">
+          <div className="flex items-center space-x-2 space-x-reverse mx-[15px] my-[7px]">
             <Button onClick={handleRefresh} disabled={isRefreshing} className="p-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-slate-50">
               <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
             </Button>
