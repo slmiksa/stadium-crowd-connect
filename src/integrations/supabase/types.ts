@@ -954,6 +954,10 @@ export type Database = {
         Args: { room_id_param: string; user_id_param: string }
         Returns: boolean
       }
+      check_room_membership: {
+        Args: { room_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
       demote_from_moderator: {
         Args: {
           room_id_param: string
@@ -1013,6 +1017,10 @@ export type Database = {
       }
       is_room_owner: {
         Args: { room_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
+      is_room_public: {
+        Args: { room_id_param: string }
         Returns: boolean
       }
       promote_to_moderator: {
