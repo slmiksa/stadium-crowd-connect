@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Clock, Users, RefreshCw, Newspaper, ExternalLink, AlertCircle, Filter, Globe, Trophy, MapPin, Zap, Calendar, Star } from 'lucide-react';
-
 interface Match {
   id: string;
   homeTeam: string;
@@ -25,7 +24,6 @@ interface Match {
   leagueFlag?: string;
   minute?: number;
 }
-
 interface NewsItem {
   id: string;
   title: string;
@@ -38,14 +36,11 @@ interface NewsItem {
   category?: string;
   content?: string;
 }
-
 interface GroupedMatches {
   [competition: string]: Match[];
 }
-
 type CompetitionCategory = 'saudi' | 'european' | 'continental' | 'worldcup' | 'all';
 type MatchStatus = 'live' | 'today' | 'tomorrow' | 'yesterday' | 'news';
-
 const Matches = () => {
   const navigate = useNavigate();
   const {
@@ -88,145 +83,98 @@ const Matches = () => {
   // قائمة محسنة للبطولات المهمة مع التركيز على كأس العالم للأندية
   const isImportantCompetition = (competition: string): boolean => {
     const competitionLower = competition.toLowerCase();
-    
+
     // كأس العالم للأندية - أولوية قصوى مع أسماء شاملة جداً
-    const clubWorldCupNames = [
-      'fifa club world cup', 'club world cup', 'cwc', 'club wc',
-      'copa mundial de clubes', 'coupe du monde des clubs',
-      'mundial de clubes', 'world club cup', 'intercontinental cup',
-      'fifa intercontinental cup', 'intercontinental', 'fifa cwc',
-      'clubs world cup', 'world cup clubs', 'club world',
-      'fifa club', 'world club championship', 'club championship',
-      // أسماء عربية ممكنة
-      'كأس العالم للأندية', 'كاس العالم للاندية', 'كأس العالم للنوادي',
-      // أسماء أخرى محتملة
-      'toyota cup', 'fifa club world championship'
-    ];
-    
+    const clubWorldCupNames = ['fifa club world cup', 'club world cup', 'cwc', 'club wc', 'copa mundial de clubes', 'coupe du monde des clubs', 'mundial de clubes', 'world club cup', 'intercontinental cup', 'fifa intercontinental cup', 'intercontinental', 'fifa cwc', 'clubs world cup', 'world cup clubs', 'club world', 'fifa club', 'world club championship', 'club championship',
+    // أسماء عربية ممكنة
+    'كأس العالم للأندية', 'كاس العالم للاندية', 'كأس العالم للنوادي',
+    // أسماء أخرى محتملة
+    'toyota cup', 'fifa club world championship'];
+
     // فحص كأس العالم للأندية أولاً
     const isClubWorldCup = clubWorldCupNames.some(name => competitionLower.includes(name));
     if (isClubWorldCup) {
       console.log(`🏆 تم العثور على كأس العالم للأندية: ${competition}`);
       return true;
     }
-    
+
     // البطولات السعودية
-    const saudiCompetitions = [
-      'saudi pro league', 'saudi professional league', 'roshn saudi league',
-      'king cup', 'saudi super cup'
-    ];
-    
+    const saudiCompetitions = ['saudi pro league', 'saudi professional league', 'roshn saudi league', 'king cup', 'saudi super cup'];
+
     // الدوريات الأوروبية
-    const europeanLeagues = [
-      'premier league', 'english premier league', 'epl',
-      'la liga', 'laliga', 'spanish la liga',
-      'bundesliga', 'german bundesliga',
-      'serie a', 'italian serie a',
-      'ligue 1', 'french ligue 1'
-    ];
-    
+    const europeanLeagues = ['premier league', 'english premier league', 'epl', 'la liga', 'laliga', 'spanish la liga', 'bundesliga', 'german bundesliga', 'serie a', 'italian serie a', 'ligue 1', 'french ligue 1'];
+
     // الكؤوس الأوروبية
-    const europeanCups = [
-      'fa cup', 'copa del rey', 'dfb pokal', 'dfb-pokal', 
-      'coppa italia', 'coupe de france'
-    ];
-    
+    const europeanCups = ['fa cup', 'copa del rey', 'dfb pokal', 'dfb-pokal', 'coppa italia', 'coupe de france'];
+
     // البطولات القارية المهمة
-    const continentalCompetitions = [
-      'champions league', 'uefa champions league',
-      'europa league', 'uefa europa league',
-      'conference league', 'uefa conference league',
-      'afc champions league', 'afc champions league elite', 'asian champions league',
-      'uefa nations league', 'european championship', 'uefa european championship',
-      'euro 2024', 'uefa euro', 'euro ',
-      'asian cup', 'afc asian cup',
-      'copa america', 'conmebol copa america'
-    ];
+    const continentalCompetitions = ['champions league', 'uefa champions league', 'europa league', 'uefa europa league', 'conference league', 'uefa conference league', 'afc champions league', 'afc champions league elite', 'asian champions league', 'uefa nations league', 'european championship', 'uefa european championship', 'euro 2024', 'uefa euro', 'euro ', 'asian cup', 'afc asian cup', 'copa america', 'conmebol copa america'];
 
     // فحص البطولات المهمة
-    const allImportantCompetitions = [
-      ...clubWorldCupNames,
-      ...saudiCompetitions,
-      ...europeanLeagues,
-      ...europeanCups,
-      ...continentalCompetitions
-    ];
-
+    const allImportantCompetitions = [...clubWorldCupNames, ...saudiCompetitions, ...europeanLeagues, ...europeanCups, ...continentalCompetitions];
     return allImportantCompetitions.some(comp => competitionLower.includes(comp));
   };
 
   // تصنيف البطولات مع إعطاء كأس العالم للأندية أولوية قصوى
   const getCompetitionCategory = (competition: string): CompetitionCategory => {
     const competitionLower = competition.toLowerCase();
-    
+
     // كأس العالم للأندية - أولوية قصوى مع أسماء شاملة
-    const clubWorldCupNames = [
-      'club world cup', 'fifa club world cup', 'intercontinental cup',
-      'mundial de clubes', 'world club cup', 'fifa intercontinental',
-      'intercontinental', 'cwc', 'club wc', 'fifa club'
-    ];
-    
+    const clubWorldCupNames = ['club world cup', 'fifa club world cup', 'intercontinental cup', 'mundial de clubes', 'world club cup', 'fifa intercontinental', 'intercontinental', 'cwc', 'club wc', 'fifa club'];
     if (clubWorldCupNames.some(name => competitionLower.includes(name))) {
       console.log(`🏆 كأس العالم للأندية: ${competition}`);
       return 'worldcup';
     }
-    
+
     // كأس العالم العادي
     if (competitionLower.includes('world cup') && !competitionLower.includes('club')) return 'worldcup';
-    
+
     // البطولات السعودية
     if (competitionLower.includes('saudi')) return 'saudi';
-    
+
     // الدوريات الأوروبية
     const europeanKeywords = ['premier league', 'la liga', 'bundesliga', 'serie a', 'ligue 1', 'fa cup', 'copa del rey', 'dfb pokal', 'coppa italia', 'coupe de france'];
     if (europeanKeywords.some(keyword => competitionLower.includes(keyword))) return 'european';
-    
+
     // البطولات القارية
     const continentalKeywords = ['champions league', 'europa league', 'conference league', 'afc champions', 'asian cup', 'euro', 'copa america', 'nations league'];
     if (continentalKeywords.some(keyword => competitionLower.includes(keyword))) return 'continental';
-
     return 'all';
   };
 
   // ترتيب البطولات حسب الأولوية مع إعطاء كأس العالم للأندية الأولوية المطلقة
   const getCompetitionPriority = (competition: string): number => {
     const competitionLower = competition.toLowerCase();
-    
+
     // كأس العالم للأندية - أولوية مطلقة
-    const clubWorldCupNames = [
-      'club world cup', 'fifa club world cup', 'intercontinental cup',
-      'mundial de clubes', 'world club cup', 'fifa intercontinental',
-      'intercontinental', 'cwc', 'club wc', 'fifa club'
-    ];
-    
+    const clubWorldCupNames = ['club world cup', 'fifa club world cup', 'intercontinental cup', 'mundial de clubes', 'world club cup', 'fifa intercontinental', 'intercontinental', 'cwc', 'club wc', 'fifa club'];
     if (clubWorldCupNames.some(name => competitionLower.includes(name))) {
       console.log(`🏆 أولوية مطلقة لكأس العالم للأندية: ${competition}`);
       return 0; // أعلى أولوية
     }
-    
+
     // كأس العالم العادي
     if (competitionLower.includes('fifa world cup') && !competitionLower.includes('qualification') && !competitionLower.includes('club')) return 2;
-    
+
     // البطولات السعودية
     if (competitionLower.includes('saudi pro league') || competitionLower.includes('roshn saudi league')) return 5;
     if (competitionLower.includes('king cup')) return 6;
-    
+
     // دوري أبطال أوروبا
     if (competitionLower.includes('uefa champions league') || competitionLower.includes('champions league')) return 10;
-    
+
     // الدوريات الأوروبية الكبرى
     if (competitionLower.includes('premier league')) return 15;
     if (competitionLower.includes('la liga')) return 16;
     if (competitionLower.includes('bundesliga')) return 17;
     if (competitionLower.includes('serie a')) return 18;
     if (competitionLower.includes('ligue 1')) return 19;
-    
+
     // دوري أبطال آسيا
     if (competitionLower.includes('afc champions league')) return 25;
-    
+
     // تصفيات كأس العالم
     if (competitionLower.includes('world cup qualification')) return 40;
-    
     return 999;
   };
 
@@ -234,7 +182,7 @@ const Matches = () => {
   const filterMatchesByCategory = (matches: Match[]): Match[] => {
     console.log('=== FILTER MATCHES START ===');
     console.log('Total matches before filtering:', matches.length);
-    
+
     // تصفية البطولات المهمة أولاً
     const importantMatches = matches.filter(match => {
       const isImportant = isImportantCompetition(match.competition);
@@ -243,19 +191,15 @@ const Matches = () => {
       }
       return isImportant;
     });
-    
     console.log('Important matches:', importantMatches.length);
-
     if (selectedCategory === 'all') {
       console.log('Returning all important matches');
       return importantMatches;
     }
-    
     const categoryFiltered = importantMatches.filter(match => {
       const category = getCompetitionCategory(match.competition);
       return category === selectedCategory;
     });
-    
     console.log('Category filtered matches:', categoryFiltered.length);
     return categoryFiltered;
   };
@@ -265,9 +209,7 @@ const Matches = () => {
     console.log('=== GROUP MATCHES START ===');
     const filteredMatches = filterMatchesByCategory(matches);
     console.log('Filtered matches count:', filteredMatches.length);
-    
     const grouped: GroupedMatches = {};
-    
     filteredMatches.forEach(match => {
       if (!grouped[match.competition]) {
         grouped[match.competition] = [];
@@ -285,15 +227,12 @@ const Matches = () => {
         }
       });
     });
-    
     console.log('Grouped competitions:', Object.keys(grouped));
     return grouped;
   };
-
   useEffect(() => {
     fetchInitialData();
   }, []);
-
   const fetchInitialData = async () => {
     try {
       setIsLoading(true);
@@ -302,7 +241,6 @@ const Matches = () => {
       // جلب المباريات المباشرة أولاً
       const livePromise = fetchMatchData('live');
       const newsPromise = fetchNewsData();
-
       await Promise.all([livePromise, newsPromise]);
 
       // جلب باقي البيانات
@@ -315,19 +253,13 @@ const Matches = () => {
       setIsLoading(false);
     }
   };
-
   const fetchMatchData = async (status: 'live' | 'today' | 'tomorrow' | 'yesterday') => {
     try {
       console.log(`=== جلب مباريات ${status} مع البحث عن كأس العالم للأندية ===`);
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 20000)
-      );
-
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 20000));
       const today = new Date();
       let targetDate = today;
       let apiStatus = 'upcoming';
-      
       if (status === 'live') {
         apiStatus = 'live';
         console.log('جلب المباريات المباشرة...');
@@ -344,7 +276,6 @@ const Matches = () => {
         targetDate = new Date(today.getTime() - 24 * 60 * 60 * 1000);
         console.log('جلب مباريات الأمس...');
       }
-
       const dataPromise = supabase.functions.invoke('get-football-matches', {
         body: {
           status: apiStatus,
@@ -352,30 +283,23 @@ const Matches = () => {
           forceRefresh: true
         }
       });
-
-      const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any;
-
+      const {
+        data,
+        error
+      } = (await Promise.race([dataPromise, timeoutPromise])) as any;
       if (error) {
         console.error(`خطأ في API ${status}:`, error);
         throw error;
       }
-
       console.log(`استجابة API ${status}:`, data);
-
       if (data?.success && data?.matches) {
         console.log(`تم جلب ${data.matches.length} مباراة للحالة ${status}`);
-        
+
         // البحث عن كأس العالم للأندية في النتائج
         const clubWorldCupMatches = data.matches.filter((match: any) => {
           const competition = match.competition.toLowerCase();
-          return competition.includes('club world cup') || 
-                 competition.includes('fifa club world') ||
-                 competition.includes('intercontinental') ||
-                 competition.includes('mundial de clubes') ||
-                 competition.includes('cwc') ||
-                 competition.includes('fifa club');
+          return competition.includes('club world cup') || competition.includes('fifa club world') || competition.includes('intercontinental') || competition.includes('mundial de clubes') || competition.includes('cwc') || competition.includes('fifa club');
         });
-        
         if (clubWorldCupMatches.length > 0) {
           console.log(`🎉 تم العثور على ${clubWorldCupMatches.length} مباراة من كأس العالم للأندية في ${status}!`);
           clubWorldCupMatches.forEach((match: any) => {
@@ -384,7 +308,6 @@ const Matches = () => {
         } else {
           console.log(`❌ لم يتم العثور على مباريات كأس العالم للأندية في ${status}`);
         }
-        
         setAllMatches(prev => ({
           ...prev,
           [status]: data.matches
@@ -404,7 +327,6 @@ const Matches = () => {
           [status]: data?.message || `لا توجد مباريات ${getTabTitle(status)}`
         }));
       }
-
       setDataLoaded(prev => ({
         ...prev,
         [status]: true
@@ -425,19 +347,17 @@ const Matches = () => {
       }));
     }
   };
-
   const fetchNewsData = async () => {
     try {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 15000)
-      );
-
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة الاتصال')), 15000));
       const dataPromise = supabase.functions.invoke('get-football-news', {
-        body: { limit: 20 }
+        body: {
+          limit: 20
+        }
       });
-
-      const { data } = await Promise.race([dataPromise, timeoutPromise]) as any;
-
+      const {
+        data
+      } = (await Promise.race([dataPromise, timeoutPromise])) as any;
       if (data?.success && data?.news) {
         setNews(data.news);
         setErrorMessages(prev => ({
@@ -451,7 +371,6 @@ const Matches = () => {
           news: data?.message || 'لا توجد أخبار متاحة في الوقت الحالي'
         }));
       }
-
       setDataLoaded(prev => ({
         ...prev,
         news: true
@@ -469,30 +388,28 @@ const Matches = () => {
       }));
     }
   };
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
     console.log('=== تحديث البيانات ===');
     await fetchInitialData();
     setIsRefreshing(false);
   };
-
   const handleMatchClick = (match: Match) => {
     navigate(`/match-details/${match.id}`, {
-      state: { match, matchData: match }
+      state: {
+        match,
+        matchData: match
+      }
     });
   };
-
   const handleNewsClick = (newsItem: NewsItem) => {
     setSelectedNews(newsItem);
   };
-
   const handleNewsUrlClick = (url: string) => {
     if (url && url !== '#') {
       window.open(url, '_blank');
     }
   };
-
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('ar-SA', {
@@ -501,7 +418,6 @@ const Matches = () => {
       hour12: true
     });
   };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ar-SA', {
@@ -509,58 +425,78 @@ const Matches = () => {
       month: 'short'
     });
   };
-
   const getMatchStatus = (status: string) => {
     switch (status) {
-      case 'live': return 'مباشر';
-      case 'upcoming': return 'قادمة';
-      case 'finished': return 'انتهت';
-      default: return status;
+      case 'live':
+        return 'مباشر';
+      case 'upcoming':
+        return 'قادمة';
+      case 'finished':
+        return 'انتهت';
+      default:
+        return status;
     }
   };
-
   const getTabTitle = (tab: string) => {
     switch (tab) {
-      case 'live': return 'مباشر';
-      case 'today': return 'اليوم';
-      case 'tomorrow': return 'غداً';
-      case 'yesterday': return 'أمس';
-      case 'news': return 'أخبار';
-      default: return tab;
+      case 'live':
+        return 'مباشر';
+      case 'today':
+        return 'اليوم';
+      case 'tomorrow':
+        return 'غداً';
+      case 'yesterday':
+        return 'أمس';
+      case 'news':
+        return 'أخبار';
+      default:
+        return tab;
     }
   };
-
   const getTabIcon = (tab: string) => {
     switch (tab) {
-      case 'live': return <Zap className="w-4 h-4" />;
-      case 'today': return <Calendar className="w-4 h-4" />;
-      case 'tomorrow': return <Clock className="w-4 h-4" />;
-      case 'yesterday': return <Calendar className="w-4 h-4" />;
-      case 'news': return <Newspaper className="w-4 h-4" />;
-      default: return null;
+      case 'live':
+        return <Zap className="w-4 h-4" />;
+      case 'today':
+        return <Calendar className="w-4 h-4" />;
+      case 'tomorrow':
+        return <Clock className="w-4 h-4" />;
+      case 'yesterday':
+        return <Calendar className="w-4 h-4" />;
+      case 'news':
+        return <Newspaper className="w-4 h-4" />;
+      default:
+        return null;
     }
   };
-
   const getCategoryIcon = (category: CompetitionCategory) => {
     switch (category) {
-      case 'saudi': return <Star className="w-4 h-4 text-green-400" />;
-      case 'european': return <Globe className="w-4 h-4 text-blue-400" />;
-      case 'continental': return <Trophy className="w-4 h-4 text-purple-400" />;
-      case 'worldcup': return <Trophy className="w-4 h-4 text-yellow-400" />;
-      default: return <Filter className="w-4 h-4" />;
+      case 'saudi':
+        return <Star className="w-4 h-4 text-green-400" />;
+      case 'european':
+        return <Globe className="w-4 h-4 text-blue-400" />;
+      case 'continental':
+        return <Trophy className="w-4 h-4 text-purple-400" />;
+      case 'worldcup':
+        return <Trophy className="w-4 h-4 text-yellow-400" />;
+      default:
+        return <Filter className="w-4 h-4" />;
     }
   };
-
   const getCategoryName = (category: CompetitionCategory) => {
     switch (category) {
-      case 'saudi': return 'البطولات السعودية';
-      case 'european': return 'الدوريات الأوروبية';
-      case 'continental': return 'البطولات القارية';
-      case 'worldcup': return 'كأس العالم والأندية';
-      default: return 'جميع البطولات المهمة';
+      case 'saudi':
+        return 'البطولات السعودية';
+      case 'european':
+        return 'الدوريات الأوروبية';
+      case 'continental':
+        return 'البطولات القارية';
+      case 'worldcup':
+        return 'كأس العالم والأندية';
+      default:
+        return 'جميع البطولات المهمة';
     }
   };
-
   const AnimatedSoccerBall = ({
     size = "w-8 h-8",
     className = ""
@@ -574,14 +510,12 @@ const Matches = () => {
         </div>
       </div>;
   };
-
   const SoccerPlayerAnimation = () => <div className="flex items-center justify-center py-8">
       <div className="relative">
         <AnimatedSoccerBall size="w-10 h-10" className="animate-pulse" />
         <div className="absolute -right-16 top-0 animate-bounce delay-75"></div>
       </div>
     </div>;
-
   const MatchRow = ({
     match
   }: {
@@ -642,19 +576,12 @@ const Matches = () => {
           </TableCell>
           
           <TableCell className="text-center p-4">
-            <span className={`font-bold px-3 py-1 rounded-lg text-xs border ${
-              match.status === 'live' 
-                ? 'text-red-400 bg-red-500/20 border-red-500/30' 
-                : match.status === 'finished' 
-                ? 'text-green-400 bg-green-500/20 border-green-500/30' 
-                : 'text-blue-400 bg-blue-500/20 border-blue-500/30'
-            }`}>
+            <span className={`font-bold px-3 py-1 rounded-lg text-xs border ${match.status === 'live' ? 'text-red-400 bg-red-500/20 border-red-500/30' : match.status === 'finished' ? 'text-green-400 bg-green-500/20 border-green-500/30' : 'text-blue-400 bg-blue-500/20 border-blue-500/30'}`}>
               {getMatchStatus(match.status)}
             </span>
           </TableCell>
         </>}
     </TableRow>;
-
   const CompetitionSection = ({
     competition,
     matches
@@ -666,21 +593,8 @@ const Matches = () => {
     const priority = getCompetitionPriority(competition);
     const isHighPriority = priority <= 20;
     const isClubWorldCup = competition.toLowerCase().includes('club world cup');
-    
-    return <AccordionItem value={competition} className={`border rounded-xl overflow-hidden mb-4 backdrop-blur-sm ${
-      isClubWorldCup 
-        ? 'border-yellow-400/60 bg-gradient-to-r from-yellow-900/30 to-amber-900/30 shadow-lg shadow-yellow-500/20' 
-        : isHighPriority 
-        ? 'border-yellow-500/40 bg-gradient-to-r from-yellow-900/20 to-amber-900/20' 
-        : 'border-gray-700/30 bg-gradient-to-r from-gray-800/40 to-gray-700/40'
-    }`}>
-        <AccordionTrigger className={`font-bold px-6 py-4 transition-all duration-300 ${
-          isClubWorldCup 
-            ? 'text-yellow-200 hover:text-yellow-100' 
-            : isHighPriority 
-            ? 'text-yellow-300 hover:text-yellow-200' 
-            : 'text-gray-300 hover:text-gray-200'
-        } ${isMobile ? 'text-sm' : 'text-base'}`}>
+    return <AccordionItem value={competition} className={`border rounded-xl overflow-hidden mb-4 backdrop-blur-sm ${isClubWorldCup ? 'border-yellow-400/60 bg-gradient-to-r from-yellow-900/30 to-amber-900/30 shadow-lg shadow-yellow-500/20' : isHighPriority ? 'border-yellow-500/40 bg-gradient-to-r from-yellow-900/20 to-amber-900/20' : 'border-gray-700/30 bg-gradient-to-r from-gray-800/40 to-gray-700/40'}`}>
+        <AccordionTrigger className={`font-bold px-6 py-4 transition-all duration-300 ${isClubWorldCup ? 'text-yellow-200 hover:text-yellow-100' : isHighPriority ? 'text-yellow-300 hover:text-yellow-200' : 'text-gray-300 hover:text-gray-200'} ${isMobile ? 'text-sm' : 'text-base'}`}>
           <div className="flex items-center space-x-4 space-x-reverse w-full">
             {matches[0]?.leagueFlag && <div className="relative">
                 <img src={matches[0].leagueFlag} alt="" className="w-8 h-6 object-cover rounded-md shadow-md border border-gray-600/50" />
@@ -688,9 +602,7 @@ const Matches = () => {
             
             {isClubWorldCup && <div className="flex items-center space-x-2 space-x-reverse">
                 <Trophy className="w-6 h-6 text-yellow-400 animate-pulse" />
-                <span className="text-xs bg-yellow-400/30 text-yellow-200 px-2 py-1 rounded-full border border-yellow-400/40">
-                  🏆 يبدأ غداً
-                </span>
+                <span className="text-xs bg-yellow-400/30 text-yellow-200 px-2 py-1 rounded-full border border-yellow-400/40">🏆استمتع</span>
               </div>}
             
             {isHighPriority && !isClubWorldCup && <Star className="w-5 h-5 text-yellow-400" />}
@@ -701,16 +613,12 @@ const Matches = () => {
                 <span className={isMobile ? 'text-sm' : 'text-base'}>
                   {isMobile && competition.length > 25 ? competition.substring(0, 25) + '...' : competition}
                 </span>
-                {isClubWorldCup && (
-                  <span className="text-xs bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded-full border border-yellow-400/30 animate-pulse">
+                {isClubWorldCup && <span className="text-xs bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded-full border border-yellow-400/30 animate-pulse">
                     🏆 استثنائية
-                  </span>
-                )}
-                {isHighPriority && !isClubWorldCup && (
-                  <span className="text-xs bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded-full border border-yellow-400/30">
+                  </span>}
+                {isHighPriority && !isClubWorldCup && <span className="text-xs bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded-full border border-yellow-400/30">
                     مهمة
-                  </span>
-                )}
+                  </span>}
               </div>
               <span className="text-gray-400 text-sm font-normal">{matches.length} مباراة</span>
             </div>
@@ -738,7 +646,6 @@ const Matches = () => {
         </AccordionContent>
       </AccordionItem>;
   };
-
   const NewsCard = ({
     newsItem
   }: {
@@ -769,10 +676,8 @@ const Matches = () => {
         </div>
       </div>
     </div>;
-
   const NewsModal = () => {
     if (!selectedNews) return null;
-    
     return <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className={`bg-gradient-to-br from-gray-800 to-gray-700 rounded-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-600/50 shadow-2xl ${isMobile ? 'max-w-full' : 'max-w-2xl'}`}>
           <div className="p-6">
@@ -814,7 +719,6 @@ const Matches = () => {
         </div>
       </div>;
   };
-
   const EmptyState = ({
     type,
     message
@@ -833,7 +737,6 @@ const Matches = () => {
         يرجى المحاولة لاحقاً أو تحديث الصفحة
       </p>
     </div>;
-
   const currentMatches = allMatches[activeTab as keyof typeof allMatches] || [];
   const isTabLoading = !dataLoaded[activeTab as keyof typeof dataLoaded];
   const currentErrorMessage = errorMessages[activeTab as keyof typeof errorMessages];
@@ -842,16 +745,12 @@ const Matches = () => {
   const groupedMatches = groupMatchesByCompetition(currentMatches);
 
   // ترتيب البطولات حسب الأولوية - كأس العالم للأندية في المقدمة
-  const sortedCompetitions = Object.keys(groupedMatches).sort((a, b) => 
-    getCompetitionPriority(a) - getCompetitionPriority(b)
-  );
-
+  const sortedCompetitions = Object.keys(groupedMatches).sort((a, b) => getCompetitionPriority(a) - getCompetitionPriority(b));
   console.log('=== RENDER DATA ===');
   console.log('Active tab:', activeTab);
   console.log('Current matches:', currentMatches.length);
   console.log('Grouped competitions:', Object.keys(groupedMatches));
   console.log('Sorted competitions:', sortedCompetitions);
-
   if (isLoading) {
     return <Layout>
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20 flex items-center justify-center">
@@ -862,7 +761,6 @@ const Matches = () => {
         </div>
       </Layout>;
   }
-
   return <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20">
         {/* Header */}
@@ -891,26 +789,9 @@ const Matches = () => {
         {/* Navigation Tabs */}
         <div className="bg-gradient-to-r from-gray-800/70 to-gray-700/70 backdrop-blur-sm border-b border-gray-700/50 sticky top-[120px] z-30 shadow-md">
           <div className="container mx-auto px-2">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
+            <Tabs value={activeTab} onValueChange={value => setActiveTab(value as any)} className="w-full">
               <TabsList className={`grid w-full grid-cols-5 bg-gray-800/60 backdrop-blur-sm border border-gray-700/30 ${isMobile ? 'h-14' : 'h-16'} rounded-xl`}>
-                {(['live', 'today', 'tomorrow', 'yesterday', 'news'] as const).map((tab) => (
-                  <TabsTrigger 
-                    key={tab} 
-                    value={tab} 
-                    className={`flex flex-col items-center justify-center space-y-1 text-xs font-bold transition-all duration-300 rounded-lg ${
-                      activeTab === tab 
-                        ? tab === 'live' 
-                          ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-500/25' 
-                          : tab === 'today' 
-                          ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/25' 
-                          : tab === 'tomorrow' 
-                          ? 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg shadow-yellow-500/25' 
-                          : tab === 'yesterday' 
-                          ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/25' 
-                          : 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg shadow-purple-500/25' 
-                        : 'text-gray-300 hover:text-white hover:bg-gray-700/60'
-                    } ${isMobile ? 'px-2 py-3' : 'px-4 py-4'}`}
-                  >
+                {(['live', 'today', 'tomorrow', 'yesterday', 'news'] as const).map(tab => <TabsTrigger key={tab} value={tab} className={`flex flex-col items-center justify-center space-y-1 text-xs font-bold transition-all duration-300 rounded-lg ${activeTab === tab ? tab === 'live' ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-500/25' : tab === 'today' ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/25' : tab === 'tomorrow' ? 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg shadow-yellow-500/25' : tab === 'yesterday' ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/25' : 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg shadow-purple-500/25' : 'text-gray-300 hover:text-white hover:bg-gray-700/60'} ${isMobile ? 'px-2 py-3' : 'px-4 py-4'}`}>
                     <div className="flex items-center space-x-1 space-x-reverse">
                       {getTabIcon(tab)}
                       <span className={isMobile ? 'text-xs' : 'text-sm'}>
@@ -920,18 +801,16 @@ const Matches = () => {
                     <span className="text-xs opacity-90 bg-white/20 px-2 py-0.5 rounded-full">
                       ({tab === 'news' ? news.length : allMatches[tab as keyof typeof allMatches].length})
                     </span>
-                  </TabsTrigger>
-                ))}
+                  </TabsTrigger>)}
               </TabsList>
 
               {/* Filters for matches */}
-              {activeTab !== 'news' && (
-                <div className="flex items-center justify-center py-4 space-x-4 space-x-reverse">
+              {activeTab !== 'news' && <div className="flex items-center justify-center py-4 space-x-4 space-x-reverse">
                   <div className="flex items-center space-x-2 space-x-reverse">
                     <Filter className="w-4 h-4 text-gray-400" />
                     <span className="text-gray-400 text-sm font-medium">البطولات المهمة:</span>
                   </div>
-                  <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as CompetitionCategory)}>
+                  <Select value={selectedCategory} onValueChange={value => setSelectedCategory(value as CompetitionCategory)}>
                     <SelectTrigger className="w-64 bg-gray-800/60 border-gray-700/50 text-white">
                       <SelectValue />
                     </SelectTrigger>
@@ -968,26 +847,16 @@ const Matches = () => {
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              )}
+                </div>}
 
               {/* Content */}
               <div className="px-2 py-6 pb-24">
-                {(['live', 'today', 'tomorrow', 'yesterday'] as const).map((tab) => (
-                  <TabsContent key={tab} value={tab}>
-                    {isTabLoading ? (
-                      <div className="text-center py-16">
+                {(['live', 'today', 'tomorrow', 'yesterday'] as const).map(tab => <TabsContent key={tab} value={tab}>
+                    {isTabLoading ? <div className="text-center py-16">
                         <AnimatedSoccerBall size="w-12 h-12" className="mx-auto mb-4" />
                         <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                         <p className="text-gray-400 font-medium">جاري التحميل...</p>
-                      </div>
-                    ) : sortedCompetitions.length === 0 ? (
-                      <EmptyState 
-                        type={tab} 
-                        message={errorMessages[tab] || `لا توجد مباريات ${getTabTitle(tab)} في ${getCategoryName(selectedCategory)}`} 
-                      />
-                    ) : (
-                      <div className="space-y-6">
+                      </div> : sortedCompetitions.length === 0 ? <EmptyState type={tab} message={errorMessages[tab] || `لا توجد مباريات ${getTabTitle(tab)} في ${getCategoryName(selectedCategory)}`} /> : <div className="space-y-6">
                         <div className="flex items-center space-x-3 space-x-reverse mb-6">
                           {getCategoryIcon(selectedCategory)}
                           <AnimatedSoccerBall size="w-6 h-6" />
@@ -1001,30 +870,17 @@ const Matches = () => {
                         </div>
                         
                         <Accordion type="multiple" className="space-y-4">
-                          {sortedCompetitions.map((competition) => (
-                            <CompetitionSection 
-                              key={competition} 
-                              competition={competition} 
-                              matches={groupedMatches[competition]} 
-                            />
-                          ))}
+                          {sortedCompetitions.map(competition => <CompetitionSection key={competition} competition={competition} matches={groupedMatches[competition]} />)}
                         </Accordion>
-                      </div>
-                    )}
-                  </TabsContent>
-                ))}
+                      </div>}
+                  </TabsContent>)}
 
                 <TabsContent value="news">
-                  {!dataLoaded.news ? (
-                    <div className="text-center py-16">
+                  {!dataLoaded.news ? <div className="text-center py-16">
                       <AnimatedSoccerBall size="w-12 h-12" className="mx-auto mb-4" />
                       <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                       <p className="text-gray-400 font-medium">جاري التحميل...</p>
-                    </div>
-                  ) : news.length === 0 ? (
-                    <EmptyState type="news" message={errorMessages.news || 'لا توجد أخبار متاحة حالياً'} />
-                  ) : (
-                    <div className="space-y-6">
+                    </div> : news.length === 0 ? <EmptyState type="news" message={errorMessages.news || 'لا توجد أخبار متاحة حالياً'} /> : <div className="space-y-6">
                       <div className="flex items-center space-x-3 space-x-reverse mb-6">
                         <Newspaper className="w-6 h-6 text-purple-400" />
                         <AnimatedSoccerBall size="w-6 h-6" />
@@ -1035,12 +891,9 @@ const Matches = () => {
                       </div>
                       
                       <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
-                        {news.map((newsItem) => (
-                          <NewsCard key={newsItem.id} newsItem={newsItem} />
-                        ))}
+                        {news.map(newsItem => <NewsCard key={newsItem.id} newsItem={newsItem} />)}
                       </div>
-                    </div>
-                  )}
+                    </div>}
                 </TabsContent>
               </div>
             </Tabs>
@@ -1051,5 +904,4 @@ const Matches = () => {
       </div>
     </Layout>;
 };
-
 export default Matches;
