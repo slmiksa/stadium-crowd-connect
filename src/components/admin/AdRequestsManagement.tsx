@@ -34,10 +34,10 @@ interface AdRequest {
   created_at: string;
   updated_at: string;
   user_id: string;
-  profiles?: {
+  profiles: {
     username: string;
     avatar_url: string | null;
-  } | null;
+  };
 }
 
 interface AdRequestStats {
@@ -77,7 +77,7 @@ const AdRequestsManagement = () => {
         .from('ad_requests')
         .select(`
           *,
-          profiles:user_id (
+          profiles!inner(
             username,
             avatar_url
           )
@@ -329,7 +329,7 @@ const AdRequestsManagement = () => {
                           <TableCell className="text-zinc-300">
                             <div>
                               <div className="font-medium text-sm md:text-base">
-                                {request.profiles?.username || 'مستخدم مجهول'}
+                                {request.profiles.username || 'مستخدم مجهول'}
                               </div>
                               <div className="text-xs md:text-sm text-zinc-500">
                                 {request.phone_number}
