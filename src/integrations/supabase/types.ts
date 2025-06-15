@@ -1011,8 +1011,16 @@ export type Database = {
         Args: { user_id_to_check: string }
         Returns: boolean
       }
+      is_room_member: {
+        Args: { room_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
       is_room_owner: {
         Args: { room_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
+      is_room_public: {
+        Args: { room_id_param: string }
         Returns: boolean
       }
       promote_to_moderator: {
