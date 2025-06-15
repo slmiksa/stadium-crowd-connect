@@ -114,7 +114,7 @@ const BottomNavigation = () => {
             <button
               key={tab.id}
               onClick={() => navigate(tab.path)}
-              className={`relative flex flex-col items-center justify-center h-full px-2 py-1 rounded-lg transition-colors ${
+              className={`relative flex flex-col items-center justify-end h-full px-2 pb-1 rounded-lg transition-colors ${
                 isActive 
                   ? 'text-blue-400 bg-blue-950/30' 
                   : 'text-zinc-400 hover:text-zinc-300'
