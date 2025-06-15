@@ -74,13 +74,8 @@
     height: 100dvh;
     /* منع التكبير بالضغط المزدوج */
     touch-action: manipulation;
-    /* خلفية موحدة للكامل */
-    background: linear-gradient(to bottom, 
-      rgb(9 9 11) 0%, 
-      rgb(9 9 11) calc(100vh - env(safe-area-inset-bottom)), 
-      #09212c calc(100vh - env(safe-area-inset-bottom)), 
-      #09212c 100%
-    );
+    /* خلفية موحدة مع لون الفوتر في المنطقة الآمنة */
+    background: #09212c;
     background-attachment: fixed;
   }
 
@@ -106,8 +101,8 @@
     /* خلفية المحتوى الرئيسي فقط */
     background: linear-gradient(to bottom, 
       rgb(9 9 11) 0%, 
-      rgb(9 9 11) calc(100% - 80px), 
-      transparent calc(100% - 80px), 
+      rgb(9 9 11) calc(100% - 60px), 
+      transparent calc(100% - 60px), 
       transparent 100%
     );
   }
@@ -306,7 +301,7 @@
 /* Enhanced comment input positioning - ensuring it's always visible above footer */
 .comments-input-area {
   position: fixed !important;
-  bottom: 64px !important; /* ارتفاع الفوتر بالضبط */
+  bottom: 50px !important; /* ارتفاع الفوتر المقلل */
   left: 0;
   right: 0;
   z-index: 1000 !important;
@@ -320,7 +315,7 @@
 /* Ensure comment input is always visible on mobile */
 @media screen and (max-width: 768px) {
   .comments-input-area {
-    bottom: 64px !important; /* نفس ارتفاع الفوتر */
+    bottom: 50px !important; /* ارتفاع الفوتر المقلل */
   }
 }
 
@@ -333,7 +328,7 @@
 /* تحسين الفوتر مع المساحة الآمنة */
 .bottom-navigation-safe {
   padding-bottom: env(safe-area-inset-bottom);
-  background: rgba(9, 33, 44, 0.95);
+  background: #09212c;
   backdrop-filter: blur(12px);
 }
 

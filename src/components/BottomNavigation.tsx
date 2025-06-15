@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -95,8 +96,8 @@ const BottomNavigation = () => {
   }, [user]);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[100] bottom-navigation-safe backdrop-blur-md border-t border-zinc-800 bg-[#09212c]/95">
-      <div className="flex justify-around items-center w-full max-w-lg mx-auto h-16 bg-transparent">
+    <nav className="fixed bottom-0 left-0 right-0 z-[100] backdrop-blur-md border-t border-zinc-800/30 bg-[#09212c]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="flex justify-around items-center w-full max-w-lg mx-auto h-12 bg-transparent">
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = location.pathname === tab.path;
@@ -106,23 +107,23 @@ const BottomNavigation = () => {
             <button
               key={tab.id}
               onClick={() => navigate(tab.path)}
-              className={`relative flex flex-col items-center justify-center h-full px-3 rounded-lg transition-colors ${
+              className={`relative flex flex-col items-center justify-center h-full px-2 rounded-lg transition-colors ${
                 isActive 
-                  ? 'text-blue-400 bg-blue-950/50' 
+                  ? 'text-blue-400 bg-blue-950/30' 
                   : 'text-zinc-400 hover:text-zinc-300'
               }`}
             >
               <div className="relative">
-                <Icon size={20} />
+                <Icon size={18} />
                 {isMessagesTab && unreadCount > 0 && (
-                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
                     <span className="text-xs text-white font-bold">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                   </div>
                 )}
               </div>
-              <span className="text-xs mt-1 font-medium text-slate-50">
+              <span className="text-xs mt-0.5 font-medium text-slate-50">
                 {tab.label}
               </span>
             </button>

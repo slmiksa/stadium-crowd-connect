@@ -13,10 +13,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const hiddenFooterPaths = ['/chat-room/', '/private-chat/'];
   const shouldHideFooter = hiddenFooterPaths.some(path => location.pathname.includes(path));
 
-  // ارتفاع الفوتر (h-16 == 64px) للمحتوى الرئيسي
+  // ارتفاع الفوتر المقلل (h-12 == 48px) للمحتوى الرئيسي
   const mainStyle: React.CSSProperties = {
     paddingTop: 'env(safe-area-inset-top)',
-    paddingBottom: shouldHideFooter ? '0' : '64px', // ارتفاع الفوتر بالضبط
+    paddingBottom: shouldHideFooter ? '0' : '48px', // ارتفاع الفوتر المقلل
     minHeight: '100dvh'
   };
 
@@ -25,7 +25,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className="w-full flex-grow overflow-x-hidden" style={mainStyle}>
         {children}
       </main>
-      <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-50 md:bottom-5 md:left-auto md:right-5 md:translate-x-0">
+      <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-50 md:bottom-5 md:left-auto md:right-5 md:translate-x-0">
         <InstallPwaButton />
       </div>
       {!shouldHideFooter && <BottomNavigation />}
