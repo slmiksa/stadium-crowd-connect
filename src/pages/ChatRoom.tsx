@@ -71,16 +71,9 @@ const ChatRoom = () => {
 
   useEffect(() => {
     if (roomId && user) {
-      fetchRoomInfo();
-      setupRealtimeSubscription();
+      initializeRoom();
     }
   }, [roomId, user]);
-
-  useEffect(() => {
-    if (roomInfo && user) {
-      ensureOwnerAccess();
-    }
-  }, [roomInfo, user]);
 
   useEffect(() => {
     scrollToBottom();
@@ -101,19 +94,25 @@ const ChatRoom = () => {
           (payload) => {
             console.log('Membership change:', payload);
             if (payload.eventType === 'DELETE' && payload.old?.room_id === roomId) {
-              toast({
-                title: "تم إخراجك",
-                description: `تم إخراجك من شات ${roomInfo?.name || 'الغرفة'}`,
-                variant: "destructive"
-              });
-              navigate('/chat-rooms');
+              // Only show kicked message for non-owners
+              if (roomInfo?.owner_id !== user.id) {
+                toast({
+                  title: "تم إخراجك",
+                  description: `تم إخراجك من شات ${roomInfo?.name || 'الغرفة'}`,
+                  variant: "destructive"
+                });
+                navigate('/chat-rooms');
+              }
             } else if (payload.eventType === 'UPDATE' && payload.new?.is_banned === true && payload.new?.room_id === roomId) {
-              toast({
-                title: "تم حظرك",
-                description: `تم حظرك من شات ${roomInfo?.name || 'الغرفة'}`,
-                variant: "destructive"
-              });
-              setIsBanned(true);
+              // Only show banned message for non-owners
+              if (roomInfo?.owner_id !== user.id) {
+                toast({
+                  title: "تم حظرك",
+                  description: `تم حظرك من شات ${roomInfo?.name || 'الغرفة'}`,
+                  variant: "destructive"
+                });
+                setIsBanned(true);
+              }
             }
           }
         )
@@ -123,19 +122,22 @@ const ChatRoom = () => {
         supabase.removeChannel(membershipChannel);
       };
     }
-  }, [user, roomId, roomInfo?.name, navigate, toast]);
+  }, [user, roomId, roomInfo?.name, roomInfo?.owner_id, navigate, toast]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchRoomInfo = async () => {
-    if (!roomId) return;
+  const initializeRoom = async () => {
+    if (!roomId || !user) return;
     
     try {
+      console.log('Initializing room for user:', user.id, 'room:', roomId);
+      
+      // First get room info
       const { data: roomData, error: roomError } = await supabase
         .from('chat_rooms')
-        .select('*, announcement')
+        .select('*')
         .eq('id', roomId)
         .single();
 
@@ -145,79 +147,92 @@ const ChatRoom = () => {
         return;
       }
 
-      const { count: actualMembersCount, error: countError } = await supabase
-        .from('room_members')
-        .select('*', { count: 'exact', head: true })
-        .eq('room_id', roomId)
-        .eq('is_banned', false);
+      console.log('Room data:', roomData);
+      setRoomInfo(roomData);
 
-      if (countError) {
-        console.error('Error counting members:', countError);
+      const isOwner = roomData.owner_id === user.id;
+      console.log('Is owner:', isOwner);
+
+      // If user is owner, ensure they are added as a member
+      if (isOwner) {
+        console.log('User is owner, ensuring membership...');
+        await ensureOwnerMembership(roomId, user.id);
+        setIsMember(true);
+        setIsBanned(false);
+      } else {
+        // For non-owners, check membership normally
+        await checkMembership();
       }
 
-      setRoomInfo({
-        ...roomData,
-        members_count: actualMembersCount || 0
-      });
+      // Load all data
+      await Promise.all([
+        fetchMessages(),
+        fetchUserRoles(),
+        fetchCurrentUserProfile(),
+        updateMemberCount()
+      ]);
+
+      setupRealtimeSubscription();
+      
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in initializeRoom:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const ensureOwnerAccess = async () => {
-    if (!roomId || !user || !roomInfo) return;
-    
+  const ensureOwnerMembership = async (roomId: string, userId: string) => {
     try {
-      console.log('Ensuring owner access for user:', user.id, 'in room:', roomId);
+      console.log('Ensuring owner membership for:', userId, 'in room:', roomId);
       
-      // إذا كان المستخدم مالك الغرفة، نضمن وصوله
-      if (roomInfo.owner_id === user.id) {
-        console.log('User is room owner, ensuring access');
-        
-        // نتحقق من العضوية أولاً
-        const { data: membershipData, error: membershipError } = await supabase
+      // Check if owner is already a member
+      const { data: existingMember, error: checkError } = await supabase
+        .from('room_members')
+        .select('id, is_banned, role')
+        .eq('room_id', roomId)
+        .eq('user_id', userId)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking owner membership:', checkError);
+        return;
+      }
+
+      if (!existingMember) {
+        // Owner is not a member, add them
+        console.log('Adding owner as member...');
+        const { error: insertError } = await supabase
           .from('room_members')
-          .select('id, is_banned')
-          .eq('room_id', roomId)
-          .eq('user_id', user.id)
-          .single();
+          .insert({
+            room_id: roomId,
+            user_id: userId,
+            role: 'member'
+          });
 
-        if (membershipError && membershipError.code === 'PGRST116') {
-          // المستخدم ليس عضواً، نضيفه
-          console.log('Adding room owner as member');
-          const { error: insertError } = await supabase
+        if (insertError && insertError.code !== '23505') {
+          console.error('Error adding owner as member:', insertError);
+        } else {
+          console.log('Owner added as member successfully');
+        }
+      } else {
+        console.log('Owner is already a member with role:', existingMember.role);
+        // If owner is banned, unban them
+        if (existingMember.is_banned) {
+          const { error: unbanError } = await supabase
             .from('room_members')
-            .insert({
-              room_id: roomId,
-              user_id: user.id,
-              role: 'member'
-            });
+            .update({ is_banned: false })
+            .eq('room_id', roomId)
+            .eq('user_id', userId);
 
-          if (insertError && insertError.code !== '23505') {
-            console.error('Error adding owner as member:', insertError);
+          if (unbanError) {
+            console.error('Error unbanning owner:', unbanError);
           } else {
-            console.log('Room owner added as member successfully');
+            console.log('Owner unbanned successfully');
           }
         }
-        
-        // مالك الغرفة دائماً يعتبر عضو نشط
-        setIsMember(true);
-        setIsBanned(false);
-        
-        // جلب البيانات المطلوبة
-        await Promise.all([
-          fetchMessages(),
-          fetchUserRoles(),
-          fetchCurrentUserProfile()
-        ]);
-      } else {
-        // ليس مالك الغرفة، نتحقق من العضوية العادية
-        await checkMembership();
       }
     } catch (error) {
-      console.error('Error in ensureOwnerAccess:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error in ensureOwnerMembership:', error);
     }
   };
 
@@ -240,20 +255,35 @@ const ChatRoom = () => {
       if (membershipData) {
         setIsMember(true);
         setIsBanned(membershipData.is_banned || false);
-        
-        if (!membershipData.is_banned) {
-          await Promise.all([
-            fetchMessages(),
-            fetchUserRoles(),
-            fetchCurrentUserProfile()
-          ]);
-        }
       } else {
         setIsMember(false);
         setIsBanned(false);
       }
     } catch (error) {
       console.error('Error in checkMembership:', error);
+    }
+  };
+
+  const updateMemberCount = async () => {
+    if (!roomId) return;
+    
+    try {
+      const { count, error } = await supabase
+        .from('room_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('room_id', roomId)
+        .eq('is_banned', false);
+
+      if (error) {
+        console.error('Error counting members:', error);
+        return;
+      }
+
+      if (roomInfo) {
+        setRoomInfo({ ...roomInfo, members_count: count || 0 });
+      }
+    } catch (error) {
+      console.error('Error in updateMemberCount:', error);
     }
   };
 
@@ -366,10 +396,8 @@ const ChatRoom = () => {
 
       setIsMember(true);
       await Promise.all([
-        fetchRoomInfo(),
-        fetchMessages(),
-        fetchUserRoles(),
-        fetchCurrentUserProfile()
+        updateMemberCount(),
+        fetchUserRoles()
       ]);
     } catch (error) {
       console.error('Error:', error);
@@ -392,7 +420,7 @@ const ChatRoom = () => {
       return;
     }
 
-    if (isBanned) {
+    if (isBanned && !isOwner(user.id)) {
       toast({
         title: "محظور",
         description: "لا يمكنك إرسال رسائل لأنك محظور من هذه الغرفة",
@@ -409,7 +437,6 @@ const ChatRoom = () => {
       let finalMediaType = mediaType;
       
       if (mediaFile) {
-        // التحقق من صحة الملف
         const validation = validateFile(mediaFile);
         if (!validation.isValid) {
           throw new Error(validation.error);
@@ -459,7 +486,6 @@ const ChatRoom = () => {
         content: finalContent,
       };
 
-      // إضافة بيانات الوسائط حسب النوع
       if (voiceUrl) {
         messageData.voice_url = voiceUrl;
         messageData.voice_duration = 0;
@@ -509,26 +535,22 @@ const ChatRoom = () => {
 
   const toggleAudio = (messageId: string, audioUrl: string) => {
     if (playingAudio === messageId) {
-      // Stop current audio
       if (audioRefs.current[messageId]) {
         audioRefs.current[messageId].pause();
         audioRefs.current[messageId].currentTime = 0;
       }
       setPlayingAudio(null);
     } else {
-      // Stop any other playing audio
       if (playingAudio && audioRefs.current[playingAudio]) {
         audioRefs.current[playingAudio].pause();
         audioRefs.current[playingAudio].currentTime = 0;
       }
 
-      // Create new audio element if doesn't exist
       if (!audioRefs.current[messageId]) {
         audioRefs.current[messageId] = new Audio(audioUrl);
         audioRefs.current[messageId].onended = () => setPlayingAudio(null);
       }
 
-      // Play audio
       audioRefs.current[messageId].play();
       setPlayingAudio(messageId);
     }
@@ -667,7 +689,6 @@ const ChatRoom = () => {
                 : 'bg-gray-700 text-white'
             }`}
           >
-            {/* Quote Button */}
             <button
               onClick={() => quoteMessage(message)}
               className="absolute -top-2 -right-2 bg-zinc-600 hover:bg-zinc-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
@@ -680,7 +701,6 @@ const ChatRoom = () => {
               <p className="whitespace-pre-wrap break-words">{message.content}</p>
             )}
             
-            {/* Voice Message */}
             {message.voice_url && (
               <div className="mt-2 flex items-center gap-3 p-2 bg-black bg-opacity-20 rounded-lg">
                 <button
@@ -702,7 +722,6 @@ const ChatRoom = () => {
               </div>
             )}
 
-            {/* Image Display - Fixed to show directly */}
             {message.media_url && message.media_type === 'image' && (
               <div className="mt-2">
                 <img 
@@ -721,7 +740,6 @@ const ChatRoom = () => {
               </div>
             )}
 
-            {/* Video */}
             {message.media_url && message.media_type === 'video' && (
               <div className="mt-2">
                 <video 
@@ -763,9 +781,9 @@ const ChatRoom = () => {
     );
   }
 
-  // للمالك، لا نعرض شاشة الانضمام أبداً
   const isRoomOwner = user?.id === roomInfo?.owner_id;
   
+  // Show join room only if user is not a member AND not the owner
   if (!isMember && !isRoomOwner && !isLoading) {
     return (
       <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center p-4">
@@ -773,7 +791,22 @@ const ChatRoom = () => {
           <h2 className="text-2xl font-bold text-white mb-4">انضم للغرفة</h2>
           <p className="text-zinc-400 mb-6">يجب عليك الانضمام للغرفة لعرض الرسائل والمشاركة</p>
           <Button onClick={joinRoom} className="bg-blue-500 hover:bg-blue-600">
-            انضمام للغرفة
+            الانضمام للغرفة
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show banned message only for non-owners
+  if (isBanned && !isRoomOwner) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center p-4">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-400 mb-4">محظور</h2>
+          <p className="text-zinc-400 mb-6">تم حظرك من هذه الغرفة</p>
+          <Button onClick={() => navigate('/chat-rooms')} variant="outline">
+            العودة للغرف
           </Button>
         </div>
       </div>
@@ -782,7 +815,6 @@ const ChatRoom = () => {
 
   return (
     <div className="min-h-screen bg-zinc-900 flex flex-col pt-safe pb-safe">
-      {/* Fixed Header */}
       <div className="bg-zinc-800 border-b border-zinc-700 p-4 fixed top-0 left-0 right-0 z-50 pt-safe">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -828,16 +860,13 @@ const ChatRoom = () => {
         </div>
       </div>
 
-      {/* Fixed Content Area - الإعلانات والمباريات */}
       <div className="fixed left-0 right-0 z-40 bg-zinc-900" style={{ top: 'calc(80px + env(safe-area-inset-top, 0px))' }}>
-        {/* Announcement */}
         {roomInfo?.announcement && (
           <div className="px-4">
             <ChatRoomAnnouncement announcement={roomInfo.announcement} />
           </div>
         )}
         
-        {/* Live Match Widget */}
         {roomId && (
           <div className="px-4">
             <LiveMatchWidget
@@ -851,14 +880,13 @@ const ChatRoom = () => {
         )}
       </div>
 
-      {/* Messages Container - محسوب بناءً على ارتفاع المحتوى الثابت */}
       <div 
         className="flex-1 overflow-y-auto p-4 space-y-4 pb-24"
         style={{
           marginTop: `calc(${
-            80 + // header height
-            (roomInfo?.announcement ? 60 : 0) + // announcement height if exists
-            60 // live match widget space (always reserve space)
+            80 + 
+            (roomInfo?.announcement ? 60 : 0) + 
+            60 
           }px + env(safe-area-inset-top, 0px))`,
         }}
       >
@@ -873,7 +901,6 @@ const ChatRoom = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Fixed Input Area at Bottom */}
       <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 p-4 pb-safe z-40">
         <MediaInput 
           onSendMessage={sendMessage} 
@@ -883,7 +910,6 @@ const ChatRoom = () => {
         />
       </div>
 
-      {/* Image Modal */}
       {imageModal && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
@@ -906,7 +932,6 @@ const ChatRoom = () => {
         </div>
       )}
 
-      {/* Modals */}
       {showMembersModal && roomId && (
         <RoomMembersModal
           roomId={roomId}
@@ -914,7 +939,7 @@ const ChatRoom = () => {
           onClose={() => setShowMembersModal(false)}
           isOwner={isRoomOwner}
           onMembershipChange={() => {
-            fetchRoomInfo();
+            updateMemberCount();
             fetchUserRoles();
           }}
         />
