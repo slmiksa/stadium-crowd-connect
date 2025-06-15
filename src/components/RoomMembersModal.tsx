@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Crown, UserX, Ban, Shield, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -17,7 +18,7 @@ interface Member {
   role: string;
   profiles: {
     username: string;
-    avatar_url?: string;
+    avatar_url: string;
   };
 }
 
@@ -106,7 +107,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
             role: 'owner',
             profiles: {
               username: ownerProfile.username,
-              avatar_url: ownerProfile.avatar_url
+              avatar_url: ownerProfile.avatar_url || ''
             }
           };
           
@@ -122,7 +123,13 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       }
 
       console.log('Members fetched successfully:', allMembers.length, 'members');
-      setMembers(allMembers);
+      setMembers(allMembers.map((m: any) => ({
+        ...m,
+        profiles: {
+          ...m.profiles,
+          avatar_url: m.profiles?.avatar_url || ''
+        }
+      })));
       
     } catch (error) {
       console.error('Error in fetchRoomData:', error);
