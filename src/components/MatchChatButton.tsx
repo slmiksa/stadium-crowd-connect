@@ -93,13 +93,16 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
         throw roomError;
       }
 
+      // Convert match data to JSON compatible format
+      const matchDataJson = JSON.parse(JSON.stringify(match));
+
       // Link the match to the chat room
       const { error: linkError } = await supabase
         .from('match_chat_rooms')
         .insert({
           match_id: match.id,
           room_id: newRoom.id,
-          match_data: match
+          match_data: matchDataJson
         });
 
       if (linkError) {
@@ -125,7 +128,7 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
         .insert({
           room_id: newRoom.id,
           match_id: match.id,
-          match_data: match,
+          match_data: matchDataJson,
           activated_by: user.id,
           is_active: true
         });

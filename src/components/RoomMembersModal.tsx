@@ -17,7 +17,7 @@ interface Member {
   role: string;
   profiles: {
     username: string;
-    avatar_url?: string; // Make this optional to match the database schema
+    avatar_url?: string;
   };
 }
 
@@ -106,7 +106,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
             role: 'owner',
             profiles: {
               username: ownerProfile.username,
-              avatar_url: ownerProfile.avatar_url // Now this matches the optional type
+              avatar_url: ownerProfile.avatar_url
             }
           };
           
