@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -101,7 +100,7 @@ const MyPosts = () => {
           description: 'Post updated successfully.',
         });
         setEditPost(null);
-        fetchPosts();
+        await fetchPosts();
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -133,7 +132,7 @@ const MyPosts = () => {
             title: 'Success',
             description: 'Post deleted successfully.',
           });
-          fetchPosts();
+          await fetchPosts();
         }
       } catch (error) {
         console.error('Unexpected error:', error);
