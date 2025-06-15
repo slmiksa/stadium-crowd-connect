@@ -75,44 +75,39 @@ const AdRequestsManagement = () => {
       // جلب طلبات الإعلانات مع بيانات المستخدمين
       const { data: requestsData, error: requestsError } = await supabase
         .from('ad_requests')
-        .select(`
-          id,
-          ad_name,
-          phone_number,
-          image_url,
-          ad_link,
-          duration_hours,
-          price,
-          status,
-          admin_response,
-          created_at,
-          updated_at,
-          user_id
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (requestsError) {
         console.error('Error fetching ad requests:', requestsError);
         setAdRequests([]);
       } else if (requestsData) {
-        // جلب بيانات المستخدمين بشكل منفصل
-        const userIds = [...new Set(requestsData.map(req => req.user_id))];
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, username, avatar_url')
-          .in('id', userIds);
+        console.log('Fetched ad requests:', requestsData);
+        
+        // جلب بيانات المستخدمين
+        const userIds = requestsData.map(req => req.user_id).filter(Boolean);
+        
+        if (userIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url')
+            .in('id', userIds);
 
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
+          if (profilesError) {
+            console.error('Error fetching profiles:', profilesError);
+          }
+
+          // دمج البيانات
+          const requestsWithProfiles = requestsData.map(request => ({
+            ...request,
+            profiles: profilesData?.find(profile => profile.id === request.user_id) || null
+          }));
+
+          console.log('Requests with profiles:', requestsWithProfiles);
+          setAdRequests(requestsWithProfiles);
+        } else {
+          setAdRequests(requestsData.map(request => ({ ...request, profiles: null })));
         }
-
-        // دمج البيانات
-        const requestsWithProfiles = requestsData.map(request => ({
-          ...request,
-          profiles: profilesData?.find(profile => profile.id === request.user_id) || null
-        }));
-
-        setAdRequests(requestsWithProfiles);
       }
 
     } catch (error) {
@@ -182,6 +177,10 @@ const AdRequestsManagement = () => {
         return true;
     }
   });
+
+  console.log('Current activeTab:', activeTab);
+  console.log('All ad requests:', adRequests);
+  console.log('Filtered requests:', filteredRequests);
 
   if (isLoading) {
     return (
