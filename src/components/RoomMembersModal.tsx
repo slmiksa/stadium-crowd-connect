@@ -107,7 +107,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
             role: 'owner',
             profiles: {
               username: ownerProfile.username,
-              avatar_url: ownerProfile.avatar_url
+              avatar_url: ownerProfile.avatar_url || undefined
             }
           };
           
