@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -113,7 +112,7 @@ const ReportsManagement = () => {
     }
   };
 
-  const updateReportStatus = async (reportId: string, status: string, response?: string) => {
+  const updateReportStatus = async (reportId: string, status: string, response?: string, showToast = true) => {
     try {
       const { error } = await supabase
         .from('reports')
@@ -132,10 +131,12 @@ const ReportsManagement = () => {
           variant: 'destructive'
         });
       } else {
-        toast({
-          title: 'تم التحديث',
-          description: 'تم تحديث حالة البلاغ بنجاح'
-        });
+        if (showToast) {
+          toast({
+            title: 'تم التحديث',
+            description: 'تم تحديث حالة البلاغ بنجاح'
+          });
+        }
         fetchReports();
         setSelectedReport(null);
         setAdminResponse('');
@@ -162,12 +163,19 @@ const ReportsManagement = () => {
         return;
       }
 
-      // Update report status to resolved
-      await updateReportStatus(reportId, 'resolved', 'تم حذف المنشور المبلغ عنه');
+      // Remove the deleted post from the local state so the UI updates
+      setPostDetails(prevDetails => {
+        const newDetails = { ...prevDetails };
+        delete newDetails[postId];
+        return newDetails;
+      });
+
+      // Update report status to resolved, without showing the generic toast
+      await updateReportStatus(reportId, 'resolved', 'تم حذف المنشور المبلغ عنه', false);
       
       toast({
-        title: 'تم الحذف',
-        description: 'تم حذف المنشور بنجاح'
+        title: 'تمت المعالجة بنجاح',
+        description: 'تم حذف المنشور وتحديث البلاغ.',
       });
     } catch (error) {
       console.error('Error:', error);
