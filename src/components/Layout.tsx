@@ -10,16 +10,15 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
-  
-  // Hide footer only in chat rooms and private chat
   const hiddenFooterPaths = ['/chat-room/', '/private-chat/'];
   const shouldHideFooter = hiddenFooterPaths.some(path => location.pathname.includes(path));
 
+  // ارتفاع الفوتر (h-14 == 56px) + الحافة الآمنة فقط
   const mainStyle: React.CSSProperties = {
     paddingTop: 'env(safe-area-inset-top)',
     paddingBottom: shouldHideFooter
-      ? 'env(safe-area-inset-bottom)'
-      : `calc(3.5rem + env(safe-area-inset-bottom))`, // 3.5rem = 56px (h-14)
+      ? 'env(safe-area-inset-bottom)' // إذا أخفي الفوتر، فقط احترم الحافة السفلية
+      : 'calc(56px + env(safe-area-inset-bottom))', // مساحة الفوتر تمامًا + الحواف
   };
 
   return (
@@ -36,3 +35,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 };
 
 export default Layout;
+

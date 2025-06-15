@@ -133,11 +133,19 @@ const BottomNavigation = () => {
       "
       style={{
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        boxSizing: 'content-box',
+        paddingTop: 0,
+        margin: 0,
+        height: 'auto',
+        boxSizing: 'border-box'
       }}
     >
       <div
         className="flex justify-around items-center w-full max-w-lg px-1 h-full"
+        style={{
+          margin: 0,
+          padding: 0,
+          height: '100%',
+        }}
       >
         {tabs.map((tab) => {
           const Icon = tab.icon;
