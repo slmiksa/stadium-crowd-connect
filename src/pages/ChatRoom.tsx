@@ -72,13 +72,15 @@ const ChatRoom = () => {
   useEffect(() => {
     if (roomId && user) {
       fetchRoomInfo();
-      checkAndEnsureMembership();
-      fetchMessages();
-      fetchUserRoles();
-      fetchCurrentUserProfile();
       setupRealtimeSubscription();
     }
   }, [roomId, user]);
+
+  useEffect(() => {
+    if (roomInfo && user) {
+      ensureOwnerAccess();
+    }
+  }, [roomInfo, user]);
 
   useEffect(() => {
     scrollToBottom();
@@ -127,39 +129,6 @@ const ChatRoom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchUserRoles = async () => {
-    if (!roomId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('room_members')
-        .select('user_id, role')
-        .eq('room_id', roomId);
-
-      if (error) {
-        console.error('Error fetching user roles:', error);
-        return;
-      }
-
-      setUserRoles(data || []);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
-  const getUserRole = (userId: string): string => {
-    const userRole = userRoles.find(role => role.user_id === userId);
-    return userRole?.role || 'member';
-  };
-
-  const isOwner = (userId: string): boolean => {
-    return userId === roomInfo?.owner_id;
-  };
-
-  const isModerator = (userId: string): boolean => {
-    return getUserRole(userId) === 'moderator';
-  };
-
   const fetchRoomInfo = async () => {
     if (!roomId) return;
     
@@ -195,13 +164,67 @@ const ChatRoom = () => {
     }
   };
 
-  const checkAndEnsureMembership = async () => {
+  const ensureOwnerAccess = async () => {
+    if (!roomId || !user || !roomInfo) return;
+    
+    try {
+      console.log('Ensuring owner access for user:', user.id, 'in room:', roomId);
+      
+      // إذا كان المستخدم مالك الغرفة، نضمن وصوله
+      if (roomInfo.owner_id === user.id) {
+        console.log('User is room owner, ensuring access');
+        
+        // نتحقق من العضوية أولاً
+        const { data: membershipData, error: membershipError } = await supabase
+          .from('room_members')
+          .select('id, is_banned')
+          .eq('room_id', roomId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (membershipError && membershipError.code === 'PGRST116') {
+          // المستخدم ليس عضواً، نضيفه
+          console.log('Adding room owner as member');
+          const { error: insertError } = await supabase
+            .from('room_members')
+            .insert({
+              room_id: roomId,
+              user_id: user.id,
+              role: 'member'
+            });
+
+          if (insertError && insertError.code !== '23505') {
+            console.error('Error adding owner as member:', insertError);
+          } else {
+            console.log('Room owner added as member successfully');
+          }
+        }
+        
+        // مالك الغرفة دائماً يعتبر عضو نشط
+        setIsMember(true);
+        setIsBanned(false);
+        
+        // جلب البيانات المطلوبة
+        await Promise.all([
+          fetchMessages(),
+          fetchUserRoles(),
+          fetchCurrentUserProfile()
+        ]);
+      } else {
+        // ليس مالك الغرفة، نتحقق من العضوية العادية
+        await checkMembership();
+      }
+    } catch (error) {
+      console.error('Error in ensureOwnerAccess:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkMembership = async () => {
     if (!roomId || !user) return;
     
     try {
-      console.log('Checking membership for user:', user.id, 'in room:', roomId);
-      
-      // التحقق من العضوية أولاً
       const { data: membershipData, error: membershipError } = await supabase
         .from('room_members')
         .select('id, is_banned')
@@ -211,61 +234,60 @@ const ChatRoom = () => {
 
       if (membershipError && membershipError.code !== 'PGRST116') {
         console.error('Error checking membership:', membershipError);
-        setIsLoading(false);
         return;
       }
 
       if (membershipData) {
-        // المستخدم عضو بالفعل
         setIsMember(true);
         setIsBanned(membershipData.is_banned || false);
-        console.log('User is already a member, banned status:', membershipData.is_banned);
+        
+        if (!membershipData.is_banned) {
+          await Promise.all([
+            fetchMessages(),
+            fetchUserRoles(),
+            fetchCurrentUserProfile()
+          ]);
+        }
       } else {
-        // التحقق إذا كان المستخدم مالك الغرفة
-        const { data: roomData, error: roomError } = await supabase
-          .from('chat_rooms')
-          .select('owner_id')
-          .eq('id', roomId)
-          .single();
-
-        if (roomError) {
-          console.error('Error fetching room owner:', roomError);
-          setIsLoading(false);
-          return;
-        }
-
-        if (roomData.owner_id === user.id) {
-          // المستخدم هو مالك الغرفة، يجب إضافته كعضو
-          console.log('User is room owner, adding as member automatically');
-          
-          const { error: insertError } = await supabase
-            .from('room_members')
-            .insert({
-              room_id: roomId,
-              user_id: user.id,
-              role: 'member' // سيتم ترقيته في خطوة منفصلة إذا لزم الأمر
-            });
-
-          if (insertError) {
-            console.error('Error adding owner as member:', insertError);
-          } else {
-            setIsMember(true);
-            setIsBanned(false);
-            console.log('Room owner added as member successfully');
-          }
-        } else {
-          // المستخدم ليس عضواً وليس مالكاً
-          setIsMember(false);
-          setIsBanned(false);
-        }
+        setIsMember(false);
+        setIsBanned(false);
       }
     } catch (error) {
-      console.error('Error in checkAndEnsureMembership:', error);
-      setIsMember(false);
-      setIsBanned(false);
-    } finally {
-      setIsLoading(false);
+      console.error('Error in checkMembership:', error);
     }
+  };
+
+  const fetchUserRoles = async () => {
+    if (!roomId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('room_members')
+        .select('user_id, role')
+        .eq('room_id', roomId);
+
+      if (error) {
+        console.error('Error fetching user roles:', error);
+        return;
+      }
+
+      setUserRoles(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const getUserRole = (userId: string): string => {
+    const userRole = userRoles.find(role => role.user_id === userId);
+    return userRole?.role || 'member';
+  };
+
+  const isOwner = (userId: string): boolean => {
+    return userId === roomInfo?.owner_id;
+  };
+
+  const isModerator = (userId: string): boolean => {
+    return getUserRole(userId) === 'moderator';
   };
 
   const fetchMessages = async () => {
@@ -343,8 +365,12 @@ const ChatRoom = () => {
       }
 
       setIsMember(true);
-      fetchRoomInfo();
-      fetchMessages(); // جلب الرسائل بعد الانضمام
+      await Promise.all([
+        fetchRoomInfo(),
+        fetchMessages(),
+        fetchUserRoles(),
+        fetchCurrentUserProfile()
+      ]);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -737,7 +763,10 @@ const ChatRoom = () => {
     );
   }
 
-  if (!isMember && !isLoading) {
+  // للمالك، لا نعرض شاشة الانضمام أبداً
+  const isRoomOwner = user?.id === roomInfo?.owner_id;
+  
+  if (!isMember && !isRoomOwner && !isLoading) {
     return (
       <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center p-4">
         <div className="text-center">
@@ -778,7 +807,7 @@ const ChatRoom = () => {
             >
               <Users size={20} className="text-white" />
             </button>
-            {user?.id === roomInfo?.owner_id && (
+            {isRoomOwner && (
               <button 
                 onClick={() => setShowSettingsModal(true)}
                 className="p-2 hover:bg-zinc-700 rounded-lg transition-colors"
@@ -786,7 +815,7 @@ const ChatRoom = () => {
                 <Settings size={20} className="text-white" />
               </button>
             )}
-            {user?.id !== roomInfo?.owner_id && (
+            {!isRoomOwner && (
               <button 
                 onClick={leaveRoom}
                 className="p-2 hover:bg-red-700 rounded-lg transition-colors"
@@ -813,7 +842,7 @@ const ChatRoom = () => {
           <div className="px-4">
             <LiveMatchWidget
               roomId={roomId}
-              isOwnerOrModerator={user?.id === roomInfo?.owner_id || isModerator(user?.id || '')}
+              isOwnerOrModerator={isRoomOwner || isModerator(user?.id || '')}
               onRemove={() => {
                 console.log('Live match removed');
               }}
@@ -883,7 +912,7 @@ const ChatRoom = () => {
           roomId={roomId}
           isOpen={showMembersModal}
           onClose={() => setShowMembersModal(false)}
-          isOwner={user?.id === roomInfo?.owner_id}
+          isOwner={isRoomOwner}
           onMembershipChange={() => {
             fetchRoomInfo();
             fetchUserRoles();
