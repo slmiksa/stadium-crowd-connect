@@ -95,7 +95,7 @@ const BottomNavigation = () => {
   }, [user]);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[100] backdrop-blur-md border-t border-zinc-800 bg-[#09212c]/95">
+    <nav className="fixed bottom-0 left-0 right-0 z-[100] bottom-navigation-safe backdrop-blur-md border-t border-zinc-800 bg-[#09212c]/95">
       <div className="flex justify-around items-center w-full max-w-lg mx-auto h-16 bg-transparent">
         {tabs.map(tab => {
           const Icon = tab.icon;

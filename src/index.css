@@ -50,6 +50,10 @@
   * {
     @apply border-border;
     box-sizing: border-box;
+    /* منع التكبير والتصغير */
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   html, body, #root {
@@ -57,12 +61,19 @@
     height: 100%;
     margin: 0;
     padding: 0;
+    /* منع التمرير المطاطي */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    /* منع التكبير */
+    touch-action: pan-x pan-y;
   }
 
   html {
     scroll-behavior: smooth;
     height: 100vh;
     height: 100dvh;
+    /* منع التكبير بالضغط المزدوج */
+    touch-action: manipulation;
   }
 
   body {
@@ -73,6 +84,13 @@
     overflow: hidden;
     overscroll-behavior: none;
     position: fixed;
+    /* خلفية المساحة الآمنة بنفس لون الفوتر */
+    background: linear-gradient(to bottom, 
+      rgb(9 9 11) 0%, 
+      rgb(9 9 11) calc(100% - env(safe-area-inset-bottom)), 
+      rgba(9, 33, 44, 0.95) calc(100% - env(safe-area-inset-bottom)), 
+      rgba(9, 33, 44, 0.95) 100%
+    );
   }
 
   #root {
@@ -92,6 +110,8 @@
   /* Prevent zoom on mobile */
   input, select, textarea {
     font-size: 16px !important;
+    /* منع التكبير عند التركيز */
+    -webkit-user-select: text;
   }
 
   /* Custom scrollbar */
@@ -298,4 +318,24 @@
 .comment-input-wrapper {
   position: relative;
   z-index: 1001 !important;
+}
+
+/* تحسين الفوتر مع المساحة الآمنة */
+.bottom-navigation-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+  background: linear-gradient(to bottom, 
+    rgba(9, 33, 44, 0.95) 0%, 
+    rgba(9, 33, 44, 0.95) 100%
+  );
+}
+
+/* منع التفاعل مع العناصر أثناء التحميل */
+.loading * {
+  pointer-events: none;
+}
+
+/* تحسين الأداء للتطبيقات المحمولة */
+* {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
