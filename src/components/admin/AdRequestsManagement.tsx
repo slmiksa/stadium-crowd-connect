@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,22 +72,47 @@ const AdRequestsManagement = () => {
         setStats(statsData[0]);
       }
 
-      // جلب طلبات الإعلانات
+      // جلب طلبات الإعلانات مع بيانات المستخدمين
       const { data: requestsData, error: requestsError } = await supabase
         .from('ad_requests')
         .select(`
-          *,
-          profiles!user_id(
-            username,
-            avatar_url
-          )
+          id,
+          ad_name,
+          phone_number,
+          image_url,
+          ad_link,
+          duration_hours,
+          price,
+          status,
+          admin_response,
+          created_at,
+          updated_at,
+          user_id
         `)
         .order('created_at', { ascending: false });
 
       if (requestsError) {
         console.error('Error fetching ad requests:', requestsError);
-      } else {
-        setAdRequests(requestsData || []);
+        setAdRequests([]);
+      } else if (requestsData) {
+        // جلب بيانات المستخدمين بشكل منفصل
+        const userIds = [...new Set(requestsData.map(req => req.user_id))];
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+        }
+
+        // دمج البيانات
+        const requestsWithProfiles = requestsData.map(request => ({
+          ...request,
+          profiles: profilesData?.find(profile => profile.id === request.user_id) || null
+        }));
+
+        setAdRequests(requestsWithProfiles);
       }
 
     } catch (error) {
