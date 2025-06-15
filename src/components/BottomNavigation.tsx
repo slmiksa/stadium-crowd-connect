@@ -96,7 +96,7 @@ const BottomNavigation = () => {
   }, [user]);
   return <nav style={{
     paddingBottom: 'env(safe-area-inset-bottom)'
-  }} className="fixed bottom-0 left-0 right-0 z-[100] backdrop-blur-md border-t border-zinc-800/30 bg-inherit">
+  }} className="fixed bottom-0 left-0 right-0 z-[100] backdrop-blur-md border-t border-zinc-800/30 bg-[#0f2828]">
       <div className="flex justify-around items-end w-full max-w-lg mx-auto h-16 bg-transparent pb-2">
         {tabs.map(tab => {
         const Icon = tab.icon;
