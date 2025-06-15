@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -52,37 +51,31 @@
     box-sizing: border-box;
   }
 
-  html, body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
+  html, body, #root {
+    width: 100%;
+    height: 100%;
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
-
-  #root {
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    overflow-x: hidden;
-    overflow-y: auto;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
   }
 
   html {
     scroll-behavior: smooth;
+    height: 100vh; /* Fallback */
+    height: 100dvh;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    position: fixed; /* Critical for controlling scroll behavior on mobile */
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  #root {
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Arabic Font Support */
@@ -121,64 +114,34 @@
   }
 }
 
-/* Full viewport layout */
-body {
-  touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
-  overflow-x: hidden;
-}
-
-/* Prevent bounce scrolling on iOS while allowing normal scrolling */
-html, body {
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
-}
-
 /* Enhanced full screen support */
 .min-h-screen {
-  min-height: 100vh !important;
-  min-height: 100dvh !important;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .h-screen {
-  height: 100vh !important;
-  height: 100dvh !important;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .h-full {
-  height: 100% !important;
+  height: 100%;
 }
 
 .w-full {
-  width: 100% !important;
+  width: 100%;
 }
 
-/* Zero margin/padding on main containers */
+/* Main container fix */
 .full-screen-container {
-  width: 100vw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
+  width: 100% !important;
+  min-height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-}
-
-/* Remove all margins and padding from pages */
-.page-container {
-  width: 100vw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow-x: hidden !important;
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 /* Safe area utilities for mobile */
