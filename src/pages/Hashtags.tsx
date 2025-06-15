@@ -303,7 +303,7 @@ const Hashtags = () => {
             <Hash size={24} className="text-blue-400" />
             <h1 className="text-xl md:text-2xl font-bold text-white">الهاشتاقات</h1>
           </div>
-          <div className="flex items-center space-x-2 space-x-reverse mx-[15px] my-[7px]">
+          <div className="flex items-center space-x-2 space-x-reverse py-0 rounded-sm px-[6px] mx-[13px] my-[16px]">
             <Button onClick={handleRefresh} disabled={isRefreshing} className="p-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-slate-50">
               <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
             </Button>
