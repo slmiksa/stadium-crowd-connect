@@ -123,10 +123,9 @@ const BottomNavigation = () => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur-md border-t border-zinc-800 pb-safe z-[60]"
+      className="fixed bottom-0 left-0 right-0 z-[100] bg-zinc-900/95 backdrop-blur-md border-t border-zinc-800"
       style={{
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        // تمت إزالة height لضبط الالتصاق بأسفل الشاشة تمامًا
       }}
     >
       <div className="flex justify-around items-center px-4 py-3">
@@ -144,6 +143,10 @@ const BottomNavigation = () => {
                   ? 'text-blue-400 bg-blue-950/50' 
                   : 'text-zinc-400 hover:text-zinc-300'
               }`}
+              style={{
+                // لإزالة أية هوامش متوارثة
+                marginBottom: 0,
+              }}
             >
               <div className="relative">
                 <Icon size={20} />
@@ -167,4 +170,3 @@ const BottomNavigation = () => {
 };
 
 export default BottomNavigation;
-
