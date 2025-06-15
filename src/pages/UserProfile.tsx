@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import HashtagPost from '@/components/HashtagPost';
 import VerificationBadge from '@/components/VerificationBadge';
-import { ArrowLeft, Users, Heart, MessageSquare, UserPlus, UserMinus, Megaphone } from 'lucide-react';
+import { ArrowLeft, Users, Heart, MessageSquare, UserPlus, UserMinus, Megaphone, Ban } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,6 +20,8 @@ interface UserProfileData {
   followers_count: number;
   following_count: number;
   verification_status?: string;
+  is_banned: boolean;
+  ban_reason?: string | null;
 }
 
 interface HashtagPost {
@@ -292,6 +293,33 @@ const UserProfile = () => {
           </div>
           <h2 className="text-2xl font-bold text-white mb-4">المستخدم غير موجود</h2>
           <p className="text-zinc-400 mb-6">عذراً، لم نتمكن من العثور على هذا المستخدم</p>
+          <Button
+            onClick={() => navigate(-1)}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 shadow-lg"
+          >
+            العودة
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (profile.is_banned) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center bg-zinc-950">
+          <div className="w-24 h-24 bg-gradient-to-br from-red-500 to-orange-500 rounded-full flex items-center justify-center mb-6 shadow-lg">
+            <Ban size={48} className="text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-4">هذا المستخدم محظور</h2>
+          <p className="text-zinc-400 mb-2">
+            تم حظر هذا المستخدم.
+          </p>
+          {profile.ban_reason && (
+            <p className="text-zinc-400 mb-6 bg-zinc-800/50 px-4 py-2 rounded-lg border border-zinc-700">
+              السبب: {profile.ban_reason}
+            </p>
+          )}
           <Button
             onClick={() => navigate(-1)}
             className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 shadow-lg"

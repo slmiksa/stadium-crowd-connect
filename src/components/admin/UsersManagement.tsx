@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -241,74 +240,20 @@ const UsersManagement = () => {
                       عرض الملف
                     </Button>
                     
-                    <Dialog open={isVerificationModalOpen && selectedUser?.id === user.id} onOpenChange={(isOpen) => {
-                      setIsVerificationModalOpen(isOpen);
-                      if (!isOpen) {
-                        setSelectedUser(null);
-                        setVerificationAction('');
-                      }
-                    }}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="text-blue-400 border-blue-400 hover:bg-blue-400/10 text-xs flex-1 sm:flex-none"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setIsVerificationModalOpen(true);
-                          }}
-                          disabled={user.is_banned}
-                        >
-                          <Shield className="h-3 w-3 mr-1" />
-                          توثيق
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="bg-zinc-900 border-zinc-800">
-                        <DialogHeader>
-                          <DialogTitle className="text-white">تحديث حالة التوثيق</DialogTitle>
-                          <DialogDescription className="text-zinc-400">
-                            اختر حالة التوثيق الجديدة للمستخدم {selectedUser?.username}
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <Select 
-                            value={verificationAction} 
-                            onValueChange={setVerificationAction}
-                          >
-                            <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
-                              <SelectValue placeholder="اختر حالة التوثيق" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-zinc-800 border-zinc-700">
-                              <SelectItem value="diamond">الماسي</SelectItem>
-                              <SelectItem value="gold">ذهبي</SelectItem>
-                              <SelectItem value="silver">فضي</SelectItem>
-                              <SelectItem value="bronze">برونزي</SelectItem>
-                              <SelectItem value="none">إلغاء التوثيق</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <div className="flex justify-end space-x-2 space-x-reverse">
-                            <Button
-                              variant="outline"
-                              onClick={() => setIsVerificationModalOpen(false)}
-                              className="text-white border-zinc-700 hover:bg-zinc-800"
-                            >
-                              إلغاء
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                if (selectedUser && verificationAction) {
-                                  updateVerificationStatus(selectedUser.id, verificationAction);
-                                }
-                              }}
-                              disabled={!verificationAction}
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              تحديث
-                            </Button>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="text-blue-400 border-blue-400 hover:bg-blue-400/10 text-xs flex-1 sm:flex-none"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setVerificationAction(user.verification_status || 'none');
+                        setIsVerificationModalOpen(true);
+                      }}
+                      disabled={user.is_banned}
+                    >
+                      <Shield className="h-3 w-3 mr-1" />
+                      توثيق
+                    </Button>
 
                     {user.is_banned ? (
                       <Button
@@ -320,66 +265,18 @@ const UsersManagement = () => {
                         رفع الحظر
                       </Button>
                     ) : (
-                      <Dialog open={isBanModalOpen && selectedUser?.id === user.id} onOpenChange={(isOpen) => {
-                        setIsBanModalOpen(isOpen);
-                        if (!isOpen) {
-                          setSelectedUser(null);
-                          setBanReason('');
-                        }
-                      }}>
-                        <DialogTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            className="text-xs flex-1 sm:flex-none"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setIsBanModalOpen(true);
-                            }}
-                          >
-                            <Ban className="h-3 w-3 mr-1" />
-                            حظر
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="bg-zinc-900 border-zinc-800">
-                          <DialogHeader>
-                            <DialogTitle className="text-white flex items-center">
-                              <AlertTriangle className="h-5 w-5 text-red-400 ml-2" />
-                              حظر المستخدم
-                            </DialogTitle>
-                            <DialogDescription className="text-zinc-400">
-                              هل أنت متأكد من رغبتك في حظر المستخدم {selectedUser?.username}؟ هذا الإجراء سيمنع المستخدم من الوصول للتطبيق.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <Input
-                              placeholder="سبب الحظر (اختياري)"
-                              value={banReason}
-                              onChange={(e) => setBanReason(e.target.value)}
-                              className="bg-zinc-800 border-zinc-700 text-white"
-                            />
-                            <div className="flex justify-end space-x-2 space-x-reverse">
-                              <Button
-                                variant="outline"
-                                onClick={() => setIsBanModalOpen(false)}
-                                className="text-white border-zinc-700 hover:bg-zinc-800"
-                              >
-                                إلغاء
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                onClick={() => {
-                                  if (selectedUser) {
-                                    banUser(selectedUser.id, banReason);
-                                  }
-                                }}
-                              >
-                                تأكيد الحظر
-                              </Button>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        className="text-xs flex-1 sm:flex-none"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setIsBanModalOpen(true);
+                        }}
+                      >
+                        <Ban className="h-3 w-3 mr-1" />
+                        حظر
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -395,6 +292,107 @@ const UsersManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isVerificationModalOpen} onOpenChange={(isOpen) => {
+        setIsVerificationModalOpen(isOpen);
+        if (!isOpen) {
+          setSelectedUser(null);
+          setVerificationAction('');
+        }
+      }}>
+        <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogHeader>
+            <DialogTitle className="text-white">تحديث حالة التوثيق</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              اختر حالة التوثيق الجديدة للمستخدم {selectedUser?.username}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select 
+              value={verificationAction} 
+              onValueChange={setVerificationAction}
+            >
+              <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
+                <SelectValue placeholder="اختر حالة التوثيق" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectItem value="diamond">الماسي</SelectItem>
+                <SelectItem value="gold">ذهبي</SelectItem>
+                <SelectItem value="silver">فضي</SelectItem>
+                <SelectItem value="bronze">برونزي</SelectItem>
+                <SelectItem value="none">إلغاء التوثيق</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex justify-end space-x-2 space-x-reverse">
+              <Button
+                variant="outline"
+                onClick={() => setIsVerificationModalOpen(false)}
+                className="text-white border-zinc-700 hover:bg-zinc-800"
+              >
+                إلغاء
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedUser && verificationAction) {
+                    updateVerificationStatus(selectedUser.id, verificationAction);
+                  }
+                }}
+                disabled={!verificationAction}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                تحديث
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isBanModalOpen} onOpenChange={(isOpen) => {
+        setIsBanModalOpen(isOpen);
+        if (!isOpen) {
+          setSelectedUser(null);
+          setBanReason('');
+        }
+      }}>
+        <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-400 ml-2" />
+              حظر المستخدم
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              هل أنت متأكد من رغبتك في حظر المستخدم {selectedUser?.username}؟ هذا الإجراء سيمنع المستخدم من الوصول للتطبيق.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="سبب الحظر (اختياري)"
+              value={banReason}
+              onChange={(e) => setBanReason(e.target.value)}
+              className="bg-zinc-800 border-zinc-700 text-white"
+            />
+            <div className="flex justify-end space-x-2 space-x-reverse">
+              <Button
+                variant="outline"
+                onClick={() => setIsBanModalOpen(false)}
+                className="text-white border-zinc-700 hover:bg-zinc-800"
+              >
+                إلغاء
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (selectedUser) {
+                    banUser(selectedUser.id, banReason);
+                  }
+                }}
+              >
+                تأكيد الحظر
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
