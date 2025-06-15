@@ -579,6 +579,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          ban_reason: string | null
           bio: string | null
           created_at: string | null
           email: string
@@ -586,12 +587,14 @@ export type Database = {
           followers_count: number | null
           following_count: number | null
           id: string
+          is_banned: boolean
           updated_at: string | null
           username: string
           verification_status: string | null
         }
         Insert: {
           avatar_url?: string | null
+          ban_reason?: string | null
           bio?: string | null
           created_at?: string | null
           email: string
@@ -599,12 +602,14 @@ export type Database = {
           followers_count?: number | null
           following_count?: number | null
           id: string
+          is_banned?: boolean
           updated_at?: string | null
           username: string
           verification_status?: string | null
         }
         Update: {
           avatar_url?: string | null
+          ban_reason?: string | null
           bio?: string | null
           created_at?: string | null
           email?: string
@@ -612,6 +617,7 @@ export type Database = {
           followers_count?: number | null
           following_count?: number | null
           id?: string
+          is_banned?: boolean
           updated_at?: string | null
           username?: string
           verification_status?: string | null

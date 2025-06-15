@@ -23,6 +23,8 @@ interface User {
   created_at: string;
   bio: string | null;
   favorite_team: string | null;
+  is_banned: boolean;
+  ban_reason: string | null;
 }
 
 const UsersManagement = () => {
@@ -31,8 +33,8 @@ const UsersManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isBanModalOpen, setIsBanModalOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [banReason, setBanReason] = useState('');
   const [verificationAction, setVerificationAction] = useState('');
   const { toast } = useToast();
@@ -97,8 +99,54 @@ const UsersManagement = () => {
       });
 
       fetchUsers();
+      setIsVerificationModalOpen(false);
     } catch (error) {
       console.error('Error:', error);
+    }
+  };
+
+  const banUser = async (userId: string, reason: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_banned: true, ban_reason: reason || 'لم يحدد سبب' })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error banning user:', error);
+        toast({ title: 'خطأ', description: 'فشل في حظر المستخدم', variant: 'destructive' });
+        return;
+      }
+      
+      toast({ title: 'تم الحظر', description: 'تم حظر المستخدم بنجاح' });
+      fetchUsers();
+      setIsBanModalOpen(false);
+      setBanReason('');
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error banning user:', error);
+      toast({ title: 'خطأ', description: 'حدث خطأ غير متوقع', variant: 'destructive' });
+    }
+  };
+
+  const unbanUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_banned: false, ban_reason: null })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error unbanning user:', error);
+        toast({ title: 'خطأ', description: 'فشل في رفع الحظر', variant: 'destructive' });
+        return;
+      }
+      
+      toast({ title: 'تم رفع الحظر', description: 'تم رفع الحظر عن المستخدم بنجاح' });
+      fetchUsers();
+    } catch (error) {
+      console.error('Error unbanning user:', error);
+      toast({ title: 'خطأ', description: 'حدث خطأ غير متوقع', variant: 'destructive' });
     }
   };
 
@@ -158,7 +206,7 @@ const UsersManagement = () => {
           <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
             <div className="space-y-3 p-4 md:p-6 pt-0">
               {filteredUsers.map((user) => (
-                <div key={user.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 bg-zinc-800 rounded-lg gap-3">
+                <div key={user.id} className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 bg-zinc-800 rounded-lg gap-3 ${user.is_banned ? 'opacity-70' : ''}`}>
                   <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
                     <Avatar className="h-10 w-10 md:h-12 md:w-12 flex-shrink-0">
                       <AvatarImage src={user.avatar_url || ''} />
@@ -170,6 +218,9 @@ const UsersManagement = () => {
                       <div className="flex items-center space-x-2 space-x-reverse flex-wrap gap-1">
                         <h3 className="font-medium text-white text-sm md:text-base truncate">{user.username}</h3>
                         {getVerificationBadge(user.verification_status)}
+                        {user.is_banned && (
+                          <Badge variant="destructive" className="text-xs">محظور</Badge>
+                        )}
                       </div>
                       <p className="text-xs md:text-sm text-zinc-400 truncate">{user.email}</p>
                       <div className="flex flex-wrap gap-2 md:gap-4 text-xs text-zinc-500">
@@ -190,13 +241,23 @@ const UsersManagement = () => {
                       عرض الملف
                     </Button>
                     
-                    <Dialog>
+                    <Dialog open={isVerificationModalOpen && selectedUser?.id === user.id} onOpenChange={(isOpen) => {
+                      setIsVerificationModalOpen(isOpen);
+                      if (!isOpen) {
+                        setSelectedUser(null);
+                        setVerificationAction('');
+                      }
+                    }}>
                       <DialogTrigger asChild>
                         <Button 
                           size="sm" 
                           variant="outline"
                           className="text-blue-400 border-blue-400 hover:bg-blue-400/10 text-xs flex-1 sm:flex-none"
-                          onClick={() => setSelectedUser(user)}
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsVerificationModalOpen(true);
+                          }}
+                          disabled={user.is_banned}
                         >
                           <Shield className="h-3 w-3 mr-1" />
                           توثيق
@@ -225,13 +286,10 @@ const UsersManagement = () => {
                               <SelectItem value="none">إلغاء التوثيق</SelectItem>
                             </SelectContent>
                           </Select>
-                          <div className="flex space-x-2 space-x-reverse">
+                          <div className="flex justify-end space-x-2 space-x-reverse">
                             <Button
                               variant="outline"
-                              onClick={() => {
-                                setVerificationAction('');
-                                setSelectedUser(null);
-                              }}
+                              onClick={() => setIsVerificationModalOpen(false)}
                               className="text-white border-zinc-700 hover:bg-zinc-800"
                             >
                               إلغاء
@@ -240,8 +298,6 @@ const UsersManagement = () => {
                               onClick={() => {
                                 if (selectedUser && verificationAction) {
                                   updateVerificationStatus(selectedUser.id, verificationAction);
-                                  setVerificationAction('');
-                                  setSelectedUser(null);
                                 }
                               }}
                               disabled={!verificationAction}
@@ -254,69 +310,77 @@ const UsersManagement = () => {
                       </DialogContent>
                     </Dialog>
 
-                    <Dialog open={isBanModalOpen} onOpenChange={setIsBanModalOpen}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          className="text-xs flex-1 sm:flex-none"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setIsBanModalOpen(true);
-                          }}
-                        >
-                          <Ban className="h-3 w-3 mr-1" />
-                          حظر
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="bg-zinc-900 border-zinc-800">
-                        <DialogHeader>
-                          <DialogTitle className="text-white flex items-center">
-                            <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
-                            حظر المستخدم
-                          </DialogTitle>
-                          <DialogDescription className="text-zinc-400">
-                            هل أنت متأكد من رغبتك في حظر المستخدم {selectedUser?.username}؟ هذا الإجراء سيمنع المستخدم من الوصول للتطبيق.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <Input
-                            placeholder="سبب الحظر (اختياري)"
-                            value={banReason}
-                            onChange={(e) => setBanReason(e.target.value)}
-                            className="bg-zinc-800 border-zinc-700 text-white"
-                          />
-                          <div className="flex space-x-2 space-x-reverse">
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setIsBanModalOpen(false);
-                                setBanReason('');
-                                setSelectedUser(null);
-                              }}
-                              className="text-white border-zinc-700 hover:bg-zinc-800"
-                            >
-                              إلغاء
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              onClick={() => {
-                                // TODO: Implement ban functionality
-                                toast({
-                                  title: 'قريباً',
-                                  description: 'ستتوفر هذه الميزة قريباً'
-                                });
-                                setIsBanModalOpen(false);
-                                setBanReason('');
-                                setSelectedUser(null);
-                              }}
-                            >
-                              تأكيد الحظر
-                            </Button>
+                    {user.is_banned ? (
+                      <Button
+                        size="sm"
+                        className="text-xs flex-1 sm:flex-none bg-green-600 hover:bg-green-700"
+                        onClick={() => unbanUser(user.id)}
+                      >
+                        <UserCheck className="h-3 w-3 mr-1" />
+                        رفع الحظر
+                      </Button>
+                    ) : (
+                      <Dialog open={isBanModalOpen && selectedUser?.id === user.id} onOpenChange={(isOpen) => {
+                        setIsBanModalOpen(isOpen);
+                        if (!isOpen) {
+                          setSelectedUser(null);
+                          setBanReason('');
+                        }
+                      }}>
+                        <DialogTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            className="text-xs flex-1 sm:flex-none"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setIsBanModalOpen(true);
+                            }}
+                          >
+                            <Ban className="h-3 w-3 mr-1" />
+                            حظر
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-zinc-900 border-zinc-800">
+                          <DialogHeader>
+                            <DialogTitle className="text-white flex items-center">
+                              <AlertTriangle className="h-5 w-5 text-red-400 ml-2" />
+                              حظر المستخدم
+                            </DialogTitle>
+                            <DialogDescription className="text-zinc-400">
+                              هل أنت متأكد من رغبتك في حظر المستخدم {selectedUser?.username}؟ هذا الإجراء سيمنع المستخدم من الوصول للتطبيق.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <Input
+                              placeholder="سبب الحظر (اختياري)"
+                              value={banReason}
+                              onChange={(e) => setBanReason(e.target.value)}
+                              className="bg-zinc-800 border-zinc-700 text-white"
+                            />
+                            <div className="flex justify-end space-x-2 space-x-reverse">
+                              <Button
+                                variant="outline"
+                                onClick={() => setIsBanModalOpen(false)}
+                                className="text-white border-zinc-700 hover:bg-zinc-800"
+                              >
+                                إلغاء
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                onClick={() => {
+                                  if (selectedUser) {
+                                    banUser(selectedUser.id, banReason);
+                                  }
+                                }}
+                              >
+                                تأكيد الحظر
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                        </DialogContent>
+                      </Dialog>
+                    )}
                   </div>
                 </div>
               ))}
