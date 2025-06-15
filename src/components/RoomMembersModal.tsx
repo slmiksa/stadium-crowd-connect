@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Crown, UserX, Ban, Shield, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -472,6 +473,193 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       </div>
     </div>
   );
+
+  const promoteToModerator = async (userId: string) => {
+    if (!isOwner || userId === roomOwner) return;
+
+    try {
+      const { data, error } = await supabase.rpc('promote_to_moderator', {
+        room_id_param: roomId,
+        user_id_param: userId,
+        promoter_id_param: user?.id
+      });
+
+      if (error) {
+        console.error('Error promoting to moderator:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في ترقية العضو",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data) {
+        toast({
+          title: "تم بنجاح",
+          description: "تم ترقية العضو إلى مشرف"
+        });
+        fetchRoomData();
+        onMembershipChange?.();
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const demoteFromModerator = async (userId: string) => {
+    if (!isOwner || userId === roomOwner) return;
+
+    try {
+      const { data, error } = await supabase.rpc('demote_from_moderator', {
+        room_id_param: roomId,
+        user_id_param: userId,
+        demoter_id_param: user?.id
+      });
+
+      if (error) {
+        console.error('Error demoting from moderator:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في تنزيل رتبة العضو",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data) {
+        toast({
+          title: "تم بنجاح",
+          description: "تم تنزيل رتبة العضو من مشرف"
+        });
+        fetchRoomData();
+        onMembershipChange?.();
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const banMember = async (userId: string) => {
+    if ((!isOwner && !isCurrentUserModerator()) || userId === roomOwner) return;
+
+    try {
+      const { error } = await supabase
+        .from('room_members')
+        .update({ is_banned: true })
+        .eq('room_id', roomId)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error banning member:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في حظر العضو",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "تم الحظر",
+        description: "تم حظر العضو من الغرفة"
+      });
+
+      fetchRoomData();
+      onMembershipChange?.();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const unbanMember = async (userId: string) => {
+    if ((!isOwner && !isCurrentUserModerator()) || userId === roomOwner) return;
+
+    try {
+      const { error } = await supabase
+        .from('room_members')
+        .update({ is_banned: false })
+        .eq('room_id', roomId)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error unbanning member:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في إلغاء حظر العضو",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "تم الإلغاء",
+        description: "تم إلغاء حظر العضو"
+      });
+
+      fetchRoomData();
+      onMembershipChange?.();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const kickMember = async (userId: string) => {
+    if ((!isOwner && !isCurrentUserModerator()) || userId === roomOwner) return;
+
+    try {
+      const { error } = await supabase
+        .from('room_members')
+        .delete()
+        .eq('room_id', roomId)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error kicking member:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في طرد العضو",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "تم الطرد",
+        description: "تم طرد العضو من الغرفة"
+      });
+
+      fetchRoomData();
+      onMembershipChange?.();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const isCurrentUserModerator = (): boolean => {
+    return members.some(member => 
+      member.user_id === user?.id && member.role === 'moderator'
+    );
+  };
+
+  const navigateToProfile = (userId: string) => {
+    onClose();
+    
+    if (userId === user?.id) {
+      navigate('/profile');
+    } else {
+      navigate(`/user-profile/${userId}`);
+    }
+  };
+
+  const formatJoinDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('ar-SA', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 };
 
 export default RoomMembersModal;
