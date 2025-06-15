@@ -123,12 +123,30 @@ const BottomNavigation = () => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-[100] bg-zinc-900/95 backdrop-blur-md border-t border-zinc-800"
+      className="
+        fixed bottom-0 left-0 right-0
+        z-[100]
+        bg-zinc-900/95
+        backdrop-blur-md
+        border-t border-zinc-800
+        flex items-center justify-center
+      "
       style={{
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)', // احترام الحواف فقط
+        paddingTop: 0,
+        margin: 0,
+        height: 'auto', // لا تفرض any height
+        boxSizing: 'border-box'
       }}
     >
-      <div className="flex justify-around items-center px-4 py-3">
+      <div
+        className="flex justify-around items-center w-full max-w-lg px-1 py-2"
+        style={{
+          margin: 0,
+          paddingBottom: 0,    // لا padding إضافي
+          paddingTop: 0
+        }}
+      >
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = location.pathname === tab.path;
@@ -144,8 +162,8 @@ const BottomNavigation = () => {
                   : 'text-zinc-400 hover:text-zinc-300'
               }`}
               style={{
-                // لإزالة أية هوامش متوارثة
-                marginBottom: 0,
+                marginBottom: 0, // لا توجد أي margin من الأسفل
+                marginTop: 0
               }}
             >
               <div className="relative">
