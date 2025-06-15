@@ -36,7 +36,7 @@ interface AdRequest {
   user_id: string;
   profiles?: {
     username: string;
-    avatar_url: string;
+    avatar_url: string | null;
   } | null;
 }
 
@@ -87,27 +87,7 @@ const AdRequestsManagement = () => {
       if (requestsError) {
         console.error('Error fetching ad requests:', requestsError);
       } else {
-        // Handle the case where profiles might be null or have errors
-        const processedRequests = (requestsData || []).map(request => {
-          // Type guard function to check if profiles is valid
-          const isValidProfile = (profiles: any): profiles is { username: string; avatar_url: string } => {
-            return profiles && 
-                   typeof profiles === 'object' && 
-                   !Array.isArray(profiles) &&
-                   !('error' in profiles) &&
-                   typeof profiles.username === 'string' &&
-                   typeof profiles.avatar_url === 'string';
-          };
-          
-          return {
-            ...request,
-            profiles: isValidProfile(request.profiles) ? {
-              username: request.profiles.username,
-              avatar_url: request.profiles.avatar_url
-            } : null
-          };
-        });
-        setAdRequests(processedRequests);
+        setAdRequests(requestsData || []);
       }
 
     } catch (error) {
