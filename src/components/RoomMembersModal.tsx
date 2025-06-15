@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, Crown, UserX, Ban, Shield, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +17,7 @@ interface Member {
   role: string;
   profiles: {
     username: string;
-    avatar_url?: string;
+    avatar_url?: string; // Make this optional to match the database schema
   };
 }
 
@@ -107,7 +106,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
             role: 'owner',
             profiles: {
               username: ownerProfile.username,
-              avatar_url: ownerProfile.avatar_url || undefined
+              avatar_url: ownerProfile.avatar_url // Now this matches the optional type
             }
           };
           
