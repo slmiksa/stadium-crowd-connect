@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,7 @@ interface AdRequest {
   phone_number: string;
   profiles: {
     username: string;
-  };
+  } | null;
 }
 
 interface RevenueDetailsModalProps {
@@ -145,7 +146,7 @@ const RevenueDetailsModal: React.FC<RevenueDetailsModalProps> = ({
                         <TableCell className="text-zinc-300">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-zinc-400" />
-                            {request.profiles.username || 'مستخدم مجهول'}
+                            {request.profiles?.username || 'مستخدم مجهول'}
                           </div>
                         </TableCell>
                         <TableCell className="text-green-400 font-medium">

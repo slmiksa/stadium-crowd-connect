@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,7 +38,7 @@ interface AdRequest {
   profiles: {
     username: string;
     avatar_url: string | null;
-  };
+  } | null;
 }
 
 interface AdRequestStats {
@@ -77,7 +78,7 @@ const AdRequestsManagement = () => {
         .from('ad_requests')
         .select(`
           *,
-          profiles!inner(
+          profiles!user_id(
             username,
             avatar_url
           )
@@ -329,7 +330,7 @@ const AdRequestsManagement = () => {
                           <TableCell className="text-zinc-300">
                             <div>
                               <div className="font-medium text-sm md:text-base">
-                                {request.profiles.username || 'مستخدم مجهول'}
+                                {request.profiles?.username || 'مستخدم مجهول'}
                               </div>
                               <div className="text-xs md:text-sm text-zinc-500">
                                 {request.phone_number}
