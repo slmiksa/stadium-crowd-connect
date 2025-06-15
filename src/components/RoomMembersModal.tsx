@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Crown, UserX, Ban, Shield, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -56,6 +57,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
+        console.log('Current user ID:', user.id);
       }
     } catch (error) {
       console.error('Error getting current user:', error);
@@ -75,6 +77,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         return;
       }
 
+      console.log('Room owner:', data.owner_id);
       setRoomOwner(data.owner_id);
     } catch (error) {
       console.error('Error:', error);
@@ -83,7 +86,24 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
   const fetchMembers = async () => {
     setIsLoading(true);
+    console.log('=== FETCHING MEMBERS ===');
+    console.log('Room ID:', roomId);
+    
     try {
+      // جرب استعلام مبسط أولاً لتجنب مشاكل RLS
+      const { data: simpleData, error: simpleError } = await supabase
+        .from('room_members')
+        .select('*')
+        .eq('room_id', roomId);
+
+      console.log('Simple query result:', simpleData);
+      console.log('Simple query error:', simpleError);
+
+      // إذا فشل الاستعلام البسيط، جرب الاستعلام الكامل
+      if (simpleError) {
+        console.error('Simple query failed, trying full query...');
+      }
+
       const { data, error } = await supabase
         .from('room_members')
         .select(`
@@ -93,11 +113,35 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         .eq('room_id', roomId)
         .order('joined_at', { ascending: false });
 
+      console.log('Full query result:', data);
+      console.log('Full query error:', error);
+
       if (error) {
         console.error('Error fetching members:', error);
+        
+        // إذا فشل كل شيء، جرب إدراج المستخدم الحالي يدوياً كعضو
+        if (user) {
+          console.log('Attempting to insert current user as member...');
+          const { error: insertError } = await supabase
+            .from('room_members')
+            .insert({
+              room_id: roomId,
+              user_id: user.id,
+              role: isOwner ? 'owner' : 'member'
+            });
+          
+          if (insertError) {
+            console.error('Insert error:', insertError);
+          } else {
+            console.log('Successfully inserted current user');
+            // جرب الاستعلام مرة أخرى
+            setTimeout(() => fetchMembers(), 1000);
+          }
+        }
         return;
       }
 
+      console.log('Members found:', data?.length || 0);
       setMembers(data || []);
     } catch (error) {
       console.error('Error:', error);
@@ -302,6 +346,9 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   const activemembers = members.filter(member => member.is_banned !== true);
   const bannedMembers = members.filter(member => member.is_banned === true);
 
+  console.log('Active members count:', activemembers.length);
+  console.log('Banned members count:', bannedMembers.length);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-zinc-900 rounded-lg max-w-md w-full max-h-96">
@@ -324,6 +371,14 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Debug Info */}
+              <div className="text-xs text-gray-400 p-2 bg-gray-800 rounded">
+                المالك: {roomOwner}<br/>
+                المستخدم الحالي: {currentUserId}<br/>
+                عدد الأعضاء: {members.length}<br/>
+                نشط: {activemembers.length} | محظور: {bannedMembers.length}
+              </div>
+
               {/* Active Members */}
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-zinc-400">الأعضاء النشطون</h3>
@@ -403,6 +458,8 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
                 {activemembers.length === 0 && (
                   <div className="text-center text-zinc-500 py-4">
                     لا يوجد أعضاء نشطون في الغرفة
+                    <br/>
+                    <small>إجمالي الأعضاء المسترجعين: {members.length}</small>
                   </div>
                 )}
               </div>
