@@ -143,6 +143,11 @@ const ChatRoom = () => {
 
       if (roomError) {
         console.error('Error fetching room info:', roomError);
+        toast({
+          title: "خطأ",
+          description: "لا يمكن العثور على الغرفة",
+          variant: "destructive"
+        });
         navigate('/chat-rooms');
         return;
       }
@@ -153,16 +158,8 @@ const ChatRoom = () => {
       const isOwner = roomData.owner_id === user.id;
       console.log('Is owner:', isOwner);
 
-      // If user is owner, ensure they are added as a member
-      if (isOwner) {
-        console.log('User is owner, ensuring membership...');
-        await ensureOwnerMembership(roomId, user.id);
-        setIsMember(true);
-        setIsBanned(false);
-      } else {
-        // For non-owners, check membership normally
-        await checkMembership();
-      }
+      // Check or create membership
+      await checkMembership();
 
       // Load all data
       await Promise.all([
@@ -176,63 +173,13 @@ const ChatRoom = () => {
       
     } catch (error) {
       console.error('Error in initializeRoom:', error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تحميل الغرفة",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const ensureOwnerMembership = async (roomId: string, userId: string) => {
-    try {
-      console.log('Ensuring owner membership for:', userId, 'in room:', roomId);
-      
-      // Check if owner is already a member
-      const { data: existingMember, error: checkError } = await supabase
-        .from('room_members')
-        .select('id, is_banned, role')
-        .eq('room_id', roomId)
-        .eq('user_id', userId)
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking owner membership:', checkError);
-        return;
-      }
-
-      if (!existingMember) {
-        // Owner is not a member, add them
-        console.log('Adding owner as member...');
-        const { error: insertError } = await supabase
-          .from('room_members')
-          .insert({
-            room_id: roomId,
-            user_id: userId,
-            role: 'member'
-          });
-
-        if (insertError && insertError.code !== '23505') {
-          console.error('Error adding owner as member:', insertError);
-        } else {
-          console.log('Owner added as member successfully');
-        }
-      } else {
-        console.log('Owner is already a member with role:', existingMember.role);
-        // If owner is banned, unban them
-        if (existingMember.is_banned) {
-          const { error: unbanError } = await supabase
-            .from('room_members')
-            .update({ is_banned: false })
-            .eq('room_id', roomId)
-            .eq('user_id', userId);
-
-          if (unbanError) {
-            console.error('Error unbanning owner:', unbanError);
-          } else {
-            console.log('Owner unbanned successfully');
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error in ensureOwnerMembership:', error);
     }
   };
 
@@ -242,12 +189,12 @@ const ChatRoom = () => {
     try {
       const { data: membershipData, error: membershipError } = await supabase
         .from('room_members')
-        .select('id, is_banned')
+        .select('id, is_banned, role')
         .eq('room_id', roomId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (membershipError && membershipError.code !== 'PGRST116') {
+      if (membershipError) {
         console.error('Error checking membership:', membershipError);
         return;
       }
@@ -256,8 +203,13 @@ const ChatRoom = () => {
         setIsMember(true);
         setIsBanned(membershipData.is_banned || false);
       } else {
-        setIsMember(false);
-        setIsBanned(false);
+        // If user is room owner but not a member, add them
+        if (roomInfo?.owner_id === user.id) {
+          await joinRoom();
+        } else {
+          setIsMember(false);
+          setIsBanned(false);
+        }
       }
     } catch (error) {
       console.error('Error in checkMembership:', error);
@@ -277,6 +229,16 @@ const ChatRoom = () => {
       if (error) {
         console.error('Error counting members:', error);
         return;
+      }
+
+      // Update member count in chat_rooms table
+      const { error: updateError } = await supabase
+        .from('chat_rooms')
+        .update({ members_count: count || 0 })
+        .eq('id', roomId);
+
+      if (updateError) {
+        console.error('Error updating member count:', updateError);
       }
 
       if (roomInfo) {
@@ -343,6 +305,11 @@ const ChatRoom = () => {
 
       if (error) {
         console.error('Error fetching messages:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في جلب الرسائل",
+          variant: "destructive"
+        });
         return;
       }
 
@@ -386,11 +353,17 @@ const ChatRoom = () => {
         .from('room_members')
         .insert({
           room_id: roomId,
-          user_id: user.id
+          user_id: user.id,
+          role: roomInfo?.owner_id === user.id ? 'owner' : 'member'
         });
 
-      if (error) {
+      if (error && error.code !== '23505') { // Ignore duplicate key error
         console.error('Error joining room:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في الانضمام للغرفة",
+          variant: "destructive"
+        });
         return;
       }
 
@@ -399,6 +372,11 @@ const ChatRoom = () => {
         updateMemberCount(),
         fetchUserRoles()
       ]);
+      
+      toast({
+        title: "تم الانضمام",
+        description: "تم الانضمام للغرفة بنجاح"
+      });
     } catch (error) {
       console.error('Error:', error);
     }
@@ -790,9 +768,14 @@ const ChatRoom = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-white mb-4">انضم للغرفة</h2>
           <p className="text-zinc-400 mb-6">يجب عليك الانضمام للغرفة لعرض الرسائل والمشاركة</p>
-          <Button onClick={joinRoom} className="bg-blue-500 hover:bg-blue-600">
-            الانضمام للغرفة
-          </Button>
+          <div className="space-y-4">
+            <Button onClick={joinRoom} className="bg-blue-500 hover:bg-blue-600">
+              الانضمام للغرفة
+            </Button>
+            <Button onClick={() => navigate('/chat-rooms')} variant="outline">
+              العودة للغرف
+            </Button>
+          </div>
         </div>
       </div>
     );

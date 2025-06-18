@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, Crown, UserX, Ban, Shield, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -53,7 +52,9 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   const fetchRoomData = async () => {
     setIsLoading(true);
     try {
-      // Fetch room owner and members in parallel
+      console.log('Fetching room data for room:', roomId);
+      
+      // Fetch room info and members
       const [roomResponse, membersResponse] = await Promise.all([
         supabase
           .from('chat_rooms')
@@ -64,7 +65,10 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
           .from('room_members')
           .select(`
             *,
-            profiles (username, avatar_url)
+            profiles!inner (
+              username,
+              avatar_url
+            )
           `)
           .eq('room_id', roomId)
           .order('joined_at', { ascending: false })
@@ -72,11 +76,21 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
       if (roomResponse.error) {
         console.error('Error fetching room owner:', roomResponse.error);
+        toast({
+          title: "خطأ",
+          description: "فشل في جلب معلومات الغرفة",
+          variant: "destructive"
+        });
         return;
       }
 
       if (membersResponse.error) {
         console.error('Error fetching members:', membersResponse.error);
+        toast({
+          title: "خطأ",
+          description: "فشل في جلب قائمة الأعضاء",
+          variant: "destructive"
+        });
         return;
       }
 
@@ -85,11 +99,20 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
       let allMembers = membersResponse.data || [];
 
+      // Ensure all members have proper avatar_url
+      allMembers = allMembers.map((member: any) => ({
+        ...member,
+        profiles: {
+          ...member.profiles,
+          avatar_url: member.profiles?.avatar_url || ''
+        }
+      }));
+
       // Check if owner is in members list
       const ownerInMembers = allMembers.find(member => member.user_id === ownerId);
       
       if (!ownerInMembers) {
-        // Fetch owner profile
+        // Fetch owner profile and add as member
         const { data: ownerProfile, error: ownerError } = await supabase
           .from('profiles')
           .select('username, avatar_url')
@@ -97,7 +120,6 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
           .single();
 
         if (!ownerError && ownerProfile) {
-          // Add owner as first member with proper type structure
           const ownerMember: Member = {
             id: `owner-${ownerId}`,
             user_id: ownerId,
@@ -123,13 +145,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       }
 
       console.log('Members fetched successfully:', allMembers.length, 'members');
-      setMembers(allMembers.map((m: any) => ({
-        ...m,
-        profiles: {
-          ...m.profiles,
-          avatar_url: m.profiles?.avatar_url || ''
-        }
-      })));
+      setMembers(allMembers);
       
     } catch (error) {
       console.error('Error in fetchRoomData:', error);
@@ -163,14 +179,12 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         return;
       }
 
-      if (data) {
-        toast({
-          title: "تم بنجاح",
-          description: "تم ترقية العضو إلى مشرف"
-        });
-        fetchRoomData();
-        onMembershipChange?.();
-      }
+      toast({
+        title: "تم بنجاح",
+        description: "تم ترقية العضو إلى مشرف"
+      });
+      fetchRoomData();
+      onMembershipChange?.();
     } catch (error) {
       console.error('Error:', error);
     }
@@ -196,14 +210,12 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         return;
       }
 
-      if (data) {
-        toast({
-          title: "تم بنجاح",
-          description: "تم تنزيل رتبة العضو من مشرف"
-        });
-        fetchRoomData();
-        onMembershipChange?.();
-      }
+      toast({
+        title: "تم بنجاح",
+        description: "تم تنزيل رتبة العضو من مشرف"
+      });
+      fetchRoomData();
+      onMembershipChange?.();
     } catch (error) {
       console.error('Error:', error);
     }
