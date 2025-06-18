@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -71,6 +72,7 @@ const ChatRoom = () => {
 
   useEffect(() => {
     if (roomId && user) {
+      console.log('🚀 Initializing room:', roomId, 'for user:', user.id);
       initializeRoom();
     }
   }, [roomId, user]);
@@ -94,7 +96,6 @@ const ChatRoom = () => {
           (payload) => {
             console.log('Membership change:', payload);
             if (payload.eventType === 'DELETE' && payload.old?.room_id === roomId) {
-              // Only show kicked message for non-owners
               if (roomInfo?.owner_id !== user.id) {
                 toast({
                   title: "تم إخراجك",
@@ -104,7 +105,6 @@ const ChatRoom = () => {
                 navigate('/chat-rooms');
               }
             } else if (payload.eventType === 'UPDATE' && payload.new?.is_banned === true && payload.new?.room_id === roomId) {
-              // Only show banned message for non-owners
               if (roomInfo?.owner_id !== user.id) {
                 toast({
                   title: "تم حظرك",
@@ -132,9 +132,9 @@ const ChatRoom = () => {
     if (!roomId || !user) return;
     
     try {
-      console.log('Initializing room for user:', user.id, 'room:', roomId);
+      console.log('🔄 Fetching room info for room:', roomId);
       
-      // First get room info
+      // Get room info
       const { data: roomData, error: roomError } = await supabase
         .from('chat_rooms')
         .select('*')
@@ -142,7 +142,7 @@ const ChatRoom = () => {
         .single();
 
       if (roomError) {
-        console.error('Error fetching room info:', roomError);
+        console.error('❌ Error fetching room:', roomError);
         toast({
           title: "خطأ",
           description: "لا يمكن العثور على الغرفة",
@@ -152,27 +152,24 @@ const ChatRoom = () => {
         return;
       }
 
-      console.log('Room data:', roomData);
+      console.log('✅ Room data loaded:', roomData);
       setRoomInfo(roomData);
 
       const isOwner = roomData.owner_id === user.id;
-      console.log('Is owner:', isOwner);
+      console.log('👑 Is owner:', isOwner);
 
-      // Check or create membership
-      await checkMembership();
-
-      // Load all data
+      // Load data
       await Promise.all([
         fetchMessages(),
         fetchUserRoles(),
         fetchCurrentUserProfile(),
-        updateMemberCount()
+        checkMembership()
       ]);
 
       setupRealtimeSubscription();
       
     } catch (error) {
-      console.error('Error in initializeRoom:', error);
+      console.error('💥 Error in initializeRoom:', error);
       toast({
         title: "خطأ",
         description: "حدث خطأ أثناء تحميل الغرفة",
@@ -187,6 +184,8 @@ const ChatRoom = () => {
     if (!roomId || !user) return;
     
     try {
+      console.log('🔍 Checking membership for user:', user.id, 'in room:', roomId);
+      
       const { data: membershipData, error: membershipError } = await supabase
         .from('room_members')
         .select('id, is_banned, role')
@@ -195,57 +194,29 @@ const ChatRoom = () => {
         .maybeSingle();
 
       if (membershipError) {
-        console.error('Error checking membership:', membershipError);
+        console.error('❌ Error checking membership:', membershipError);
         return;
       }
+
+      console.log('📋 Membership data:', membershipData);
 
       if (membershipData) {
         setIsMember(true);
         setIsBanned(membershipData.is_banned || false);
+        console.log('✅ User is member, banned:', membershipData.is_banned);
       } else {
         // If user is room owner but not a member, add them
         if (roomInfo?.owner_id === user.id) {
+          console.log('👑 Owner not in members, adding...');
           await joinRoom();
         } else {
           setIsMember(false);
           setIsBanned(false);
+          console.log('❌ User is not a member');
         }
       }
     } catch (error) {
-      console.error('Error in checkMembership:', error);
-    }
-  };
-
-  const updateMemberCount = async () => {
-    if (!roomId) return;
-    
-    try {
-      const { count, error } = await supabase
-        .from('room_members')
-        .select('*', { count: 'exact', head: true })
-        .eq('room_id', roomId)
-        .eq('is_banned', false);
-
-      if (error) {
-        console.error('Error counting members:', error);
-        return;
-      }
-
-      // Update member count in chat_rooms table
-      const { error: updateError } = await supabase
-        .from('chat_rooms')
-        .update({ members_count: count || 0 })
-        .eq('id', roomId);
-
-      if (updateError) {
-        console.error('Error updating member count:', updateError);
-      }
-
-      if (roomInfo) {
-        setRoomInfo({ ...roomInfo, members_count: count || 0 });
-      }
-    } catch (error) {
-      console.error('Error in updateMemberCount:', error);
+      console.error('💥 Error in checkMembership:', error);
     }
   };
 
@@ -253,19 +224,22 @@ const ChatRoom = () => {
     if (!roomId) return;
     
     try {
+      console.log('👥 Fetching user roles for room:', roomId);
+      
       const { data, error } = await supabase
         .from('room_members')
         .select('user_id, role')
         .eq('room_id', roomId);
 
       if (error) {
-        console.error('Error fetching user roles:', error);
+        console.error('❌ Error fetching user roles:', error);
         return;
       }
 
+      console.log('✅ User roles loaded:', data?.length || 0, 'roles');
       setUserRoles(data || []);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('💥 Error in fetchUserRoles:', error);
     }
   };
 
@@ -286,7 +260,7 @@ const ChatRoom = () => {
     if (!roomId) return;
     
     try {
-      console.log('Fetching messages for room:', roomId);
+      console.log('💬 Fetching messages for room:', roomId);
       
       const { data, error } = await supabase
         .from('room_messages')
@@ -304,7 +278,7 @@ const ChatRoom = () => {
         .limit(50);
 
       if (error) {
-        console.error('Error fetching messages:', error);
+        console.error('❌ Error fetching messages:', error);
         toast({
           title: "خطأ",
           description: "فشل في جلب الرسائل",
@@ -313,15 +287,17 @@ const ChatRoom = () => {
         return;
       }
 
-      console.log('Messages fetched successfully:', data?.length || 0, 'messages');
+      console.log('✅ Messages loaded:', data?.length || 0, 'messages');
       setMessages(data?.reverse() || []);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('💥 Error in fetchMessages:', error);
     }
   };
 
   const setupRealtimeSubscription = () => {
     if (!roomId) return;
+    
+    console.log('📡 Setting up real-time subscription for room:', roomId);
     
     const channel = supabase
       .channel('room-messages')
@@ -334,7 +310,7 @@ const ChatRoom = () => {
           filter: `room_id=eq.${roomId}`
         },
         (payload) => {
-          console.log('Real-time message received:', payload);
+          console.log('📨 Real-time message received:', payload);
           fetchMessages();
         }
       )
@@ -349,6 +325,8 @@ const ChatRoom = () => {
     if (!roomId || !user) return;
     
     try {
+      console.log('🚪 Joining room:', roomId, 'as user:', user.id);
+      
       const { error } = await supabase
         .from('room_members')
         .insert({
@@ -357,8 +335,8 @@ const ChatRoom = () => {
           role: roomInfo?.owner_id === user.id ? 'owner' : 'member'
         });
 
-      if (error && error.code !== '23505') { // Ignore duplicate key error
-        console.error('Error joining room:', error);
+      if (error && error.code !== '23505') {
+        console.error('❌ Error joining room:', error);
         toast({
           title: "خطأ",
           description: "فشل في الانضمام للغرفة",
@@ -367,34 +345,29 @@ const ChatRoom = () => {
         return;
       }
 
+      console.log('✅ Successfully joined room');
       setIsMember(true);
-      await Promise.all([
-        updateMemberCount(),
-        fetchUserRoles()
-      ]);
+      await fetchUserRoles();
       
       toast({
         title: "تم الانضمام",
         description: "تم الانضمام للغرفة بنجاح"
       });
     } catch (error) {
-      console.error('Error:', error);
+      console.error('💥 Error in joinRoom:', error);
     }
   };
 
   const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
-    console.log('=== CHATROOM SEND MESSAGE ===');
-    console.log('Content:', content);
-    console.log('Media file:', mediaFile ? `${mediaFile.name} (${mediaFile.size} bytes, type: ${mediaFile.type})` : 'none');
-    console.log('Media type:', mediaType);
+    console.log('📤 Sending message:', { content, hasMedia: !!mediaFile, mediaType });
 
     if (!content.trim() && !mediaFile) {
-      console.log('No content or media to send');
+      console.log('❌ No content or media to send');
       return;
     }
     
     if (!user) {
-      console.log('No user found');
+      console.log('❌ No user found');
       return;
     }
 
@@ -420,35 +393,24 @@ const ChatRoom = () => {
           throw new Error(validation.error);
         }
 
-        console.log('=== STARTING MEDIA UPLOAD IN CHATROOM ===');
-        console.log('File details:', {
-          name: mediaFile.name,
-          size: mediaFile.size,
-          type: mediaFile.type,
-          mediaType: mediaType
-        });
+        console.log('📁 Uploading media file...');
         
         try {
           const uploadResult = await uploadChatMedia(mediaFile, user.id, 'room');
-          console.log('Upload result:', uploadResult);
+          console.log('✅ Media uploaded:', uploadResult);
           
           if (mediaType === 'voice') {
             voiceUrl = uploadResult.url;
             finalMediaType = 'voice';
-            console.log('Voice URL set:', voiceUrl);
           } else if (mediaFile.type.startsWith('image/')) {
             mediaUrl = uploadResult.url;
             finalMediaType = 'image';
-            console.log('Image URL set:', mediaUrl);
           } else if (mediaFile.type.startsWith('video/')) {
             mediaUrl = uploadResult.url;
             finalMediaType = 'video';
-            console.log('Video URL set:', mediaUrl);
           }
-          
-          console.log('Final media type:', finalMediaType);
         } catch (uploadError) {
-          console.error('Upload failed:', uploadError);
+          console.error('❌ Upload failed:', uploadError);
           throw new Error(`فشل في رفع الملف: ${uploadError.message}`);
         }
       }
@@ -467,17 +429,14 @@ const ChatRoom = () => {
       if (voiceUrl) {
         messageData.voice_url = voiceUrl;
         messageData.voice_duration = 0;
-        console.log('Added voice data to message:', { voice_url: voiceUrl });
       }
       
       if (mediaUrl) {
         messageData.media_url = mediaUrl;
         messageData.media_type = finalMediaType;
-        console.log('Added media data to message:', { media_url: mediaUrl, media_type: finalMediaType });
       }
 
-      console.log('=== INSERTING MESSAGE TO DATABASE ===');
-      console.log('Final message data:', messageData);
+      console.log('💾 Inserting message to database:', messageData);
 
       const { data: insertData, error: insertError } = await supabase
         .from('room_messages')
@@ -486,11 +445,11 @@ const ChatRoom = () => {
         .single();
 
       if (insertError) {
-        console.error('Insert error:', insertError);
+        console.error('❌ Insert error:', insertError);
         throw new Error(`فشل في إرسال الرسالة: ${insertError.message}`);
       }
 
-      console.log('Message inserted successfully:', insertData);
+      console.log('✅ Message sent successfully:', insertData);
       setQuotedMessage(null);
       await fetchMessages();
       
@@ -500,7 +459,7 @@ const ChatRoom = () => {
       });
       
     } catch (error) {
-      console.error('Error in sendMessage:', error);
+      console.error('💥 Error in sendMessage:', error);
       toast({
         title: "خطأ في الإرسال",
         description: error.message || 'فشل في إرسال الرسالة',
@@ -922,7 +881,6 @@ const ChatRoom = () => {
           onClose={() => setShowMembersModal(false)}
           isOwner={isRoomOwner}
           onMembershipChange={() => {
-            updateMemberCount();
             fetchUserRoles();
           }}
         />
