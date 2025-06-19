@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Crown, UserX, Ban, Shield, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -54,28 +55,15 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
     try {
       console.log('Fetching room data for room:', roomId);
       
-      // Fetch room info and members
-      const [roomResponse, membersResponse] = await Promise.all([
-        supabase
-          .from('chat_rooms')
-          .select('owner_id')
-          .eq('id', roomId)
-          .single(),
-        supabase
-          .from('room_members')
-          .select(`
-            *,
-            profiles!inner (
-              username,
-              avatar_url
-            )
-          `)
-          .eq('room_id', roomId)
-          .order('joined_at', { ascending: false })
-      ]);
+      // Get room owner first
+      const { data: roomData, error: roomError } = await supabase
+        .from('chat_rooms')
+        .select('owner_id')
+        .eq('id', roomId)
+        .single();
 
-      if (roomResponse.error) {
-        console.error('Error fetching room owner:', roomResponse.error);
+      if (roomError) {
+        console.error('Error fetching room owner:', roomError);
         toast({
           title: "خطأ",
           description: "فشل في جلب معلومات الغرفة",
@@ -84,8 +72,24 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         return;
       }
 
-      if (membersResponse.error) {
-        console.error('Error fetching members:', membersResponse.error);
+      const ownerId = roomData.owner_id;
+      setRoomOwner(ownerId);
+
+      // Get all members with their profiles
+      const { data: membersData, error: membersError } = await supabase
+        .from('room_members')
+        .select(`
+          *,
+          profiles!inner (
+            username,
+            avatar_url
+          )
+        `)
+        .eq('room_id', roomId)
+        .order('joined_at', { ascending: false });
+
+      if (membersError) {
+        console.error('Error fetching members:', membersError);
         toast({
           title: "خطأ",
           description: "فشل في جلب قائمة الأعضاء",
@@ -94,10 +98,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         return;
       }
 
-      const ownerId = roomResponse.data.owner_id;
-      setRoomOwner(ownerId);
-
-      let allMembers = membersResponse.data || [];
+      let allMembers = membersData || [];
 
       // Ensure all members have proper avatar_url
       allMembers = allMembers.map((member: any) => ({

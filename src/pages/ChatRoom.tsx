@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -134,7 +133,7 @@ const ChatRoom = () => {
     try {
       console.log('🔄 Fetching room info for room:', roomId);
       
-      // Get room info
+      // Get room info first
       const { data: roomData, error: roomError } = await supabase
         .from('chat_rooms')
         .select('*')
@@ -155,16 +154,88 @@ const ChatRoom = () => {
       console.log('✅ Room data loaded:', roomData);
       setRoomInfo(roomData);
 
-      const isOwner = roomData.owner_id === user.id;
-      console.log('👑 Is owner:', isOwner);
-
-      // Load data
-      await Promise.all([
-        fetchMessages(),
-        fetchUserRoles(),
-        fetchCurrentUserProfile(),
-        checkMembership()
+      // Load all data in parallel
+      const [messagesResult, rolesResult, profileResult, membershipResult] = await Promise.all([
+        supabase
+          .from('room_messages')
+          .select(`
+            *,
+            profiles:user_id (
+              id,
+              username,
+              avatar_url,
+              verification_status
+            )
+          `)
+          .eq('room_id', roomId)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        
+        supabase
+          .from('room_members')
+          .select('user_id, role')
+          .eq('room_id', roomId),
+          
+        supabase
+          .from('profiles')
+          .select('username, avatar_url, verification_status')
+          .eq('id', user.id)
+          .single(),
+          
+        supabase
+          .from('room_members')
+          .select('id, is_banned, role')
+          .eq('room_id', roomId)
+          .eq('user_id', user.id)
+          .maybeSingle()
       ]);
+
+      // Handle messages
+      if (messagesResult.error) {
+        console.error('❌ Error fetching messages:', messagesResult.error);
+      } else {
+        console.log('✅ Messages loaded:', messagesResult.data?.length || 0, 'messages');
+        setMessages(messagesResult.data?.reverse() || []);
+      }
+
+      // Handle user roles
+      if (rolesResult.error) {
+        console.error('❌ Error fetching user roles:', rolesResult.error);
+      } else {
+        console.log('✅ User roles loaded:', rolesResult.data?.length || 0, 'roles');
+        setUserRoles(rolesResult.data || []);
+      }
+
+      // Handle current user profile
+      if (profileResult.error) {
+        console.error('❌ Error fetching current user profile:', profileResult.error);
+      } else {
+        setCurrentUserProfile(profileResult.data);
+      }
+
+      // Handle membership
+      if (membershipResult.error) {
+        console.error('❌ Error checking membership:', membershipResult.error);
+      } else {
+        const membershipData = membershipResult.data;
+        console.log('📋 Membership data:', membershipData);
+
+        if (membershipData) {
+          setIsMember(true);
+          setIsBanned(membershipData.is_banned || false);
+          console.log('✅ User is member, banned:', membershipData.is_banned);
+        } else {
+          // If user is room owner but not a member, add them
+          if (roomData.owner_id === user.id) {
+            console.log('👑 Owner not in members, adding...');
+            await joinRoom();
+          } else {
+            setIsMember(false);
+            setIsBanned(false);
+            console.log('❌ User is not a member');
+          }
+        }
+      }
 
       setupRealtimeSubscription();
       
@@ -180,69 +251,6 @@ const ChatRoom = () => {
     }
   };
 
-  const checkMembership = async () => {
-    if (!roomId || !user) return;
-    
-    try {
-      console.log('🔍 Checking membership for user:', user.id, 'in room:', roomId);
-      
-      const { data: membershipData, error: membershipError } = await supabase
-        .from('room_members')
-        .select('id, is_banned, role')
-        .eq('room_id', roomId)
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (membershipError) {
-        console.error('❌ Error checking membership:', membershipError);
-        return;
-      }
-
-      console.log('📋 Membership data:', membershipData);
-
-      if (membershipData) {
-        setIsMember(true);
-        setIsBanned(membershipData.is_banned || false);
-        console.log('✅ User is member, banned:', membershipData.is_banned);
-      } else {
-        // If user is room owner but not a member, add them
-        if (roomInfo?.owner_id === user.id) {
-          console.log('👑 Owner not in members, adding...');
-          await joinRoom();
-        } else {
-          setIsMember(false);
-          setIsBanned(false);
-          console.log('❌ User is not a member');
-        }
-      }
-    } catch (error) {
-      console.error('💥 Error in checkMembership:', error);
-    }
-  };
-
-  const fetchUserRoles = async () => {
-    if (!roomId) return;
-    
-    try {
-      console.log('👥 Fetching user roles for room:', roomId);
-      
-      const { data, error } = await supabase
-        .from('room_members')
-        .select('user_id, role')
-        .eq('room_id', roomId);
-
-      if (error) {
-        console.error('❌ Error fetching user roles:', error);
-        return;
-      }
-
-      console.log('✅ User roles loaded:', data?.length || 0, 'roles');
-      setUserRoles(data || []);
-    } catch (error) {
-      console.error('💥 Error in fetchUserRoles:', error);
-    }
-  };
-
   const getUserRole = (userId: string): string => {
     const userRole = userRoles.find(role => role.user_id === userId);
     return userRole?.role || 'member';
@@ -254,44 +262,6 @@ const ChatRoom = () => {
 
   const isModerator = (userId: string): boolean => {
     return getUserRole(userId) === 'moderator';
-  };
-
-  const fetchMessages = async () => {
-    if (!roomId) return;
-    
-    try {
-      console.log('💬 Fetching messages for room:', roomId);
-      
-      const { data, error } = await supabase
-        .from('room_messages')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            username,
-            avatar_url,
-            verification_status
-          )
-        `)
-        .eq('room_id', roomId)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) {
-        console.error('❌ Error fetching messages:', error);
-        toast({
-          title: "خطأ",
-          description: "فشل في جلب الرسائل",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('✅ Messages loaded:', data?.length || 0, 'messages');
-      setMessages(data?.reverse() || []);
-    } catch (error) {
-      console.error('💥 Error in fetchMessages:', error);
-    }
   };
 
   const setupRealtimeSubscription = () => {
@@ -321,6 +291,39 @@ const ChatRoom = () => {
     };
   };
 
+  const fetchMessages = async () => {
+    if (!roomId) return;
+    
+    try {
+      console.log('💬 Fetching messages for room:', roomId);
+      
+      const { data, error } = await supabase
+        .from('room_messages')
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            username,
+            avatar_url,
+            verification_status
+          )
+        `)
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('❌ Error fetching messages:', error);
+        return;
+      }
+
+      console.log('✅ Messages loaded:', data?.length || 0, 'messages');
+      setMessages(data?.reverse() || []);
+    } catch (error) {
+      console.error('💥 Error in fetchMessages:', error);
+    }
+  };
+
   const joinRoom = async () => {
     if (!roomId || !user) return;
     
@@ -347,7 +350,16 @@ const ChatRoom = () => {
 
       console.log('✅ Successfully joined room');
       setIsMember(true);
-      await fetchUserRoles();
+      
+      // Refresh user roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('room_members')
+        .select('user_id, role')
+        .eq('room_id', roomId);
+
+      if (!rolesError) {
+        setUserRoles(rolesData || []);
+      }
       
       toast({
         title: "تم الانضمام",
@@ -881,7 +893,16 @@ const ChatRoom = () => {
           onClose={() => setShowMembersModal(false)}
           isOwner={isRoomOwner}
           onMembershipChange={() => {
-            fetchUserRoles();
+            // Refresh user roles
+            supabase
+              .from('room_members')
+              .select('user_id, role')
+              .eq('room_id', roomId)
+              .then(({ data, error }) => {
+                if (!error) {
+                  setUserRoles(data || []);
+                }
+              });
           }}
         />
       )}
