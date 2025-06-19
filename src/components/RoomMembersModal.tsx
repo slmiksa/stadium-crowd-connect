@@ -46,14 +46,14 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
   useEffect(() => {
     if (isOpen && roomId) {
-      fetchRoomData();
+      fetchMembers();
     }
   }, [isOpen, roomId]);
 
-  const fetchRoomData = async () => {
+  const fetchMembers = async () => {
     setIsLoading(true);
     try {
-      console.log('Fetching room data for room:', roomId);
+      console.log('Fetching members for room:', roomId);
       
       // Get room owner first
       const { data: roomData, error: roomError } = await supabase
@@ -63,7 +63,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         .single();
 
       if (roomError) {
-        console.error('Error fetching room owner:', roomError);
+        console.error('Error fet ching room owner:', roomError);
         toast({
           title: "خطأ",
           description: "فشل في جلب معلومات الغرفة",
@@ -72,15 +72,14 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         return;
       }
 
-      const ownerId = roomData.owner_id;
-      setRoomOwner(ownerId);
+      setRoomOwner(roomData.owner_id);
 
       // Get all members with their profiles
       const { data: membersData, error: membersError } = await supabase
         .from('room_members')
         .select(`
           *,
-          profiles!inner (
+          profiles (
             username,
             avatar_url
           )
@@ -100,36 +99,36 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
 
       let allMembers = membersData || [];
 
-      // Ensure all members have proper avatar_url
-      allMembers = allMembers.map((member: any) => ({
+      // Ensure all members have proper profiles
+      allMembers = allMembers.filter(member => member.profiles).map((member: any) => ({
         ...member,
         profiles: {
-          ...member.profiles,
+          username: member.profiles?.username || 'مستخدم مجهول',
           avatar_url: member.profiles?.avatar_url || ''
         }
       }));
 
       // Check if owner is in members list
-      const ownerInMembers = allMembers.find(member => member.user_id === ownerId);
+      const ownerInMembers = allMembers.find(member => member.user_id === roomData.owner_id);
       
       if (!ownerInMembers) {
         // Fetch owner profile and add as member
         const { data: ownerProfile, error: ownerError } = await supabase
           .from('profiles')
           .select('username, avatar_url')
-          .eq('id', ownerId)
+          .eq('id', roomData.owner_id)
           .single();
 
         if (!ownerError && ownerProfile) {
           const ownerMember: Member = {
-            id: `owner-${ownerId}`,
-            user_id: ownerId,
+            id: `owner-${roomData.owner_id}`,
+            user_id: roomData.owner_id,
             room_id: roomId,
             joined_at: new Date().toISOString(),
             is_banned: false,
             role: 'owner',
             profiles: {
-              username: ownerProfile.username,
+              username: ownerProfile.username || 'صاحب الغرفة',
               avatar_url: ownerProfile.avatar_url || ''
             }
           };
@@ -139,7 +138,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       } else {
         // Update owner's role in the list
         allMembers = allMembers.map(member => 
-          member.user_id === ownerId 
+          member.user_id === roomData.owner_id 
             ? { ...member, role: 'owner' }
             : member
         );
@@ -149,7 +148,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       setMembers(allMembers);
       
     } catch (error) {
-      console.error('Error in fetchRoomData:', error);
+      console.error('Error in fetchMembers:', error);
       toast({
         title: "خطأ",
         description: "حدث خطأ أثناء جلب قائمة الأعضاء",
@@ -160,70 +159,8 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
     }
   };
 
-  const promoteToModerator = async (userId: string) => {
-    if (!isOwner || userId === roomOwner) return;
-
-    try {
-      const { data, error } = await supabase.rpc('promote_to_moderator', {
-        room_id_param: roomId,
-        user_id_param: userId,
-        promoter_id_param: user?.id
-      });
-
-      if (error) {
-        console.error('Error promoting to moderator:', error);
-        toast({
-          title: "خطأ",
-          description: "فشل في ترقية العضو",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "تم بنجاح",
-        description: "تم ترقية العضو إلى مشرف"
-      });
-      fetchRoomData();
-      onMembershipChange?.();
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
-  const demoteFromModerator = async (userId: string) => {
-    if (!isOwner || userId === roomOwner) return;
-
-    try {
-      const { data, error } = await supabase.rpc('demote_from_moderator', {
-        room_id_param: roomId,
-        user_id_param: userId,
-        demoter_id_param: user?.id
-      });
-
-      if (error) {
-        console.error('Error demoting from moderator:', error);
-        toast({
-          title: "خطأ",
-          description: "فشل في تنزيل رتبة العضو",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "تم بنجاح",
-        description: "تم تنزيل رتبة العضو من مشرف"
-      });
-      fetchRoomData();
-      onMembershipChange?.();
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
   const banMember = async (userId: string) => {
-    if ((!isOwner && !isCurrentUserModerator()) || userId === roomOwner) return;
+    if (!isOwner || userId === roomOwner) return;
 
     try {
       const { error } = await supabase
@@ -247,7 +184,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         description: "تم حظر العضو من الغرفة"
       });
 
-      fetchRoomData();
+      fetchMembers();
       onMembershipChange?.();
     } catch (error) {
       console.error('Error:', error);
@@ -255,7 +192,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   };
 
   const unbanMember = async (userId: string) => {
-    if ((!isOwner && !isCurrentUserModerator()) || userId === roomOwner) return;
+    if (!isOwner || userId === roomOwner) return;
 
     try {
       const { error } = await supabase
@@ -279,7 +216,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         description: "تم إلغاء حظر العضو"
       });
 
-      fetchRoomData();
+      fetchMembers();
       onMembershipChange?.();
     } catch (error) {
       console.error('Error:', error);
@@ -287,7 +224,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   };
 
   const kickMember = async (userId: string) => {
-    if ((!isOwner && !isCurrentUserModerator()) || userId === roomOwner) return;
+    if (!isOwner || userId === roomOwner) return;
 
     try {
       const { error } = await supabase
@@ -311,17 +248,11 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         description: "تم طرد العضو من الغرفة"
       });
 
-      fetchRoomData();
+      fetchMembers();
       onMembershipChange?.();
     } catch (error) {
       console.error('Error:', error);
     }
-  };
-
-  const isCurrentUserModerator = (): boolean => {
-    return members.some(member => 
-      member.user_id === user?.id && member.role === 'moderator'
-    );
   };
 
   const navigateToProfile = (userId: string) => {
@@ -398,30 +329,8 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
                       </div>
                     </div>
                     
-                    {(isOwner || isCurrentUserModerator()) && member.user_id !== roomOwner && member.role !== 'owner' && (
+                    {isOwner && member.user_id !== roomOwner && member.role !== 'owner' && (
                       <div className="flex items-center space-x-2">
-                        {isOwner && (
-                          <>
-                            {member.role === 'moderator' ? (
-                              <button
-                                onClick={() => demoteFromModerator(member.user_id)}
-                                className="p-2 text-blue-400 hover:bg-blue-900/20 rounded-lg transition-colors"
-                                title="إزالة صلاحيات المشرف"
-                              >
-                                <ShieldOff size={16} />
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => promoteToModerator(member.user_id)}
-                                className="p-2 text-blue-400 hover:bg-blue-900/20 rounded-lg transition-colors"
-                                title="ترقية لمشرف"
-                              >
-                                <Shield size={16} />
-                              </button>
-                            )}
-                          </>
-                        )}
-                        
                         <button
                           onClick={() => banMember(member.user_id)}
                           className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
@@ -448,7 +357,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
                 )}
               </div>
 
-              {bannedMembers.length > 0 && (isOwner || isCurrentUserModerator()) && (
+              {bannedMembers.length > 0 && isOwner && (
                 <div className="space-y-3 pt-4 border-t border-zinc-700">
                   <h3 className="text-sm font-semibold text-zinc-400">الأعضاء المحظورون ({bannedMembers.length})</h3>
                   {bannedMembers.map((member) => (
@@ -473,15 +382,13 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
                         </div>
                       </div>
                       
-                      {(isOwner || isCurrentUserModerator()) && (
-                        <button
-                          onClick={() => unbanMember(member.user_id)}
-                          className="p-2 text-green-400 hover:bg-green-900/20 rounded-lg transition-colors"
-                          title="إلغاء الحظر"
-                        >
-                          <ShieldOff size={16} />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => unbanMember(member.user_id)}
+                        className="p-2 text-green-400 hover:bg-green-900/20 rounded-lg transition-colors"
+                        title="إلغاء الحظر"
+                      >
+                        <ShieldOff size={16} />
+                      </button>
                     </div>
                   ))}
                 </div>

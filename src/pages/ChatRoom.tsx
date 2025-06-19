@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,11 +44,6 @@ interface RoomInfo {
   announcement?: string;
 }
 
-interface UserRole {
-  user_id: string;
-  role: string;
-}
-
 const ChatRoom = () => {
   const { roomId } = useParams();
   const { user } = useAuth();
@@ -55,10 +51,8 @@ const ChatRoom = () => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
-  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
-  const [isBanned, setIsBanned] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [quotedMessage, setQuotedMessage] = useState<Message | null>(null);
@@ -71,8 +65,8 @@ const ChatRoom = () => {
 
   useEffect(() => {
     if (roomId && user) {
-      console.log('🚀 Initializing room:', roomId, 'for user:', user.id);
-      initializeRoom();
+      console.log('🚀 Loading room:', roomId);
+      loadRoom();
     }
   }, [roomId, user]);
 
@@ -80,60 +74,17 @@ const ChatRoom = () => {
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    if (user && roomId) {
-      const membershipChannel = supabase
-        .channel('membership-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'room_members',
-            filter: `user_id=eq.${user.id}`
-          },
-          (payload) => {
-            console.log('Membership change:', payload);
-            if (payload.eventType === 'DELETE' && payload.old?.room_id === roomId) {
-              if (roomInfo?.owner_id !== user.id) {
-                toast({
-                  title: "تم إخراجك",
-                  description: `تم إخراجك من شات ${roomInfo?.name || 'الغرفة'}`,
-                  variant: "destructive"
-                });
-                navigate('/chat-rooms');
-              }
-            } else if (payload.eventType === 'UPDATE' && payload.new?.is_banned === true && payload.new?.room_id === roomId) {
-              if (roomInfo?.owner_id !== user.id) {
-                toast({
-                  title: "تم حظرك",
-                  description: `تم حظرك من شات ${roomInfo?.name || 'الغرفة'}`,
-                  variant: "destructive"
-                });
-                setIsBanned(true);
-              }
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(membershipChannel);
-      };
-    }
-  }, [user, roomId, roomInfo?.name, roomInfo?.owner_id, navigate, toast]);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const initializeRoom = async () => {
+  const loadRoom = async () => {
     if (!roomId || !user) return;
     
     try {
-      console.log('🔄 Fetching room info for room:', roomId);
+      console.log('📋 Fetching room data...');
       
-      // Get room info first
+      // Get room info
       const { data: roomData, error: roomError } = await supabase
         .from('chat_rooms')
         .select('*')
@@ -141,7 +92,7 @@ const ChatRoom = () => {
         .single();
 
       if (roomError) {
-        console.error('❌ Error fetching room:', roomError);
+        console.error('❌ Room error:', roomError);
         toast({
           title: "خطأ",
           description: "لا يمكن العثور على الغرفة",
@@ -151,96 +102,51 @@ const ChatRoom = () => {
         return;
       }
 
-      console.log('✅ Room data loaded:', roomData);
+      console.log('✅ Room loaded:', roomData.name);
       setRoomInfo(roomData);
 
-      // Load all data in parallel
-      const [messagesResult, rolesResult, profileResult, membershipResult] = await Promise.all([
-        supabase
-          .from('room_messages')
-          .select(`
-            *,
-            profiles:user_id (
-              id,
-              username,
-              avatar_url,
-              verification_status
-            )
-          `)
-          .eq('room_id', roomId)
-          .order('created_at', { ascending: false })
-          .limit(50),
-        
-        supabase
-          .from('room_members')
-          .select('user_id, role')
-          .eq('room_id', roomId),
-          
-        supabase
-          .from('profiles')
-          .select('username, avatar_url, verification_status')
-          .eq('id', user.id)
-          .single(),
-          
-        supabase
-          .from('room_members')
-          .select('id, is_banned, role')
-          .eq('room_id', roomId)
-          .eq('user_id', user.id)
-          .maybeSingle()
-      ]);
+      // Check if user is member or owner
+      const { data: memberData } = await supabase
+        .from('room_members')
+        .select('*')
+        .eq('room_id', roomId)
+        .eq('user_id', user.id)
+        .single();
 
-      // Handle messages
-      if (messagesResult.error) {
-        console.error('❌ Error fetching messages:', messagesResult.error);
-      } else {
-        console.log('✅ Messages loaded:', messagesResult.data?.length || 0, 'messages');
-        setMessages(messagesResult.data?.reverse() || []);
+      const isOwner = roomData.owner_id === user.id;
+      const isMemberInRoom = !!memberData;
+
+      if (!isMemberInRoom && !isOwner && roomData.is_private) {
+        // Need to join private room
+        setIsMember(false);
+        setIsLoading(false);
+        return;
       }
 
-      // Handle user roles
-      if (rolesResult.error) {
-        console.error('❌ Error fetching user roles:', rolesResult.error);
+      if (!isMemberInRoom && !isOwner) {
+        // Auto-join public room
+        await joinRoom();
       } else {
-        console.log('✅ User roles loaded:', rolesResult.data?.length || 0, 'roles');
-        setUserRoles(rolesResult.data || []);
+        setIsMember(true);
       }
 
-      // Handle current user profile
-      if (profileResult.error) {
-        console.error('❌ Error fetching current user profile:', profileResult.error);
-      } else {
-        setCurrentUserProfile(profileResult.data);
-      }
+      // Load messages
+      await loadMessages();
+      
+      // Load current user profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('username, avatar_url, verification_status')
+        .eq('id', user.id)
+        .single();
 
-      // Handle membership
-      if (membershipResult.error) {
-        console.error('❌ Error checking membership:', membershipResult.error);
-      } else {
-        const membershipData = membershipResult.data;
-        console.log('📋 Membership data:', membershipData);
+      setCurrentUserProfile(profileData);
 
-        if (membershipData) {
-          setIsMember(true);
-          setIsBanned(membershipData.is_banned || false);
-          console.log('✅ User is member, banned:', membershipData.is_banned);
-        } else {
-          // If user is room owner but not a member, add them
-          if (roomData.owner_id === user.id) {
-            console.log('👑 Owner not in members, adding...');
-            await joinRoom();
-          } else {
-            setIsMember(false);
-            setIsBanned(false);
-            console.log('❌ User is not a member');
-          }
-        }
-      }
-
-      setupRealtimeSubscription();
+      // Setup realtime
+      setupRealtime();
       
     } catch (error) {
-      console.error('💥 Error in initializeRoom:', error);
+      console.error('💥 Load room error:', error);
       toast({
         title: "خطأ",
         description: "حدث خطأ أثناء تحميل الغرفة",
@@ -251,26 +157,45 @@ const ChatRoom = () => {
     }
   };
 
-  const getUserRole = (userId: string): string => {
-    const userRole = userRoles.find(role => role.user_id === userId);
-    return userRole?.role || 'member';
-  };
-
-  const isOwner = (userId: string): boolean => {
-    return userId === roomInfo?.owner_id;
-  };
-
-  const isModerator = (userId: string): boolean => {
-    return getUserRole(userId) === 'moderator';
-  };
-
-  const setupRealtimeSubscription = () => {
+  const loadMessages = async () => {
     if (!roomId) return;
     
-    console.log('📡 Setting up real-time subscription for room:', roomId);
+    try {
+      console.log('💬 Loading messages...');
+      
+      const { data, error } = await supabase
+        .from('room_messages')
+        .select(`
+          *,
+          profiles:user_id (
+            username,
+            avatar_url,
+            verification_status
+          )
+        `)
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: true })
+        .limit(50);
+
+      if (error) {
+        console.error('❌ Messages error:', error);
+        return;
+      }
+
+      console.log('✅ Messages loaded:', data?.length || 0);
+      setMessages(data || []);
+    } catch (error) {
+      console.error('💥 Load messages error:', error);
+    }
+  };
+
+  const setupRealtime = () => {
+    if (!roomId) return;
+    
+    console.log('📡 Setting up realtime...');
     
     const channel = supabase
-      .channel('room-messages')
+      .channel('room-changes')
       .on(
         'postgres_changes',
         {
@@ -279,9 +204,9 @@ const ChatRoom = () => {
           table: 'room_messages',
           filter: `room_id=eq.${roomId}`
         },
-        (payload) => {
-          console.log('📨 Real-time message received:', payload);
-          fetchMessages();
+        () => {
+          console.log('📨 New message received');
+          loadMessages();
         }
       )
       .subscribe();
@@ -291,55 +216,22 @@ const ChatRoom = () => {
     };
   };
 
-  const fetchMessages = async () => {
-    if (!roomId) return;
-    
-    try {
-      console.log('💬 Fetching messages for room:', roomId);
-      
-      const { data, error } = await supabase
-        .from('room_messages')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            username,
-            avatar_url,
-            verification_status
-          )
-        `)
-        .eq('room_id', roomId)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) {
-        console.error('❌ Error fetching messages:', error);
-        return;
-      }
-
-      console.log('✅ Messages loaded:', data?.length || 0, 'messages');
-      setMessages(data?.reverse() || []);
-    } catch (error) {
-      console.error('💥 Error in fetchMessages:', error);
-    }
-  };
-
   const joinRoom = async () => {
     if (!roomId || !user) return;
     
     try {
-      console.log('🚪 Joining room:', roomId, 'as user:', user.id);
+      console.log('🚪 Joining room...');
       
       const { error } = await supabase
         .from('room_members')
         .insert({
           room_id: roomId,
           user_id: user.id,
-          role: roomInfo?.owner_id === user.id ? 'owner' : 'member'
+          role: 'member'
         });
 
       if (error && error.code !== '23505') {
-        console.error('❌ Error joining room:', error);
+        console.error('❌ Join error:', error);
         toast({
           title: "خطأ",
           description: "فشل في الانضمام للغرفة",
@@ -348,88 +240,42 @@ const ChatRoom = () => {
         return;
       }
 
-      console.log('✅ Successfully joined room');
+      console.log('✅ Joined room');
       setIsMember(true);
-      
-      // Refresh user roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('room_members')
-        .select('user_id, role')
-        .eq('room_id', roomId);
-
-      if (!rolesError) {
-        setUserRoles(rolesData || []);
-      }
       
       toast({
         title: "تم الانضمام",
         description: "تم الانضمام للغرفة بنجاح"
       });
     } catch (error) {
-      console.error('💥 Error in joinRoom:', error);
+      console.error('💥 Join error:', error);
     }
   };
 
   const sendMessage = async (content: string, mediaFile?: File, mediaType?: string) => {
-    console.log('📤 Sending message:', { content, hasMedia: !!mediaFile, mediaType });
-
-    if (!content.trim() && !mediaFile) {
-      console.log('❌ No content or media to send');
-      return;
-    }
-    
-    if (!user) {
-      console.log('❌ No user found');
-      return;
-    }
-
-    if (isBanned && !isOwner(user.id)) {
-      toast({
-        title: "محظور",
-        description: "لا يمكنك إرسال رسائل لأنك محظور من هذه الغرفة",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!content.trim() && !mediaFile) return;
+    if (!user || !roomId) return;
 
     setIsSending(true);
     
     try {
       let mediaUrl = null;
       let voiceUrl = null;
-      let finalMediaType = mediaType;
       
       if (mediaFile) {
-        const validation = validateFile(mediaFile);
-        if (!validation.isValid) {
-          throw new Error(validation.error);
-        }
-
-        console.log('📁 Uploading media file...');
+        console.log('📁 Uploading media...');
+        const uploadResult = await uploadChatMedia(mediaFile, user.id, 'room');
         
-        try {
-          const uploadResult = await uploadChatMedia(mediaFile, user.id, 'room');
-          console.log('✅ Media uploaded:', uploadResult);
-          
-          if (mediaType === 'voice') {
-            voiceUrl = uploadResult.url;
-            finalMediaType = 'voice';
-          } else if (mediaFile.type.startsWith('image/')) {
-            mediaUrl = uploadResult.url;
-            finalMediaType = 'image';
-          } else if (mediaFile.type.startsWith('video/')) {
-            mediaUrl = uploadResult.url;
-            finalMediaType = 'video';
-          }
-        } catch (uploadError) {
-          console.error('❌ Upload failed:', uploadError);
-          throw new Error(`فشل في رفع الملف: ${uploadError.message}`);
+        if (mediaType === 'voice') {
+          voiceUrl = uploadResult.url;
+        } else {
+          mediaUrl = uploadResult.url;
         }
       }
 
       let finalContent = content || '';
       if (quotedMessage) {
-        finalContent = `> ${quotedMessage.profiles?.username || 'مستخدم مجهول'}: ${quotedMessage.content}\n\n${finalContent}`;
+        finalContent = `> ${quotedMessage.profiles?.username || 'مستخدم'}: ${quotedMessage.content}\n\n${finalContent}`;
       }
 
       const messageData: any = {
@@ -445,36 +291,28 @@ const ChatRoom = () => {
       
       if (mediaUrl) {
         messageData.media_url = mediaUrl;
-        messageData.media_type = finalMediaType;
+        messageData.media_type = mediaType;
       }
 
-      console.log('💾 Inserting message to database:', messageData);
+      console.log('📤 Sending message...');
 
-      const { data: insertData, error: insertError } = await supabase
+      const { error } = await supabase
         .from('room_messages')
-        .insert(messageData)
-        .select()
-        .single();
+        .insert(messageData);
 
-      if (insertError) {
-        console.error('❌ Insert error:', insertError);
-        throw new Error(`فشل في إرسال الرسالة: ${insertError.message}`);
+      if (error) {
+        console.error('❌ Send error:', error);
+        throw error;
       }
 
-      console.log('✅ Message sent successfully:', insertData);
+      console.log('✅ Message sent');
       setQuotedMessage(null);
-      await fetchMessages();
-      
-      toast({
-        title: "تم الإرسال",
-        description: "تم إرسال الرسالة بنجاح"
-      });
       
     } catch (error) {
-      console.error('💥 Error in sendMessage:', error);
+      console.error('💥 Send message error:', error);
       toast({
         title: "خطأ في الإرسال",
-        description: error.message || 'فشل في إرسال الرسالة',
+        description: 'فشل في إرسال الرسالة',
         variant: "destructive"
       });
     } finally {
@@ -517,16 +355,6 @@ const ChatRoom = () => {
     setQuotedMessage(message);
   };
 
-  const navigateToUserProfile = (userId: string) => {
-    navigate(`/user/${userId}`);
-  };
-
-  const handleAnnouncementUpdate = (announcement: string | null) => {
-    if (roomInfo) {
-      setRoomInfo({ ...roomInfo, announcement });
-    }
-  };
-
   const openImageModal = (imageUrl: string) => {
     setImageModal(imageUrl);
   };
@@ -556,27 +384,6 @@ const ChatRoom = () => {
     }
   };
 
-  const fetchCurrentUserProfile = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username, avatar_url, verification_status')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching current user profile:', error);
-        return;
-      }
-
-      setCurrentUserProfile(data);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
   const renderMessage = (message: any) => {
     const isOwnMessage = message.user_id === user?.id;
 
@@ -586,14 +393,12 @@ const ChatRoom = () => {
         className={`flex items-start space-x-3 ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4 group`}
       >
         {!isOwnMessage && (
-          <div className="flex flex-col items-center gap-1">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-          </div>
+          <Avatar className="w-8 h-8">
+            <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.username} />
+            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+              {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
         )}
 
         <div className={`max-w-xs lg:max-w-md ${isOwnMessage ? 'order-first' : ''} relative`}>
@@ -607,18 +412,16 @@ const ChatRoom = () => {
                 size={14} 
               />
               <OwnerBadge 
-                isOwner={isOwner(message.user_id)} 
+                isOwner={message.user_id === roomInfo?.owner_id} 
                 verificationStatus={message.profiles?.verification_status}
               />
-              <ModeratorBadge isModerator={isModerator(message.user_id)} />
             </div>
           )}
 
           {isOwnMessage && (
             <div className="flex items-center gap-2 mb-1 justify-end">
-              <ModeratorBadge isModerator={isModerator(message.user_id)} />
               <OwnerBadge 
-                isOwner={isOwner(message.user_id)} 
+                isOwner={message.user_id === roomInfo?.owner_id} 
                 verificationStatus={currentUserProfile?.verification_status}
               />
               <VerificationBadge 
@@ -681,10 +484,6 @@ const ChatRoom = () => {
                     e.stopPropagation();
                     openImageModal(message.media_url);
                   }}
-                  onError={(e) => {
-                    console.error('Image failed to load:', message.media_url);
-                    e.currentTarget.style.display = 'none';
-                  }}
                 />
               </div>
             )}
@@ -709,14 +508,12 @@ const ChatRoom = () => {
         </div>
 
         {isOwnMessage && (
-          <div className="flex flex-col items-center gap-1">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={currentUserProfile?.avatar_url} alt={currentUserProfile?.username} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                {currentUserProfile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-          </div>
+          <Avatar className="w-8 h-8">
+            <AvatarImage src={currentUserProfile?.avatar_url} alt={currentUserProfile?.username} />
+            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
+              {currentUserProfile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
         )}
       </div>
     );
@@ -747,21 +544,6 @@ const ChatRoom = () => {
               العودة للغرف
             </Button>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show banned message only for non-owners
-  if (isBanned && !isRoomOwner) {
-    return (
-      <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center p-4">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-400 mb-4">محظور</h2>
-          <p className="text-zinc-400 mb-6">تم حظرك من هذه الغرفة</p>
-          <Button onClick={() => navigate('/chat-rooms')} variant="outline">
-            العودة للغرف
-          </Button>
         </div>
       </div>
     );
@@ -825,7 +607,7 @@ const ChatRoom = () => {
           <div className="px-4">
             <LiveMatchWidget
               roomId={roomId}
-              isOwnerOrModerator={isRoomOwner || isModerator(user?.id || '')}
+              isOwnerOrModerator={isRoomOwner}
               onRemove={() => {
                 console.log('Live match removed');
               }}
@@ -893,16 +675,7 @@ const ChatRoom = () => {
           onClose={() => setShowMembersModal(false)}
           isOwner={isRoomOwner}
           onMembershipChange={() => {
-            // Refresh user roles
-            supabase
-              .from('room_members')
-              .select('user_id, role')
-              .eq('room_id', roomId)
-              .then(({ data, error }) => {
-                if (!error) {
-                  setUserRoles(data || []);
-                }
-              });
+            console.log('Membership changed');
           }}
         />
       )}
@@ -913,7 +686,11 @@ const ChatRoom = () => {
           currentAnnouncement={roomInfo.announcement}
           isOpen={showSettingsModal}
           onClose={() => setShowSettingsModal(false)}
-          onAnnouncementUpdate={handleAnnouncementUpdate}
+          onAnnouncementUpdate={(announcement) => {
+            if (roomInfo) {
+              setRoomInfo({ ...roomInfo, announcement });
+            }
+          }}
         />
       )}
     </div>
