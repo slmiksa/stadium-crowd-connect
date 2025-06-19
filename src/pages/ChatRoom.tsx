@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,9 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import LiveMatchWidget from '@/components/LiveMatchWidget';
-import { uploadChatMedia, validateFile } from '@/utils/storageUtils';
+import { uploadChatMedia } from '@/utils/storageUtils';
 
 interface Message {
   id: string;
@@ -67,6 +65,7 @@ const ChatRoom = () => {
     if (roomId && user) {
       console.log('🚀 Loading room:', roomId);
       loadRoom();
+      setupRealtime();
     }
   }, [roomId, user]);
 
@@ -106,29 +105,28 @@ const ChatRoom = () => {
       setRoomInfo(roomData);
 
       // Check if user is member or owner
-      const { data: memberData } = await supabase
-        .from('room_members')
-        .select('*')
-        .eq('room_id', roomId)
-        .eq('user_id', user.id)
-        .single();
-
       const isOwner = roomData.owner_id === user.id;
-      const isMemberInRoom = !!memberData;
+      let isMemberInRoom = false;
 
-      if (!isMemberInRoom && !isOwner && roomData.is_private) {
-        // Need to join private room
-        setIsMember(false);
-        setIsLoading(false);
-        return;
+      if (!isOwner) {
+        const { data: memberData } = await supabase
+          .from('room_members')
+          .select('*')
+          .eq('room_id', roomId)
+          .eq('user_id', user.id)
+          .eq('is_banned', false)
+          .single();
+
+        isMemberInRoom = !!memberData;
+
+        // Auto-join public room if not a member
+        if (!isMemberInRoom && !roomData.is_private) {
+          await joinRoom();
+          isMemberInRoom = true;
+        }
       }
 
-      if (!isMemberInRoom && !isOwner) {
-        // Auto-join public room
-        await joinRoom();
-      } else {
-        setIsMember(true);
-      }
+      setIsMember(isOwner || isMemberInRoom);
 
       // Load messages
       await loadMessages();
@@ -141,9 +139,6 @@ const ChatRoom = () => {
         .single();
 
       setCurrentUserProfile(profileData);
-
-      // Setup realtime
-      setupRealtime();
       
     } catch (error) {
       console.error('💥 Load room error:', error);
@@ -175,7 +170,7 @@ const ChatRoom = () => {
         `)
         .eq('room_id', roomId)
         .order('created_at', { ascending: true })
-        .limit(50);
+        .limit(100);
 
       if (error) {
         console.error('❌ Messages error:', error);
@@ -307,6 +302,11 @@ const ChatRoom = () => {
 
       console.log('✅ Message sent');
       setQuotedMessage(null);
+      
+      // Refresh messages immediately
+      setTimeout(() => {
+        loadMessages();
+      }, 500);
       
     } catch (error) {
       console.error('💥 Send message error:', error);
@@ -676,6 +676,7 @@ const ChatRoom = () => {
           isOwner={isRoomOwner}
           onMembershipChange={() => {
             console.log('Membership changed');
+            loadRoom(); // Refresh room data
           }}
         />
       )}

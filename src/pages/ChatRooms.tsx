@@ -6,7 +6,7 @@ import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { MessageSquare, Users, Lock, Unlock, Plus, Share, Search } from 'lucide-react';
+import { MessageSquare, Users, Lock, Unlock, Plus, Share } from 'lucide-react';
 import RoomShareModal from '@/components/RoomShareModal';
 
 interface ChatRoom {
@@ -39,6 +39,8 @@ const ChatRooms = () => {
 
   const fetchRooms = async () => {
     try {
+      console.log('📋 Fetching chat rooms...');
+      
       const { data, error } = await supabase
         .from('chat_rooms')
         .select(`
@@ -51,24 +53,80 @@ const ChatRooms = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching rooms:', error);
+        console.error('❌ Error fetching rooms:', error);
+        toast({
+          title: "خطأ",
+          description: "فشل في جلب غرف الدردشة",
+          variant: "destructive"
+        });
         return;
       }
 
+      console.log('✅ Rooms fetched successfully:', data?.length || 0);
       setRooms(data || []);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('💥 Error in fetchRooms:', error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء جلب غرف الدردشة",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleJoinRoom = (room: ChatRoom) => {
-    if (room.is_private) {
-      // التعامل مع الغرف الخاصة
+  const handleJoinRoom = async (room: ChatRoom) => {
+    if (!user) {
+      toast({
+        title: "تسجيل الدخول مطلوب",
+        description: "يجب تسجيل الدخول للانضمام للغرفة",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      console.log('🚪 Joining room:', room.id);
+      
+      // Check if user is already a member
+      const { data: existingMember } = await supabase
+        .from('room_members')
+        .select('id')
+        .eq('room_id', room.id)
+        .eq('user_id', user.id)
+        .single();
+
+      // If not a member and not the owner, add as member
+      if (!existingMember && room.owner_id !== user.id) {
+        const { error: joinError } = await supabase
+          .from('room_members')
+          .insert({
+            room_id: room.id,
+            user_id: user.id,
+            role: 'member'
+          });
+
+        if (joinError && joinError.code !== '23505') { // Ignore duplicate key error
+          console.error('❌ Error joining room:', joinError);
+          toast({
+            title: "خطأ",
+            description: "فشل في الانضمام للغرفة",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
+      console.log('✅ Successfully joined/accessing room');
       navigate(`/chat-room/${room.id}`);
-    } else {
-      navigate(`/chat-room/${room.id}`);
+    } catch (error) {
+      console.error('💥 Error joining room:', error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء الانضمام للغرفة",
+        variant: "destructive"
+      });
     }
   };
 

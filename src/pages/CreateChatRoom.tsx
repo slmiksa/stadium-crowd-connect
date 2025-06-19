@@ -2,13 +2,13 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import { ArrowLeft, Hash, Lock, Globe, Camera, Upload, Key, Users } from 'lucide-react';
+import { ArrowLeft, Globe, Lock, Camera, Upload, Key, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import FollowerSelector from '@/components/FollowerSelector';
 
 const CreateChatRoom = () => {
@@ -61,7 +61,7 @@ const CreateChatRoom = () => {
         .upload(filePath, avatarFile);
 
       if (uploadError) {
-        console.error('Error uploading avatar:', uploadError);
+        console.error('❌ Error uploading avatar:', uploadError);
         return null;
       }
 
@@ -71,7 +71,7 @@ const CreateChatRoom = () => {
 
       return publicUrl;
     } catch (error) {
-      console.error('Error in uploadAvatar:', error);
+      console.error('💥 Error in uploadAvatar:', error);
       return null;
     }
   };
@@ -92,7 +92,7 @@ const CreateChatRoom = () => {
         .insert(invitations);
 
       if (error) {
-        console.error('Error sending invitations:', error);
+        console.error('❌ Error sending invitations:', error);
         toast({
           title: "خطأ في إرسال الدعوات",
           description: error.message,
@@ -105,7 +105,7 @@ const CreateChatRoom = () => {
         });
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('💥 Error:', error);
     }
   };
 
@@ -122,18 +122,9 @@ const CreateChatRoom = () => {
       return;
     }
 
-    if (isPrivate && selectedFollowers.length === 0) {
-      toast({
-        title: "اختيار المتابعين مطلوب",
-        description: "يجب اختيار متابعين للدعوة للغرفة الخاصة",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-      console.log('Creating room with data:', { 
+      console.log('🏗️ Creating room with data:', { 
         name: name.trim(), 
         description: description.trim(), 
         isPrivate, 
@@ -156,7 +147,7 @@ const CreateChatRoom = () => {
         .single();
 
       if (roomError) {
-        console.error('Error creating room:', roomError);
+        console.error('❌ Error creating room:', roomError);
         toast({
           title: "خطأ في إنشاء الغرفة",
           description: roomError.message,
@@ -165,7 +156,7 @@ const CreateChatRoom = () => {
         return;
       }
 
-      console.log('Room created successfully:', room);
+      console.log('✅ Room created successfully:', room);
 
       // رفع الأيقونة إذا تم اختيارها
       let avatarUrl = null;
@@ -179,7 +170,7 @@ const CreateChatRoom = () => {
             .eq('id', room.id);
 
           if (updateError) {
-            console.error('Error updating room avatar:', updateError);
+            console.error('❌ Error updating room avatar:', updateError);
           }
         }
       }
@@ -193,8 +184,8 @@ const CreateChatRoom = () => {
           role: 'owner'
         });
 
-      if (memberError) {
-        console.error('Error adding owner as member:', memberError);
+      if (memberError && memberError.code !== '23505') { // Ignore duplicate key error
+        console.error('❌ Error adding owner as member:', memberError);
         toast({
           title: "خطأ في إضافة العضو",
           description: memberError.message,
@@ -203,10 +194,10 @@ const CreateChatRoom = () => {
         return;
       }
 
-      console.log('Owner added as member successfully');
+      console.log('✅ Owner added as member successfully');
 
       // إرسال الدعوات للمتابعين إذا كانت الغرفة خاصة
-      if (isPrivate) {
+      if (isPrivate && selectedFollowers.length > 0) {
         await sendInvitations(room.id);
       }
       
@@ -218,7 +209,7 @@ const CreateChatRoom = () => {
       // الانتقال إلى الغرفة
       navigate(`/chat-room/${room.id}`);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('💥 Error:', error);
       toast({
         title: "حدث خطأ غير متوقع",
         description: "يرجى المحاولة مرة أخرى",
@@ -380,7 +371,7 @@ const CreateChatRoom = () => {
               <div className="bg-zinc-800 rounded-lg p-4 mb-6">
                 <label className="block text-sm font-medium text-zinc-300 mb-3">
                   <Users size={16} className="inline mr-2" />
-                  اختيار المتابعين للدعوة *
+                  اختيار المتابعين للدعوة (اختياري)
                 </label>
                 <FollowerSelector
                   userId={user.id}
@@ -392,11 +383,11 @@ const CreateChatRoom = () => {
               </div>
             )}
 
-            {/* Submit Button - moved here to be part of the scrollable content */}
+            {/* Submit Button */}
             <div className="pb-4">
               <Button
                 type="submit"
-                disabled={!name.trim() || isSubmitting || (isPrivate && (!password.trim() || selectedFollowers.length === 0))}
+                disabled={!name.trim() || isSubmitting || (isPrivate && !password.trim())}
                 className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 h-12 text-base font-medium"
               >
                 {isSubmitting ? 'جاري الإنشاء...' : 'إنشاء الغرفة'}

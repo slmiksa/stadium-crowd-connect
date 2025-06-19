@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Crown, UserX, Ban, Shield, ShieldOff } from 'lucide-react';
+import { X, Crown, UserX, Ban, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import ModeratorBadge from './ModeratorBadge';
 import { useToast } from '@/hooks/use-toast';
@@ -53,7 +52,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
   const fetchMembers = async () => {
     setIsLoading(true);
     try {
-      console.log('Fetching members for room:', roomId);
+      console.log('👥 Fetching members for room:', roomId);
       
       // Get room owner first
       const { data: roomData, error: roomError } = await supabase
@@ -63,7 +62,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         .single();
 
       if (roomError) {
-        console.error('Error fet ching room owner:', roomError);
+        console.error('❌ Error fetching room owner:', roomError);
         toast({
           title: "خطأ",
           description: "فشل في جلب معلومات الغرفة",
@@ -88,7 +87,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         .order('joined_at', { ascending: false });
 
       if (membersError) {
-        console.error('Error fetching members:', membersError);
+        console.error('❌ Error fetching members:', membersError);
         toast({
           title: "خطأ",
           description: "فشل في جلب قائمة الأعضاء",
@@ -144,11 +143,11 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         );
       }
 
-      console.log('Members fetched successfully:', allMembers.length, 'members');
+      console.log('✅ Members fetched successfully:', allMembers.length, 'members');
       setMembers(allMembers);
       
     } catch (error) {
-      console.error('Error in fetchMembers:', error);
+      console.error('💥 Error in fetchMembers:', error);
       toast({
         title: "خطأ",
         description: "حدث خطأ أثناء جلب قائمة الأعضاء",
@@ -170,7 +169,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error banning member:', error);
+        console.error('❌ Error banning member:', error);
         toast({
           title: "خطأ",
           description: "فشل في حظر العضو",
@@ -187,7 +186,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       fetchMembers();
       onMembershipChange?.();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('💥 Error:', error);
     }
   };
 
@@ -202,7 +201,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error unbanning member:', error);
+        console.error('❌ Error unbanning member:', error);
         toast({
           title: "خطأ",
           description: "فشل في إلغاء حظر العضو",
@@ -219,7 +218,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       fetchMembers();
       onMembershipChange?.();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('💥 Error:', error);
     }
   };
 
@@ -234,7 +233,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error kicking member:', error);
+        console.error('❌ Error kicking member:', error);
         toast({
           title: "خطأ",
           description: "فشل في طرد العضو",
@@ -251,7 +250,7 @@ const RoomMembersModal: React.FC<RoomMembersModalProps> = ({
       fetchMembers();
       onMembershipChange?.();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('💥 Error:', error);
     }
   };
 
