@@ -34,23 +34,41 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
   const [memberCount, setMemberCount] = useState(0);
 
   useEffect(() => {
-    checkExistingRoom();
+    if (match.id) {
+      checkExistingRoom();
+    }
   }, [match.id]);
 
   const checkExistingRoom = async () => {
     try {
+      console.log('Checking for existing room for match:', match.id);
+      
       const { data, error } = await supabase
         .from('match_chat_rooms')
-        .select('room_id, chat_rooms(members_count)')
+        .select(`
+          room_id,
+          chat_rooms!inner (
+            id,
+            name,
+            members_count
+          )
+        `)
         .eq('match_id', match.id)
         .single();
 
       if (!error && data) {
+        console.log('Found existing room:', data);
         setExistingRoom(data.room_id);
-        setMemberCount((data.chat_rooms as any)?.members_count || 0);
+        setMemberCount(data.chat_rooms?.members_count || 0);
+      } else {
+        console.log('No existing room found');
+        setExistingRoom(null);
+        setMemberCount(0);
       }
     } catch (error) {
-      console.log('No existing room found for this match');
+      console.log('No existing room found for this match:', error);
+      setExistingRoom(null);
+      setMemberCount(0);
     }
   };
 
@@ -65,13 +83,42 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
     }
 
     setIsCreating(true);
+    console.log('Creating or joining room for match:', match.id);
 
     try {
       if (existingRoom) {
-        // Join existing room
+        console.log('Joining existing room:', existingRoom);
+        
+        // Check if user is already a member
+        const { data: memberCheck } = await supabase
+          .from('room_members')
+          .select('id')
+          .eq('room_id', existingRoom)
+          .eq('user_id', user.id)
+          .single();
+
+        if (!memberCheck) {
+          // Add user as room member
+          const { error: memberError } = await supabase
+            .from('room_members')
+            .insert({
+              room_id: existingRoom,
+              user_id: user.id,
+              role: 'member'
+            });
+
+          if (memberError) {
+            console.error('Error joining room:', memberError);
+          } else {
+            console.log('Successfully joined existing room');
+          }
+        }
+
         navigate(`/chat-room/${existingRoom}`);
         return;
       }
+
+      console.log('Creating new room for match');
 
       // Create new chat room for the match
       const roomName = `${match.homeTeam} vs ${match.awayTeam}`;
@@ -90,11 +137,11 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
         .single();
 
       if (roomError) {
+        console.error('Error creating room:', roomError);
         throw roomError;
       }
 
-      // Convert match data to JSON compatible format
-      const matchDataJson = JSON.parse(JSON.stringify(match));
+      console.log('Created new room:', newRoom);
 
       // Link the match to the chat room
       const { error: linkError } = await supabase
@@ -102,10 +149,11 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
         .insert({
           match_id: match.id,
           room_id: newRoom.id,
-          match_data: matchDataJson
+          match_data: match
         });
 
       if (linkError) {
+        console.error('Error linking match to room:', linkError);
         throw linkError;
       }
 
@@ -119,22 +167,24 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
         });
 
       if (memberError) {
+        console.error('Error adding member:', memberError);
         throw memberError;
       }
 
-      // Activate live match for the room
-      const { error: liveMatchError } = await supabase
-        .from('room_live_matches')
-        .insert({
-          room_id: newRoom.id,
-          match_id: match.id,
-          match_data: matchDataJson,
-          activated_by: user.id,
-          is_active: true
-        });
-
-      if (liveMatchError) {
-        console.warn('Failed to activate live match:', liveMatchError);
+      // Try to activate live match for the room (optional)
+      try {
+        await supabase
+          .from('room_live_matches')
+          .insert({
+            room_id: newRoom.id,
+            match_id: match.id,
+            match_data: match,
+            activated_by: user.id,
+            is_active: true
+          });
+        console.log('Live match activated successfully');
+      } catch (liveMatchError) {
+        console.warn('Failed to activate live match (non-critical):', liveMatchError);
       }
 
       toast({
@@ -142,6 +192,7 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
         description: `تم إنشاء غرفة دردشة للمباراة بنجاح`
       });
 
+      console.log('Navigating to room:', newRoom.id);
       navigate(`/chat-room/${newRoom.id}`);
 
     } catch (error) {
@@ -163,9 +214,12 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
       className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white"
     >
       {isCreating ? (
-        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin ml-2" />
+        <div className="flex items-center">
+          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin ml-2" />
+          <span>جاري المعالجة...</span>
+        </div>
       ) : existingRoom ? (
-        <>
+        <div className="flex items-center">
           <MessageCircle size={16} className="ml-2" />
           <span>انضم للدردشة</span>
           {memberCount > 0 && (
@@ -174,12 +228,12 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
               <span>({memberCount})</span>
             </>
           )}
-        </>
+        </div>
       ) : (
-        <>
+        <div className="flex items-center">
           <Play size={16} className="ml-2" />
           <span>ابدأ دردشة المباراة</span>
-        </>
+        </div>
       )}
     </Button>
   );
