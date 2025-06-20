@@ -1,13 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
-import { MessageCircle, Users, Play } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { MessageSquare, Users } from 'lucide-react';
 
-interface MatchData {
+interface Match {
   id: string;
   homeTeam: string;
   awayTeam: string;
@@ -22,222 +22,158 @@ interface MatchData {
 }
 
 interface MatchChatButtonProps {
-  match: MatchData;
+  match: Match;
 }
 
 const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isCreating, setIsCreating] = useState(false);
-  const [existingRoom, setExistingRoom] = useState<string | null>(null);
-  const [memberCount, setMemberCount] = useState(0);
-
-  useEffect(() => {
-    if (match.id) {
-      checkExistingRoom();
-    }
-  }, [match.id]);
-
-  const checkExistingRoom = async () => {
-    try {
-      console.log('Checking for existing room for match:', match.id);
-      
-      const { data, error } = await supabase
-        .from('match_chat_rooms')
-        .select(`
-          room_id,
-          chat_rooms!inner (
-            id,
-            name,
-            members_count
-          )
-        `)
-        .eq('match_id', match.id)
-        .single();
-
-      if (!error && data) {
-        console.log('Found existing room:', data);
-        setExistingRoom(data.room_id);
-        setMemberCount(data.chat_rooms?.members_count || 0);
-      } else {
-        console.log('No existing room found');
-        setExistingRoom(null);
-        setMemberCount(0);
-      }
-    } catch (error) {
-      console.log('No existing room found for this match:', error);
-      setExistingRoom(null);
-      setMemberCount(0);
-    }
-  };
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
 
   const createOrJoinMatchRoom = async () => {
     if (!user) {
       toast({
         title: "تسجيل الدخول مطلوب",
-        description: "يجب تسجيل الدخول للانضمام لغرفة المباراة",
+        description: "يجب تسجيل الدخول للدردشة",
         variant: "destructive"
       });
       return;
     }
 
-    setIsCreating(true);
-    console.log('Creating or joining room for match:', match.id);
+    setIsCreatingRoom(true);
 
     try {
+      console.log('🔍 البحث عن غرفة موجودة للمباراة:', match.id);
+
+      // البحث عن غرفة موجودة لهذه المباراة
+      const { data: existingRoom, error: searchError } = await supabase
+        .from('match_chat_rooms')
+        .select('room_id')
+        .eq('match_id', match.id)
+        .maybeSingle();
+
+      if (searchError) {
+        console.error('❌ خطأ في البحث عن الغرفة:', searchError);
+        throw new Error('فشل في البحث عن الغرفة');
+      }
+
+      let roomId: string;
+
       if (existingRoom) {
-        console.log('Joining existing room:', existingRoom);
+        console.log('✅ تم العثور على غرفة موجودة:', existingRoom.room_id);
+        roomId = existingRoom.room_id;
+      } else {
+        console.log('🆕 إنشاء غرفة جديدة للمباراة');
         
-        // Check if user is already a member
-        const { data: memberCheck } = await supabase
-          .from('room_members')
+        // إنشاء غرفة دردشة جديدة
+        const roomName = `${match.homeTeam} vs ${match.awayTeam}`;
+        const roomDescription = `غرفة دردشة مباراة ${match.competition}`;
+
+        const { data: newRoom, error: roomError } = await supabase
+          .from('chat_rooms')
+          .insert({
+            name: roomName,
+            description: roomDescription,
+            is_private: false,
+            password: null,
+            owner_id: user.id,
+            members_count: 1
+          })
           .select('id')
-          .eq('room_id', existingRoom)
-          .eq('user_id', user.id)
           .single();
 
-        if (!memberCheck) {
-          // Add user as room member
-          const { error: memberError } = await supabase
-            .from('room_members')
-            .insert({
-              room_id: existingRoom,
-              user_id: user.id,
-              role: 'member'
-            });
-
-          if (memberError) {
-            console.error('Error joining room:', memberError);
-          } else {
-            console.log('Successfully joined existing room');
-          }
+        if (roomError) {
+          console.error('❌ خطأ في إنشاء الغرفة:', roomError);
+          throw new Error('فشل في إنشاء غرفة الدردشة');
         }
 
-        navigate(`/chat-room/${existingRoom}`);
-        return;
-      }
+        roomId = newRoom.id;
+        console.log('✅ تم إنشاء الغرفة بنجاح:', roomId);
 
-      console.log('Creating new room for match');
-
-      // Create new chat room for the match
-      const roomName = `${match.homeTeam} vs ${match.awayTeam}`;
-      const roomDescription = `غرفة دردشة مباراة ${match.homeTeam} ضد ${match.awayTeam} - ${match.competition}`;
-
-      const { data: newRoom, error: roomError } = await supabase
-        .from('chat_rooms')
-        .insert({
-          name: roomName,
-          description: roomDescription,
-          owner_id: user.id,
-          is_private: false,
-          members_count: 1
-        })
-        .select()
-        .single();
-
-      if (roomError) {
-        console.error('Error creating room:', roomError);
-        throw roomError;
-      }
-
-      console.log('Created new room:', newRoom);
-
-      // Convert MatchData to JSON for database storage
-      const matchDataJson = JSON.parse(JSON.stringify(match));
-
-      // Link the match to the chat room
-      const { error: linkError } = await supabase
-        .from('match_chat_rooms')
-        .insert({
-          match_id: match.id,
-          room_id: newRoom.id,
-          match_data: matchDataJson
-        });
-
-      if (linkError) {
-        console.error('Error linking match to room:', linkError);
-        throw linkError;
-      }
-
-      // Add creator as room member
-      const { error: memberError } = await supabase
-        .from('room_members')
-        .insert({
-          room_id: newRoom.id,
-          user_id: user.id,
-          role: 'owner'
-        });
-
-      if (memberError) {
-        console.error('Error adding member:', memberError);
-        throw memberError;
-      }
-
-      // Try to activate live match for the room (optional)
-      try {
-        await supabase
-          .from('room_live_matches')
+        // ربط الغرفة بالمباراة
+        const { error: linkError } = await supabase
+          .from('match_chat_rooms')
           .insert({
-            room_id: newRoom.id,
+            room_id: roomId,
             match_id: match.id,
-            match_data: matchDataJson,
-            activated_by: user.id,
-            is_active: true
+            match_data: match as any
           });
-        console.log('Live match activated successfully');
-      } catch (liveMatchError) {
-        console.warn('Failed to activate live match (non-critical):', liveMatchError);
+
+        if (linkError) {
+          console.error('❌ خطأ في ربط الغرفة بالمباراة:', linkError);
+          // نتابع حتى لو فشل الربط
+        }
+
+        // إضافة المالك كعضو في الغرفة
+        const { error: memberError } = await supabase
+          .from('room_members')
+          .insert({
+            room_id: roomId,
+            user_id: user.id,
+            role: 'owner'
+          });
+
+        if (memberError && memberError.code !== '23505') {
+          console.error('❌ خطأ في إضافة العضو:', memberError);
+          // نتابع حتى لو فشلت إضافة العضو
+        }
       }
 
-      toast({
-        title: "تم إنشاء الغرفة",
-        description: `تم إنشاء غرفة دردشة للمباراة بنجاح`
-      });
+      // التأكد من أن المستخدم عضو في الغرفة
+      const { data: membership, error: membershipError } = await supabase
+        .from('room_members')
+        .select('id')
+        .eq('room_id', roomId)
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      console.log('Navigating to room:', newRoom.id);
-      navigate(`/chat-room/${newRoom.id}`);
+      if (membershipError) {
+        console.error('❌ خطأ في فحص العضوية:', membershipError);
+      }
+
+      if (!membership) {
+        console.log('🔗 إضافة المستخدم كعضو في الغرفة');
+        const { error: joinError } = await supabase
+          .from('room_members')
+          .insert({
+            room_id: roomId,
+            user_id: user.id,
+            role: 'member'
+          });
+
+        if (joinError && joinError.code !== '23505') {
+          console.error('❌ خطأ في الانضمام للغرفة:', joinError);
+          // نتابع حتى لو فشل الانضمام
+        }
+      }
+
+      console.log('🚀 الانتقال إلى الغرفة:', roomId);
+      
+      // الانتقال إلى غرفة الدردشة
+      navigate(`/chat-room/${roomId}`);
 
     } catch (error) {
-      console.error('Error creating/joining match room:', error);
+      console.error('💥 خطأ عام:', error);
       toast({
         title: "خطأ",
-        description: "فشل في إنشاء أو الانضمام لغرفة المباراة",
+        description: error instanceof Error ? error.message : "حدث خطأ غير متوقع",
         variant: "destructive"
       });
     } finally {
-      setIsCreating(false);
+      setIsCreatingRoom(false);
     }
   };
 
   return (
     <Button
       onClick={createOrJoinMatchRoom}
-      disabled={isCreating}
-      className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white"
+      disabled={isCreatingRoom}
+      className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white transition-all duration-200"
     >
-      {isCreating ? (
-        <div className="flex items-center">
-          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin ml-2" />
-          <span>جاري المعالجة...</span>
-        </div>
-      ) : existingRoom ? (
-        <div className="flex items-center">
-          <MessageCircle size={16} className="ml-2" />
-          <span>انضم للدردشة</span>
-          {memberCount > 0 && (
-            <>
-              <Users size={14} className="mr-2" />
-              <span>({memberCount})</span>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="flex items-center">
-          <Play size={16} className="ml-2" />
-          <span>ابدأ دردشة المباراة</span>
-        </div>
-      )}
+      <MessageSquare size={18} className="ml-2" />
+      {isCreatingRoom ? 'جاري المباراة...' : 'دردشة المباراة'}
+      <Users size={16} className="mr-2 opacity-75" />
     </Button>
   );
 };
