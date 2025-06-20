@@ -111,7 +111,24 @@ const CreateChatRoom = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !name.trim()) return;
+    
+    if (!user) {
+      toast({
+        title: "خطأ",
+        description: "يجب تسجيل الدخول أولاً",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!name.trim()) {
+      toast({
+        title: "خطأ",
+        description: "يجب إدخال اسم الغرفة",
+        variant: "destructive"
+      });
+      return;
+    }
 
     if (isPrivate && !password.trim()) {
       toast({
@@ -123,6 +140,7 @@ const CreateChatRoom = () => {
     }
 
     setIsSubmitting(true);
+    
     try {
       console.log('🏗️ Creating room with data:', { 
         name: name.trim(), 
@@ -132,17 +150,19 @@ const CreateChatRoom = () => {
         userId: user.id 
       });
       
-      // إنشاء الغرفة أولاً
+      // Create the room first
+      const roomData = {
+        name: name.trim(),
+        description: description.trim() || null,
+        is_private: isPrivate,
+        password: isPrivate ? password.trim() : null,
+        owner_id: user.id,
+        members_count: 1
+      };
+
       const { data: room, error: roomError } = await supabase
         .from('chat_rooms')
-        .insert({
-          name: name.trim(),
-          description: description.trim() || null,
-          is_private: isPrivate,
-          password: isPrivate ? password.trim() : null,
-          owner_id: user.id,
-          members_count: 1
-        })
+        .insert([roomData])
         .select()
         .single();
 
@@ -158,12 +178,12 @@ const CreateChatRoom = () => {
 
       console.log('✅ Room created successfully:', room);
 
-      // رفع الأيقونة إذا تم اختيارها
+      // Upload avatar if selected
       let avatarUrl = null;
       if (avatarFile) {
         avatarUrl = await uploadAvatar(room.id);
         if (avatarUrl) {
-          // تحديث الغرفة بـ URL الأيقونة
+          // Update room with avatar URL
           const { error: updateError } = await supabase
             .from('chat_rooms')
             .update({ avatar_url: avatarUrl })
@@ -175,14 +195,14 @@ const CreateChatRoom = () => {
         }
       }
 
-      // إضافة المنشئ كعضو في الغرفة
+      // Add owner as room member
       const { error: memberError } = await supabase
         .from('room_members')
-        .insert({
+        .insert([{
           room_id: room.id,
           user_id: user.id,
           role: 'owner'
-        });
+        }]);
 
       if (memberError && memberError.code !== '23505') { // Ignore duplicate key error
         console.error('❌ Error adding owner as member:', memberError);
@@ -196,7 +216,7 @@ const CreateChatRoom = () => {
 
       console.log('✅ Owner added as member successfully');
 
-      // إرسال الدعوات للمتابعين إذا كانت الغرفة خاصة
+      // Send invitations if private room
       if (isPrivate && selectedFollowers.length > 0) {
         await sendInvitations(room.id);
       }
@@ -206,8 +226,9 @@ const CreateChatRoom = () => {
         description: isPrivate ? "تم إرسال دعوات للمتابعين المختارين" : "يمكنك الآن بدء المحادثة"
       });
       
-      // الانتقال إلى الغرفة
+      // Navigate to the room
       navigate(`/chat-room/${room.id}`);
+      
     } catch (error) {
       console.error('💥 Error:', error);
       toast({

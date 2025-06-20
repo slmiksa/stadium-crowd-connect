@@ -41,7 +41,8 @@ const ChatRooms = () => {
     try {
       console.log('📋 Fetching chat rooms...');
       
-      const { data, error } = await supabase
+      // Fetch all public rooms and rooms where user is a member
+      const { data: publicRooms, error: publicError } = await supabase
         .from('chat_rooms')
         .select(`
           *,
@@ -50,20 +51,44 @@ const ChatRooms = () => {
             avatar_url
           )
         `)
+        .eq('is_private', false)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('❌ Error fetching rooms:', error);
-        toast({
-          title: "خطأ",
-          description: "فشل في جلب غرف الدردشة",
-          variant: "destructive"
-        });
-        return;
+      if (publicError) {
+        console.error('❌ Error fetching public rooms:', publicError);
       }
 
-      console.log('✅ Rooms fetched successfully:', data?.length || 0);
-      setRooms(data || []);
+      let userPrivateRooms: any[] = [];
+      if (user) {
+        const { data: memberRooms, error: memberError } = await supabase
+          .from('room_members')
+          .select(`
+            chat_rooms (
+              *,
+              profiles:owner_id (
+                username,
+                avatar_url
+              )
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('is_banned', false);
+
+        if (memberError) {
+          console.error('❌ Error fetching member rooms:', memberError);
+        } else {
+          userPrivateRooms = memberRooms?.map(m => m.chat_rooms).filter(Boolean) || [];
+        }
+      }
+
+      // Combine and deduplicate rooms
+      const allRooms = [...(publicRooms || []), ...userPrivateRooms];
+      const uniqueRooms = allRooms.filter((room, index, self) => 
+        index === self.findIndex(r => r.id === room.id)
+      );
+
+      console.log('✅ Rooms fetched successfully:', uniqueRooms.length);
+      setRooms(uniqueRooms);
     } catch (error) {
       console.error('💥 Error in fetchRooms:', error);
       toast({
@@ -135,6 +160,18 @@ const ChatRooms = () => {
     setShareModalOpen(true);
   };
 
+  const handleCreateRoom = () => {
+    if (!user) {
+      toast({
+        title: "تسجيل الدخول مطلوب",
+        description: "يجب تسجيل الدخول لإنشاء غرفة دردشة",
+        variant: "destructive"
+      });
+      return;
+    }
+    navigate('/create-chat-room');
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -155,7 +192,7 @@ const ChatRooms = () => {
             <h1 className="text-2xl font-bold text-white">غرف الدردشة</h1>
           </div>
           <Button
-            onClick={() => navigate('/create-chat-room')}
+            onClick={handleCreateRoom}
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Plus size={20} className="ml-2" />
@@ -250,7 +287,7 @@ const ChatRooms = () => {
             <h2 className="text-xl font-bold text-white mb-2">لا توجد غرف دردشة</h2>
             <p className="text-gray-400 mb-6">كن أول من ينشئ غرفة دردشة!</p>
             <Button
-              onClick={() => navigate('/create-chat-room')}
+              onClick={handleCreateRoom}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Plus size={20} className="ml-2" />
