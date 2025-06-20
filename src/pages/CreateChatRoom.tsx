@@ -17,20 +17,26 @@ const CreateChatRoom = () => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    isPrivate: false,
+    password: ''
+  });
   const [selectedFollowers, setSelectedFollowers] = useState<string[]>([]);
   const [selectAllFollowers, setSelectAllFollowers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
+  const handleInputChange = (field: string, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
         toast({
           title: "حجم الملف كبير جداً",
           description: "يجب أن يكون حجم الصورة أقل من 5 ميجابايت",
@@ -61,7 +67,7 @@ const CreateChatRoom = () => {
         .upload(filePath, avatarFile);
 
       if (uploadError) {
-        console.error('❌ Error uploading avatar:', uploadError);
+        console.error('❌ خطأ في رفع الصورة:', uploadError);
         return null;
       }
 
@@ -71,41 +77,8 @@ const CreateChatRoom = () => {
 
       return publicUrl;
     } catch (error) {
-      console.error('💥 Error in uploadAvatar:', error);
+      console.error('💥 خطأ في uploadAvatar:', error);
       return null;
-    }
-  };
-
-  const sendInvitations = async (roomId: string) => {
-    if (!isPrivate || selectedFollowers.length === 0) return;
-
-    try {
-      const invitations = selectedFollowers.map(followerId => ({
-        room_id: roomId,
-        inviter_id: user!.id,
-        invitee_id: followerId,
-        status: 'pending'
-      }));
-
-      const { error } = await supabase
-        .from('room_invitations')
-        .insert(invitations);
-
-      if (error) {
-        console.error('❌ Error sending invitations:', error);
-        toast({
-          title: "خطأ في إرسال الدعوات",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "تم إرسال الدعوات",
-          description: `تم إرسال ${selectedFollowers.length} دعوة بنجاح`
-        });
-      }
-    } catch (error) {
-      console.error('💥 Error:', error);
     }
   };
 
@@ -121,7 +94,7 @@ const CreateChatRoom = () => {
       return;
     }
 
-    if (!name.trim()) {
+    if (!formData.name.trim()) {
       toast({
         title: "خطأ",
         description: "يجب إدخال اسم الغرفة",
@@ -130,7 +103,7 @@ const CreateChatRoom = () => {
       return;
     }
 
-    if (isPrivate && !password.trim()) {
+    if (formData.isPrivate && !formData.password.trim()) {
       toast({
         title: "كلمة السر مطلوبة",
         description: "يجب إدخال كلمة سر للغرف الخاصة",
@@ -142,20 +115,14 @@ const CreateChatRoom = () => {
     setIsSubmitting(true);
     
     try {
-      console.log('🏗️ Creating room with data:', { 
-        name: name.trim(), 
-        description: description.trim(), 
-        isPrivate, 
-        password: isPrivate ? password.trim() : null,
-        userId: user.id 
-      });
+      console.log('🏗️ إنشاء غرفة دردشة جديدة...');
       
-      // Create the room first
+      // إنشاء الغرفة
       const roomData = {
-        name: name.trim(),
-        description: description.trim() || null,
-        is_private: isPrivate,
-        password: isPrivate ? password.trim() : null,
+        name: formData.name.trim(),
+        description: formData.description.trim() || null,
+        is_private: formData.isPrivate,
+        password: formData.isPrivate ? formData.password.trim() : null,
         owner_id: user.id,
         members_count: 1
       };
@@ -167,35 +134,24 @@ const CreateChatRoom = () => {
         .single();
 
       if (roomError) {
-        console.error('❌ Error creating room:', roomError);
-        toast({
-          title: "خطأ في إنشاء الغرفة",
-          description: roomError.message,
-          variant: "destructive"
-        });
-        return;
+        console.error('❌ خطأ في إنشاء الغرفة:', roomError);
+        throw roomError;
       }
 
-      console.log('✅ Room created successfully:', room);
+      console.log('✅ تم إنشاء الغرفة بنجاح:', room.id);
 
-      // Upload avatar if selected
-      let avatarUrl = null;
+      // رفع الصورة إذا تم اختيارها
       if (avatarFile) {
-        avatarUrl = await uploadAvatar(room.id);
+        const avatarUrl = await uploadAvatar(room.id);
         if (avatarUrl) {
-          // Update room with avatar URL
-          const { error: updateError } = await supabase
+          await supabase
             .from('chat_rooms')
             .update({ avatar_url: avatarUrl })
             .eq('id', room.id);
-
-          if (updateError) {
-            console.error('❌ Error updating room avatar:', updateError);
-          }
         }
       }
 
-      // Add owner as room member
+      // إضافة المالك كعضو
       const { error: memberError } = await supabase
         .from('room_members')
         .insert([{
@@ -204,36 +160,37 @@ const CreateChatRoom = () => {
           role: 'owner'
         }]);
 
-      if (memberError && memberError.code !== '23505') { // Ignore duplicate key error
-        console.error('❌ Error adding owner as member:', memberError);
-        toast({
-          title: "خطأ في إضافة العضو",
-          description: memberError.message,
-          variant: "destructive"
-        });
-        return;
+      if (memberError && memberError.code !== '23505') {
+        console.error('❌ خطأ في إضافة المالك:', memberError);
       }
 
-      console.log('✅ Owner added as member successfully');
+      // إرسال الدعوات للغرف الخاصة
+      if (formData.isPrivate && selectedFollowers.length > 0) {
+        const invitations = selectedFollowers.map(followerId => ({
+          room_id: room.id,
+          inviter_id: user.id,
+          invitee_id: followerId,
+          status: 'pending'
+        }));
 
-      // Send invitations if private room
-      if (isPrivate && selectedFollowers.length > 0) {
-        await sendInvitations(room.id);
+        await supabase
+          .from('room_invitations')
+          .insert(invitations);
       }
       
       toast({
         title: "تم إنشاء الغرفة بنجاح",
-        description: isPrivate ? "تم إرسال دعوات للمتابعين المختارين" : "يمكنك الآن بدء المحادثة"
+        description: "يمكنك الآن بدء المحادثة"
       });
       
-      // Navigate to the room
+      // الانتقال للغرفة
       navigate(`/chat-room/${room.id}`);
       
     } catch (error) {
-      console.error('💥 Error:', error);
+      console.error('💥 خطأ في إنشاء الغرفة:', error);
       toast({
-        title: "حدث خطأ غير متوقع",
-        description: "يرجى المحاولة مرة أخرى",
+        title: "حدث خطأ",
+        description: "فشل في إنشاء الغرفة، يرجى المحاولة مرة أخرى",
         variant: "destructive"
       });
     } finally {
@@ -257,9 +214,8 @@ const CreateChatRoom = () => {
           </div>
         </div>
 
-        {/* Scrollable Content */}
+        {/* Form */}
         <div className="flex-1 overflow-y-auto px-4 pb-32">
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Room Avatar */}
             <div className="bg-zinc-800 rounded-lg p-4">
@@ -291,7 +247,6 @@ const CreateChatRoom = () => {
                     onChange={handleAvatarSelect}
                     className="hidden"
                   />
-                  <p className="text-xs text-zinc-500 mt-1">الحد الأقصى 5 ميجابايت</p>
                 </div>
               </div>
             </div>
@@ -302,8 +257,8 @@ const CreateChatRoom = () => {
                 اسم الغرفة *
               </label>
               <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="أدخل اسم الغرفة"
                 className="bg-zinc-900 border-zinc-700 text-white"
                 maxLength={100}
@@ -317,8 +272,8 @@ const CreateChatRoom = () => {
                 وصف الغرفة
               </label>
               <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="أدخل وصفاً للغرفة (اختياري)"
                 className="bg-zinc-900 border-zinc-700 text-white resize-none"
                 rows={3}
@@ -334,9 +289,9 @@ const CreateChatRoom = () => {
               <div className="space-y-3">
                 <button
                   type="button"
-                  onClick={() => setIsPrivate(false)}
+                  onClick={() => handleInputChange('isPrivate', false)}
                   className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                    !isPrivate ? 'bg-blue-600' : 'bg-zinc-700 hover:bg-zinc-600'
+                    !formData.isPrivate ? 'bg-blue-600' : 'bg-zinc-700 hover:bg-zinc-600'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
@@ -350,9 +305,9 @@ const CreateChatRoom = () => {
                 
                 <button
                   type="button"
-                  onClick={() => setIsPrivate(true)}
+                  onClick={() => handleInputChange('isPrivate', true)}
                   className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                    isPrivate ? 'bg-blue-600' : 'bg-zinc-700 hover:bg-zinc-600'
+                    formData.isPrivate ? 'bg-blue-600' : 'bg-zinc-700 hover:bg-zinc-600'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
@@ -367,7 +322,7 @@ const CreateChatRoom = () => {
             </div>
 
             {/* Password for Private Rooms */}
-            {isPrivate && (
+            {formData.isPrivate && (
               <div className="bg-zinc-800 rounded-lg p-4">
                 <label className="block text-sm font-medium text-zinc-300 mb-2">
                   <Key size={16} className="inline mr-2" />
@@ -375,20 +330,17 @@ const CreateChatRoom = () => {
                 </label>
                 <Input
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
                   placeholder="أدخل كلمة سر قوية"
                   className="bg-zinc-900 border-zinc-700 text-white"
-                  required={isPrivate}
+                  required={formData.isPrivate}
                 />
-                <p className="text-xs text-zinc-500 mt-1">
-                  ستُرسل كلمة السر للمتابعين المدعوين
-                </p>
               </div>
             )}
 
             {/* Follower Selection for Private Rooms */}
-            {isPrivate && user && (
+            {formData.isPrivate && user && (
               <div className="bg-zinc-800 rounded-lg p-4 mb-6">
                 <label className="block text-sm font-medium text-zinc-300 mb-3">
                   <Users size={16} className="inline mr-2" />
@@ -408,7 +360,7 @@ const CreateChatRoom = () => {
             <div className="pb-4">
               <Button
                 type="submit"
-                disabled={!name.trim() || isSubmitting || (isPrivate && !password.trim())}
+                disabled={!formData.name.trim() || isSubmitting || (formData.isPrivate && !formData.password.trim())}
                 className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 h-12 text-base font-medium"
               >
                 {isSubmitting ? 'جاري الإنشاء...' : 'إنشاء الغرفة'}

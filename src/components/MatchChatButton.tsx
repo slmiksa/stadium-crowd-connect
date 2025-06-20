@@ -44,30 +44,25 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
     setIsCreatingRoom(true);
 
     try {
-      console.log('🔍 البحث عن غرفة موجودة للمباراة:', match.id);
+      console.log('🔍 البحث عن غرفة دردشة للمباراة:', match.id);
 
-      // البحث عن غرفة موجودة لهذه المباراة
+      // البحث عن غرفة موجودة للمباراة
       const { data: existingRoom, error: searchError } = await supabase
         .from('match_chat_rooms')
         .select('room_id')
         .eq('match_id', match.id)
-        .maybeSingle();
-
-      if (searchError) {
-        console.error('❌ خطأ في البحث عن الغرفة:', searchError);
-        throw new Error('فشل في البحث عن الغرفة');
-      }
+        .single();
 
       let roomId: string;
 
-      if (existingRoom) {
+      if (existingRoom && !searchError) {
         console.log('✅ تم العثور على غرفة موجودة:', existingRoom.room_id);
         roomId = existingRoom.room_id;
       } else {
         console.log('🆕 إنشاء غرفة جديدة للمباراة');
         
         // إنشاء غرفة دردشة جديدة
-        const roomName = `${match.homeTeam} vs ${match.awayTeam}`;
+        const roomName = `${match.homeTeam} ضد ${match.awayTeam}`;
         const roomDescription = `غرفة دردشة مباراة ${match.competition}`;
 
         const { data: newRoom, error: roomError } = await supabase
@@ -92,7 +87,7 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
         console.log('✅ تم إنشاء الغرفة بنجاح:', roomId);
 
         // ربط الغرفة بالمباراة
-        const { error: linkError } = await supabase
+        await supabase
           .from('match_chat_rooms')
           .insert({
             room_id: roomId,
@@ -100,52 +95,33 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
             match_data: match as any
           });
 
-        if (linkError) {
-          console.error('❌ خطأ في ربط الغرفة بالمباراة:', linkError);
-          // نتابع حتى لو فشل الربط
-        }
-
         // إضافة المالك كعضو في الغرفة
-        const { error: memberError } = await supabase
+        await supabase
           .from('room_members')
           .insert({
             room_id: roomId,
             user_id: user.id,
             role: 'owner'
           });
-
-        if (memberError && memberError.code !== '23505') {
-          console.error('❌ خطأ في إضافة العضو:', memberError);
-          // نتابع حتى لو فشلت إضافة العضو
-        }
       }
 
       // التأكد من أن المستخدم عضو في الغرفة
-      const { data: membership, error: membershipError } = await supabase
+      const { data: membership } = await supabase
         .from('room_members')
         .select('id')
         .eq('room_id', roomId)
         .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (membershipError) {
-        console.error('❌ خطأ في فحص العضوية:', membershipError);
-      }
+        .single();
 
       if (!membership) {
         console.log('🔗 إضافة المستخدم كعضو في الغرفة');
-        const { error: joinError } = await supabase
+        await supabase
           .from('room_members')
           .insert({
             room_id: roomId,
             user_id: user.id,
             role: 'member'
           });
-
-        if (joinError && joinError.code !== '23505') {
-          console.error('❌ خطأ في الانضمام للغرفة:', joinError);
-          // نتابع حتى لو فشل الانضمام
-        }
       }
 
       console.log('🚀 الانتقال إلى الغرفة:', roomId);
@@ -157,7 +133,7 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
       console.error('💥 خطأ عام:', error);
       toast({
         title: "خطأ",
-        description: error instanceof Error ? error.message : "حدث خطأ غير متوقع",
+        description: "حدث خطأ أثناء إنشاء أو الانضمام لغرفة المباراة",
         variant: "destructive"
       });
     } finally {
@@ -172,7 +148,7 @@ const MatchChatButton: React.FC<MatchChatButtonProps> = ({ match }) => {
       className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white transition-all duration-200"
     >
       <MessageSquare size={18} className="ml-2" />
-      {isCreatingRoom ? 'جاري المباراة...' : 'دردشة المباراة'}
+      {isCreatingRoom ? 'جاري التحضير...' : 'دردشة المباراة'}
       <Users size={16} className="mr-2 opacity-75" />
     </Button>
   );

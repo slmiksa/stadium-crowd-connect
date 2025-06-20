@@ -32,6 +32,7 @@ const ChatRooms = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
+  const [joiningRoom, setJoiningRoom] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRooms();
@@ -39,10 +40,9 @@ const ChatRooms = () => {
 
   const fetchRooms = async () => {
     try {
-      console.log('📋 Fetching chat rooms...');
+      console.log('📋 جاري جلب غرف الدردشة...');
       
-      // Fetch all public rooms and rooms where user is a member
-      const { data: publicRooms, error: publicError } = await supabase
+      const { data, error } = await supabase
         .from('chat_rooms')
         .select(`
           *,
@@ -51,46 +51,17 @@ const ChatRooms = () => {
             avatar_url
           )
         `)
-        .eq('is_private', false)
         .order('created_at', { ascending: false });
 
-      if (publicError) {
-        console.error('❌ Error fetching public rooms:', publicError);
+      if (error) {
+        console.error('❌ خطأ في جلب الغرف:', error);
+        throw error;
       }
 
-      let userPrivateRooms: any[] = [];
-      if (user) {
-        const { data: memberRooms, error: memberError } = await supabase
-          .from('room_members')
-          .select(`
-            chat_rooms (
-              *,
-              profiles:owner_id (
-                username,
-                avatar_url
-              )
-            )
-          `)
-          .eq('user_id', user.id)
-          .eq('is_banned', false);
-
-        if (memberError) {
-          console.error('❌ Error fetching member rooms:', memberError);
-        } else {
-          userPrivateRooms = memberRooms?.map(m => m.chat_rooms).filter(Boolean) || [];
-        }
-      }
-
-      // Combine and deduplicate rooms
-      const allRooms = [...(publicRooms || []), ...userPrivateRooms];
-      const uniqueRooms = allRooms.filter((room, index, self) => 
-        index === self.findIndex(r => r.id === room.id)
-      );
-
-      console.log('✅ Rooms fetched successfully:', uniqueRooms.length);
-      setRooms(uniqueRooms);
+      console.log('✅ تم جلب الغرف بنجاح:', data?.length || 0);
+      setRooms(data || []);
     } catch (error) {
-      console.error('💥 Error in fetchRooms:', error);
+      console.error('💥 خطأ في fetchRooms:', error);
       toast({
         title: "خطأ",
         description: "حدث خطأ أثناء جلب غرف الدردشة",
@@ -111,19 +82,37 @@ const ChatRooms = () => {
       return;
     }
 
+    setJoiningRoom(room.id);
+
     try {
-      console.log('🚪 Joining room:', room.id);
+      console.log('🚪 محاولة الدخول للغرفة:', room.id);
       
-      // Check if user is already a member
-      const { data: existingMember } = await supabase
+      // إذا كان صاحب الغرفة، ادخل مباشرة
+      if (room.owner_id === user.id) {
+        console.log('👑 المستخدم هو صاحب الغرفة');
+        navigate(`/chat-room/${room.id}`);
+        return;
+      }
+
+      // تحقق من العضوية
+      const { data: memberData } = await supabase
         .from('room_members')
-        .select('id')
+        .select('id, is_banned')
         .eq('room_id', room.id)
         .eq('user_id', user.id)
         .single();
 
-      // If not a member and not the owner, add as member
-      if (!existingMember && room.owner_id !== user.id) {
+      // إذا كان عضو ولم يتم حظره
+      if (memberData && !memberData.is_banned) {
+        console.log('✅ المستخدم عضو في الغرفة');
+        navigate(`/chat-room/${room.id}`);
+        return;
+      }
+
+      // إذا كانت الغرفة عامة، انضم تلقائياً
+      if (!room.is_private) {
+        console.log('🌐 الغرفة عامة - انضمام تلقائي');
+        
         const { error: joinError } = await supabase
           .from('room_members')
           .insert({
@@ -132,8 +121,8 @@ const ChatRooms = () => {
             role: 'member'
           });
 
-        if (joinError && joinError.code !== '23505') { // Ignore duplicate key error
-          console.error('❌ Error joining room:', joinError);
+        if (joinError && joinError.code !== '23505') {
+          console.error('❌ خطأ في الانضمام:', joinError);
           toast({
             title: "خطأ",
             description: "فشل في الانضمام للغرفة",
@@ -141,17 +130,26 @@ const ChatRooms = () => {
           });
           return;
         }
+
+        console.log('✅ تم الانضمام للغرفة بنجاح');
+        toast({
+          title: "تم الانضمام",
+          description: "تم الانضمام للغرفة بنجاح"
+        });
       }
 
-      console.log('✅ Successfully joined/accessing room');
+      // الانتقال للغرفة
       navigate(`/chat-room/${room.id}`);
+      
     } catch (error) {
-      console.error('💥 Error joining room:', error);
+      console.error('💥 خطأ في الدخول للغرفة:', error);
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء الانضمام للغرفة",
+        description: "حدث خطأ أثناء الدخول للغرفة",
         variant: "destructive"
       });
+    } finally {
+      setJoiningRoom(null);
     }
   };
 
@@ -272,9 +270,10 @@ const ChatRooms = () => {
               {/* Join Button */}
               <Button
                 onClick={() => handleJoinRoom(room)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={joiningRoom === room.id}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
               >
-                دخول الغرفة
+                {joiningRoom === room.id ? 'جاري الدخول...' : 'دخول الغرفة'}
               </Button>
             </div>
           ))}
